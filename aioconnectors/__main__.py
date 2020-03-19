@@ -273,11 +273,10 @@ if len(sys.argv) > 1:
         try:
             loop.run_forever()
         except:    
-            task_stop = loop.create_task(connector_manager.connector.stop(connector_socket_only=False, client_wait_for_reconnect=False, hard=False))            
+            task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))            
             loop.run_until_complete(task_stop)
-            task_manager.cancel()
+            del task_stop
             del task_manager
-            connector_manager.connector.shutdown_sync()            
             del connector_manager
             print('Connector stopped !')        
 

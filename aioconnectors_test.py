@@ -128,9 +128,8 @@ if __name__ == '__main__':
             try:
                 loop.run_forever()
             except:
-                task_stop = loop.create_task(connector_manager.connector.stop(connector_socket_only=False, client_wait_for_reconnect=False, hard=False))            
+                task_stop = loop.create_task(connector_manager.stop_connector(shutdown=True))            
                 loop.run_until_complete(task_stop)
-                connector_manager.connector.shutdown_sync()            
                 del connector_manager                
                 print('Server stopped !')
                 
@@ -159,9 +158,8 @@ if __name__ == '__main__':
             try:
                 loop.run_forever()
             except:
-                task_stop = loop.create_task(connector_manager.connector.stop(connector_socket_only=False, client_wait_for_reconnect=False, hard=False))            
+                task_stop = loop.create_task(connector_manager.stop_connector(shutdown=True))            
                 loop.run_until_complete(task_stop)
-                connector_manager.connector.shutdown_sync()            
                 del connector_manager                         
                 print('Client stopped !')
 

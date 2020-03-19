@@ -203,7 +203,7 @@ class Connector:
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
             
-            self.commander_server = None
+            self.commander_server = self.commander_server_task = None
             self.uds_path_commander = os.path.join(self.connector_files_dirpath, self.UDS_PATH_COMMANDER.format(self.alnum_source_id))
                     
             if not tool_only:
@@ -262,26 +262,15 @@ class Connector:
                 self.ignore_peer_traffic = False
                 self.loop = asyncio.get_event_loop()
                 #commander_server lives besides start/stop
-                self.commander_server = self.loop.create_task(asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander))
+                self.commander_server_task = self.loop.create_task(self.create_commander_server())
                     
         except Exception:
             self.logger.exception('init')
             raise
+
+    async def create_commander_server(self):            
+        self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
             
-    def __del__(self):
-        try:
-            if self.commander_server:
-                #in case this is a ConnectorManager, not a ConnectorAPI nor a ConnectorRemoteTool
-                self.commander_server.cancel()
-                if os.path.exists(self.uds_path_commander):                
-                    self.logger.info('Deleting file '+self.uds_path_commander)                    
-                    os.remove(self.uds_path_commander)
-                self.logger.info('Destroying ConnectorManager '+self.source_id)                    
-        except Exception:
-            try:
-                self.logger.exception('del : remove uds_path_send_to_connector')
-            except Exception:
-                pass
                 
     async def log_msg_counts(self):
         while True:
@@ -346,7 +335,7 @@ class Connector:
             self.loop.create_task(self.restart(sleep_between=self.SLEEP_BETWEEN_START_FAILURES))
             return
         
-    async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False):
+    async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False, shutdown=False):
             
         self.logger.info(f'{self.source_id} Connector stopping ...')    
         self.is_running = False
@@ -358,14 +347,7 @@ class Connector:
             #4- cancel_tasks and stop queue_recv_from_connector
             #5- close socket
             #6- delete uds_path_send_to_connector file
-            if not connector_socket_only:
-                #if self.commander_server:           
-                #    try:
-                #        self.commander_server.close()   
-                #        await self.commander_server.wait_closed()                                         
-                #    except Exception:
-                #        self.logger.exception('stop commander_server')
-                
+            if not connector_socket_only:                
                 if self.send_to_connector_server:           
                     try:
                         self.send_to_connector_server.close()   
@@ -385,7 +367,8 @@ class Connector:
                     self.logger.exception('stop server')
             else:
                 if not client_wait_for_reconnect:
-                    await self.full_duplex.stop(hard=hard)
+                    if self.full_duplex:
+                        await self.full_duplex.stop(hard=hard)
 
             task_excludes = ['client_wait_for_reconnect'] if client_wait_for_reconnect else None                    
             if not connector_socket_only:
@@ -424,17 +407,22 @@ class Connector:
                     os.remove(self.uds_path_send_to_connector)
             except Exception:
                 self.logger.exception('stop : remove uds_path_send_to_connector')
-            
-    async def shutdown(self, hard=False):
-        self.logger.info(f'{self.source_id} Connector shutdown ...')
-        if self.is_running:                  
-            await self.stop(hard=hard)
-        self.shutdown_sync()
         
-    def shutdown_sync(self):
-        self.loop.close()        
-        #self.loop.stop()
+        if shutdown:
+            try:
+                if self.commander_server:
+                    #in case this is a ConnectorManager, not a ConnectorAPI nor a ConnectorRemoteTool
+                    self.commander_server.close()
+                    await self.commander_server.wait_closed()
+                    self.commander_server_task.cancel()
+                    if os.path.exists(self.uds_path_commander):                
+                        self.logger.info('Deleting file '+self.uds_path_commander)                    
+                        os.remove(self.uds_path_commander)
+                    self.logger.info('Destroying ConnectorManager '+self.source_id)                    
+            except Exception:
+                self.logger.exception('shutdown : remove uds_path_commander')
         
+                
     async def restart(self, sleep_between=0, connector_socket_only=False, hard=False):    
         if connector_socket_only:
             self.logger.info(f'{self.source_id} Connector restarting socket only ...')            

@@ -78,12 +78,12 @@ class ConnectorManager:
         self.logger.info('start_connector : '+str(self.source_id))        
         await self.connector.start(connector_socket_only=connector_socket_only)
 
-    async def stop_connector(self, delay=None, connector_socket_only=False, hard=False):
+    async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False):
         if delay:
             self.logger.info('Waiting {} seconds before stopping connector : {}'.format(delay, self.source_id))
             await asyncio.sleep(delay)        
         self.logger.info('stop_connector : '+str(self.source_id))
-        await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard)        
+        await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard, shutdown=True)        
         
     async def restart_connector(self, delay=None, sleep_between=0, connector_socket_only=False, hard=False):    
         if delay:

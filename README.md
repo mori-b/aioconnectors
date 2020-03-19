@@ -40,7 +40,7 @@ Relevant for both server and client.
 
     python3 -m aioconnectors create_connector <config_json_path>
 
-2.2.programmatically, an example is provided in aioconnectors\_test.py  
+2.2.programmatically, examples are provided in aioconnectors\_test.py and in \_\_main\_\_.py  
 to create and start a connector :
 
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
@@ -48,12 +48,11 @@ to create and start a connector :
 
 to stop a connector :
 
-    await connector_manager.connector.stop(hard=False)
+    await connector_manager.stop_connector()
 
 to shutdown a connector :
 
-    connector_manager.connector.shutdown_sync()
-    del connector_manager
+    await connector_manager.stop_connector(shutdown=True)
 
 You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in aioconnectors\_test.py
 
