@@ -21,7 +21,7 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
     python3 -m aioconnectors --help
 
-### 1.If you choose to use encryption, the first step is to call
+### 1.If you choose to use encryption, you should call
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
@@ -186,11 +186,11 @@ to run several interesting commands like :
 
 ### 7.Testing command line tools supported.
 
--To sends pings to a remote connector, and prints its replies. 
+-To send pings to a remote connector, and print its replies. 
 
     python3 -m aioconnectors ping <config_json_path>
 
--To simulate a simple application waiting for messages, and prints all received messages. Your application should not wait for incoming messages when using this testing tool.
+-To simulate a simple application waiting for messages, and print all received messages. Your application should not wait for incoming messages when using this testing tool.
 
     python3 -m aioconnectors test_receive_messages <config_json_path>
 

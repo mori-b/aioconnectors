@@ -8,12 +8,6 @@ import json
 
 import aioconnectors
 
-'''
-1)python3 -m aioconnectors create_certificates dst_path
-Creates needed certificates tree under dst_path
-or 2) python3 -m aioconnectors create_certificates
-Creates needed certificates under cwd
-'''
 
 logger = logging.getLogger('aioconnectors_main')
 logger.setLevel(logging.DEBUG)
