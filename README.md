@@ -21,184 +21,182 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
     python3 -m aioconnectors --help
 
-1. If you choose to use encryption, the first step is to call
+###1.If you choose to use encryption, the first step is to call
 
-    python3 -m aioconnectors create_certificates <optional_directory_path>
+    python3 -m aioconnectors create\_certificates <optional\_directory\_path>
 
-If you don't specify optional_directory_path, certificates will be created in cwd.
+If you don't specify optional\_directory\_path, certificates will be created in cwd.
 This results in the creation of 2 directories : certificates/server and certificates/client.
 All you have to do is copy certificates/server to your server, and certificates/client to your client.
 
-2. You have 2 options to run your connectors, either through the command line tool, or programmatically.
-2.a. : command line tool
-- To configure the Connector Manager, create a <config_json_path> file based on the Manager template json.
+###2.You have 2 options to run your connectors, either through the command line tool, or programmatically.  
+2.1.command line tool  
+-To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json.
 Relevant for both server and client.
 
-    python3 -m aioconnectors print_config_templates
+    python3 -m aioconnectors print\_config\_templates
 
 -Then create you connector (both server and client)
 
-    python3 -m aioconnectors create_connector <config_json_path>
+    python3 -m aioconnectors create\_connector <config\_json\_path>
 
-2-b : programmatically, an example is provided in aioconnectors_test.py
+2.2.programmatically, an example is provided in aioconnectors\_test.py  
 to create and start a connector :
 
-    connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
-    task_manager = loop.create_task(connector_manager.start_connector())
+    connector\_manager = aioconnectors.ConnectorManager(config\_file\_path=config\_file\_path)
+    task\_manager = loop.create\_task(connector\_manager.start\_connector())
 
 to stop a connector :
 
-    await connector_manager.connector.stop(hard=False)
+    await connector\_manager.connector.stop(hard=False)
 
 to shutdown a connector :
 
-    connector_manager.connector.shutdown_sync()
-    del connector_manager
+    connector\_manager.connector.shutdown\_sync()
+    del connector\_manager
 
-You don't have to use a config file (config_file_path), you can also directly initialize your ConnectorManager kwargs, as shown in aioconnectors_test.py
+You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in aioconnectors\_test.py
 
-3. You have 2 options to send/receive messages with the API, either through the command line tool, or programmatically.
+###3.You have 2 options to send/receive messages with the API, either through the command line tool, or programmatically.
 
-3.a : command line tool
-To configure the Connector API, create a <config_json_path> file based on the API template json.
+3.1.command line tool  
+To configure the Connector API, create a <config\_json\_path> file based on the API template json.
 Relevant for both server and client.
 
-    python3 -m aioconnectors print_config_templates
+    python3 -m aioconnectors print\_config\_templates
 
-3.b : or you can directly initialize your ConnectorAPI kwargs
-
-Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors_test.py, and in __main__.py (test_receive_messages and test_send_messages)
+3.2.or you can directly initialize your ConnectorAPI kwargs  
+Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in \_\_main\_\_.py (test\_receive\_messages and test\_send\_messages)
 To send messages : 
 
-    await connector_api.send_message()
+    await connector\_api.send\_message()
 
 This returns a status (True or False).
-If you set the await_response kwarg to True, this returns the response : a (transport_json , data, binary) triplet
+If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet
 
 To register to receive messages of a specific type : 
 
-    loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
+    loop.create\_task(connector\_api.start\_waiting\_for\_messages(message\_type='', message\_received\_cb=message\_received\_cb))
 
-message_received_cb is a coroutine receiving and processing the message triplet (transport_json, data, binary).
+message\_received\_cb is a coroutine receiving and processing the message triplet (transport\_json, data, binary).
 
 
-4. More details about the ConnectorManager and ConnectorAPI arguments.
+###4.More details about the ConnectorManager and ConnectorAPI arguments.
 
-    logger=None, use_default_logger=True, default_logger_log_level='INFO', config_file_path=<path>
+    logger=None, use\_default\_logger=True, default\_logger\_log\_level='INFO', config\_file\_path=<path>
 
-config_file_path can be the path of a json file like the following, or instead you can load its values as kwargs, as shown in aioconnectors_test.py
+config\_file\_path can be the path of a json file like the following, or instead you can load its values as kwargs, as shown in aioconnectors\_test.py  
 
-Here is an example of config_file_path, with ConnectorManager class arguments, used to create a connector
+Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
-    "certificates_directory_path": null,
-    "client_name": null,
-    "connector_files_dirpath": "/tmp/aioconnectors",
-    "debug_msg_counts": true,
-    "default_logger_dirpath": "/tmp/aioconnectors",
-    "default_logger_log_level": "INFO",
-    "disk_persistence": false,
-    "file_type2dirpath": {},
-    "is_server": false,
-    "send_message_types": [
+    "certificates\_directory\_path": null,
+    "client\_name": null,
+    "connector\_files\_dirpath": "/tmp/aioconnectors",
+    "debug\_msg\_counts": true,
+    "default\_logger\_dirpath": "/tmp/aioconnectors",
+    "default\_logger\_log\_level": "INFO",
+    "disk\_persistence": false,
+    "file\_type2dirpath": {},
+    "is\_server": false,
+    "send\_message\_types": [
         "any"
     ],
-    "max_size_persistence_path": 1000000000,
-    "recv_message_types": [
+    "max\_size\_persistence\_path": 1000000000,
+    "recv\_message\_types": [
         "any"
     ],
-    "server_sockaddr": [
+    "server\_sockaddr": [
         "127.0.0.1",
         12345
     ],
     "silent": true,
-    "uds_path_receive_preserve_socket": true,
-    "uds_path_send_preserve_socket": true,
-    "use_ssl": true
+    "uds\_path\_receive\_preserve\_socket": true,
+    "uds\_path\_send\_preserve\_socket": true,
+    "use\_ssl": true
     }
 
-Here is an example of config_file_path, with ConnectorAPI class arguments, used to send/receive messages
+Here is an example of config\_file\_path, with ConnectorAPI class arguments, used to send/receive messages.  
 These are a subset of ConnectorManager arguments
 
     {
-    "client_name": null,
-    "connector_files_dirpath": "/tmp/aioconnectors",
-    "default_logger_dirpath": "/tmp/aioconnectors",
-    "default_logger_log_level": "INFO",
-    "is_server": false,
-    "send_message_types": [
+    "client\_name": null,
+    "connector\_files\_dirpath": "/tmp/aioconnectors",
+    "default\_logger\_dirpath": "/tmp/aioconnectors",
+    "default\_logger\_log\_level": "INFO",
+    "is\_server": false,
+    "send\_message\_types": [
         "any"
     ],
-    "recv_message_types": [
+    "recv\_message\_types": [
         "any"
     ],
-    "server_sockaddr": [
+    "server\_sockaddr": [
         "127.0.0.1",
         12345
     ],
-    "uds_path_receive_preserve_socket": true,
-    "uds_path_send_preserve_socket": true
+    "uds\_path\_receive\_preserve\_socket": true,
+    "uds\_path\_send\_preserve\_socket": true
     }
 
-- is_server (boolean) is important to differentiate between server and client
-- server_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides.
-- client_name is mandatory on client side. It is the name that will be associated with this client on server side.
-- use_ssl is a boolean
-- certificates_directory_path is where your certificates are located, if use_ssl is True
-- connector_files_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.
-- send_message_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.
-- recv_message_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send_message_types using await_response.
-- In order to be able to receive files, you must define the destination path of files according to their associated dst_type. This is done in file_type2dirpath, as shown in aioconnectors_test.py
-- In order to enable persistence (supported on both client and server sides), use disk_persistence=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max_size_persistence_path.
-- uds_path_receive_preserve_socket should always be True for better performance, your message_received_cb coroutine in start_waiting_for_messages stays connected to the connector once the latter starts sending it messages.
-- uds_path_send_preserve_socket should always be True for better performance.
+-is\_server (boolean) is important to differentiate between server and client  
+-server\_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides.  
+-client\_name is mandatory on client side. It is the name that will be associated with this client on server side.  
+-use\_ssl is a boolean  
+-certificates\_directory\_path is where your certificates are located, if use\_ssl is True  
+-connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
+-send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
+-recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
+-In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_type2dirpath, as shown in aioconnectors\_test.py  
+-In order to enable persistence (supported on both client and server sides), use disk\_persistence=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
+-uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
+-uds\_path\_send\_preserve\_socket should always be True for better performance.
 
 
-5- More details about the send_message arguments
+###5.More details about the send\_message arguments
 
-    send_message(message_type=None, destination_id=None, request_id=None, response_id=None,
-    data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False) 
-    with_file can be like : {'src_path':'','dst_type':'', 'dst_name':'', 'delete':False}
+    send\_message(message\_type=None, destination\_id=None, request\_id=None, response\_id=None,
+    data=None, data\_is\_json=True, binary=None, await\_response=False, with\_file=None, wait\_for\_ack=False) 
+    with\_file can be like : {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False}
 
-These arguments must be filled on the application layer by the user
-- message_type is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.
-- destination_id is mandatory for server : it is the remote client id
-- data is the payload of your message. Usually it is a json, but it can even be binary. However you probably prefer to use a binary payload together with some text information, so best practice would be to keep "data" as a json or string, and use the "binary" argument for binary payload.
-- data_is_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.
-- with_file lets you embed a file, with {'src_path':'','dst_type':'', 'dst_name':'', 'delete':False}. src_path is the source path of the file to be sent, dst_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file_type2dirpath". dst_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent.
-- request_id and response_id are helpful to keep track of asynchronous messages on the application layer
-- await_response is False by default, set it to True if your coroutine calling send_message expects a response value.
-In such a case, the remote peer has to answer with response_id equal to the request_id.
-This is shown in aioconnectors_test.py.
--wait_for_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1500 messages per second.
+These arguments must be filled on the application layer by the user  
+-message\_type is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.  
+-destination\_id is mandatory for server : it is the remote client id  
+-data is the payload of your message. Usually it is a json, but it can even be binary. However you probably prefer to use a binary payload together with some text information, so best practice would be to keep "data" as a json or string, and use the "binary" argument for binary payload.  
+-data\_is\_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
+-with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_type2dirpath". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent.  
+-request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer  
+-await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
+In such a case, the remote peer has to answer with response\_id equal to the request\_id.
+This is shown in aioconnectors\_test.py.  
+-wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1500 messages per second.
 
 
-6- Other management command line tools supported
-You can also type 
+###6.Other management command line tools supported
 
     python3 -m aioconnectors cli
 
-to run several interesting commands like : 
-- start/stop/restart your connectors
-- show currently connected peers
-- delete_client_certificates enables your server to delete a specific client certificate. delete_client_certificates enables your client to delete its own certificate and fallback using the default one. 
-- peek_queues to show the internal queues sizes
-- ignore_peer_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages.
+to run several interesting commands like :   
+-start/stop/restart your connectors  
+-show currently connected peers  
+-delete\_client\_certificates enables your server to delete a specific client certificate. delete\_client\_certificates enables your client to delete its own certificate and fallback using the default one.   
+-peek\_queues to show the internal queues sizes  
+-ignore\_peer\_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages.  
 
 
-7- Testing command line tools supported.
+###7.Testing command line tools supported.
 
-- To sends pings to a remote connector, and prints its replies. 
+-To sends pings to a remote connector, and prints its replies. 
 
-    python3 -m aioconnectors ping <config_json_path>
+    python3 -m aioconnectors ping <config\_json\_path>
 
-- To simulate a simple application waiting for messages, and prints all received messages. Your application should not wait for incoming messages when using this testing tool.
+-To simulate a simple application waiting for messages, and prints all received messages. Your application should not wait for incoming messages when using this testing tool.
 
-    python3 -m aioconnectors test_receive_messages <config_json_path>
+    python3 -m aioconnectors test\_receive\_messages <config\_json\_path>
 
-- To simulate a simple application sending dummy messages.
+-To simulate a simple application sending dummy messages.
 
-    python3 -m aioconnectors test_send_messages <config_json_path>
+    python3 -m aioconnectors test\_send\_messages <config\_json\_path>
 
 
 
