@@ -1,7 +1,7 @@
 # aioconnectors
 Simple secure asynchronous persistent message broker (unix)
 
-FEATURES
+## FEATURES
 
 aioconnectors is an easy to set up broker that works on Unix like systems, using Python >= 3.6.
 It is built on the client/server model, provides secure authentication, optional encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
@@ -9,13 +9,13 @@ It comes with a command line tool that enables to easily run a connector, and ma
 It provides a simple programmatic API, with simple functionalities like starting/stopping a connector, sending a message, or receiving messages.
 
 
-HIGH LEVEL DESIGN
+## HIGH LEVEL DESIGN
 
 The client and server are connected by one single tcp client/server socket.
 When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can chose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.
 The optional encryption uses TLS. The server certificate is predefined, as well as the default client certificate. So that a server and client without prior knowledge of these certificates cannot interfere. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
 
-USAGE
+## USAGE
 
 aioconnectors provides the ConnectorManager class which runs the connectors, and the ConnectorAPI class which sends and receives messages. It also provides a command line tool accessible by typing
 
