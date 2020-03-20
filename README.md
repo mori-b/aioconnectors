@@ -1,5 +1,5 @@
 # aioconnectors
-Simple secure asynchronous persistent message broker (unix)
+Simple secure asynchronous persistent message broker (Unix-like)
 
 ## FEATURES
 
@@ -77,7 +77,8 @@ To register to receive messages of a specific type :
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
 
-message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (transport\_json, data, binary).
+message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (transport\_json, data, binary).  
+transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
