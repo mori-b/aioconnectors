@@ -65,7 +65,7 @@ Relevant for both server and client.
     python3 -m aioconnectors print_config_templates
 
 3.2.or you can directly initialize your ConnectorAPI kwargs  
-Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in \_\_main\_\_.py (test\_receive\_messages and test\_send\_messages)
+Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in \_\_main\_\_.py (test\_receive\_messages and test\_send\_messages)  
 To send messages : 
 
     await connector_api.send_message()
@@ -77,7 +77,7 @@ To register to receive messages of a specific type :
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
 
-message\_received\_cb is a coroutine receiving and processing the message triplet (transport\_json, data, binary).
+message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (transport\_json, data, binary).
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
