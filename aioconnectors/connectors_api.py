@@ -160,6 +160,10 @@ class ConnectorAPI(ConnectorBaseTool):
     uds_path_send_to_connector and uds_path_receive_from_connector are hard coded.
     '''
         
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.send_message_lock = asyncio.Lock()
+        
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False): #, reuse_uds_connection=True):
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, request_id=request_id, response_id=response_id,
@@ -168,7 +172,13 @@ class ConnectorAPI(ConnectorBaseTool):
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False): #, reuse_uds_connection=True):
-        try:             
+        #lock is necessary when calling this coroutine as a task, because multiple tasks may lose sync while waiting for open_unix_connection,
+        #and then not reusing reader_writer_uds_path_send even if uds_path_send_preserve_socket is True
+
+        try:  
+            #await self.send_message_lock.acquire()            
+            await asyncio.wait_for(self.send_message_lock.acquire(), Connector.ASYNC_TIMEOUT)                
+            
             if data_is_json:
                 data = json.dumps(data)
             if not self.is_server and not destination_id:
@@ -241,6 +251,11 @@ class ConnectorAPI(ConnectorBaseTool):
         except Exception as exc:
             self.logger.exception('send_data')
             return False
+        finally:
+            try:
+                self.send_message_lock.release()
+            except Exception:
+                self.logger.exception('send_message_lock release')
 
             
     async def recv_message(self, reader, writer):
