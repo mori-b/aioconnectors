@@ -1,5 +1,5 @@
 # aioconnectors
-Simple secure asynchronous persistent message broker (unix)
+Simple secure asynchronous persistent message broker (Unix-like)
 
 ## FEATURES
 
