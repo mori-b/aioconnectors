@@ -143,62 +143,88 @@ class ConnectorAPI:
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, request_id=request_id, response_id=response_id,
                            data=data, data_is_json=data_is_json, binary=binary, with_file=with_file, wait_for_ack=wait_for_ack)
         return res
-    
+
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
-        try:             
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False): #, reuse_uds_connection=True):
+
+        try:  
+            
             if data_is_json:
                 data = json.dumps(data)
             if not self.is_server and not destination_id:
                 destination_id = str(self.server_sockaddr)
             self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, request_id {request_id}')
                 
-            message_bytes = self.pack_message(data=data, message_type=message_type, source_id=self.source_id,
+            message_bytes = self.connector.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, binary=binary,
                                    await_response=await_response, with_file=with_file, wait_for_ack=wait_for_ack)
 
+            send_message_lock_internally_acquired = False
             if self.uds_path_send_preserve_socket and not await_response:
-                #use_existing_connection = False
                 #try to reuse connection to uds
+                if not self.reader_writer_uds_path_send:     
+                    #either there is really no reader_writer_uds_path_send, or the send_message_lock is currently locked by another send_message whcih is
+                    #in the process of creating a reader_writer_uds_path_send. In such a case, we wait for send_message_lock, and check again if reader_writer_uds_path_send exists.
+                    try:
+                        await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
+                    except asyncio.TimeoutError:
+                        self.logger.warning('send_message could not acquire send_message_lock')
+                        return False
+                    else:
+                        #reader_writer_uds_path_send may have changed during wait_for(self.send_message_lock.acquire()) : checking again if reader_writer_uds_path_send exists
+                        if self.reader_writer_uds_path_send:
+                            #a new check reader_writer_uds_path_send has just been created by another send_message task : use it !
+                            try:
+                                self.send_message_lock.release()
+                            except Exception:
+                                self.logger.exception('send_message_lock release')
+                        else:
+                            #we acquired send_message_lock, and there is no reader_writer_uds_path_send : we set send_message_lock_internally_acquired 
+                            #to prevent waiting a second time for send_message_lock in the following
+                            send_message_lock_internally_acquired = True
+                
                 if self.reader_writer_uds_path_send:
                     try:
                         reader, writer = self.reader_writer_uds_path_send
                         writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])    
                         writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])                        
                         await writer.drain()                                        
-                        #use_existing_connection = True
                         self.logger.debug('send_message reusing existing connection')
+                        return True                        
                     except Exception:
+                        #now we need to create a new connection
                         self.reader_writer_uds_path_send = None                        
                         self.logger.exception('send_message uds_path_send_preserve_socket')
-                    else:
-                        try:
-                            await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)
-                        except Exception:
-                            self.logger.exception('send_message writer drain')
-
-                        #if await_response:            
-                        #    the_response = await self.recv_message(reader, writer)
-                        #    return the_response
-                        return True                        
+                                          
                         
-            #if not use_existing_connection:
             self.logger.debug('send_message creating new connection')
             try:
-                reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.uds_path_send_to_connector, 
+                #in case send_message is called as a task, we need the send_message_lock when creating a new connection to uds_path_send_to_connector
+                #otherwise the order of messages can be messed up. And also the shared reader_writer_uds_path_send mechanism can be messed up
+                if not send_message_lock_internally_acquired:
+                    await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
+                
+                reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.connector.uds_path_send_to_connector, 
                                                    limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                 if self.uds_path_send_preserve_socket and not await_response:
                     self.reader_writer_uds_path_send = reader, writer
-            except Exception as exc: #ConnectionRefusedError:
-                self.logger.warning(f'send_message could not connect to {self.uds_path_send_to_connector} : {exc}')
+            except Exception as exc: #ConnectionRefusedError: or TimeoutError
+                self.logger.warning(f'send_message could not connect to {self.connector.uds_path_send_to_connector} : {exc}')
                 return False                        
+            finally:
+                try:
+                    if self.send_message_lock.locked():
+                        self.send_message_lock.release()
+                except Exception:
+                    self.logger.exception('send_message_lock release')
+            
             writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
             writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])
             try:
                 await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)
             except Exception:
                 self.logger.exception('send_message writer drain')
-            #else:        
+            #beware to not lock the await_response recv_message with send_message_lock
             if await_response:            
                 the_response = await self.recv_message(reader, writer)
             self.logger.debug('send_message finished sending')                    
@@ -207,7 +233,6 @@ class ConnectorAPI:
                 return the_response
             return True      
                 
-
         except asyncio.CancelledError:
             self.logger.warning('send_message : CancelledError')            
             raise            
@@ -219,7 +244,7 @@ class ConnectorAPI:
         except Exception as exc:
             self.logger.exception('send_data')
             return False
-
+    
             
     async def recv_message(self, reader, writer):
         try:

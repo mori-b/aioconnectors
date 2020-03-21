@@ -4,7 +4,7 @@ Simple secure asynchronous persistent message broker (Unix-like)
 ## FEATURES
 
 aioconnectors is an easy to set up broker that works on Unix like systems, using Python >= 3.6.
-It is built on the client/server model, provides secure authentication, optional encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
+It is built on the client/server model but both peers can push messages, it provides optional authentication and encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
 It comes with a command line tool that enables to easily run a connector, and manage it.
 It provides a simple programmatic API, with simple functionalities like starting/stopping a connector, sending a message, or receiving messages.
 
