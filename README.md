@@ -30,7 +30,7 @@ This results in the creation of 2 directories : certificates/server and certific
 All you have to do is copy certificates/server to your server, and certificates/client to your client.
 
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.  
-2.1.command line tool  
+2.1.Command line tool  
 -To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json.
 Relevant for both server and client.
 
@@ -40,7 +40,7 @@ Relevant for both server and client.
 
     python3 -m aioconnectors create_connector <config_json_path>
 
-2.2.programmatically, examples are provided in aioconnectors\_test.py and in \_\_main\_\_.py  
+2.2.Programmatically, examples are provided in aioconnectors\_test.py and in \_\_main\_\_.py  
 to create and start a connector :
 
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
@@ -56,19 +56,20 @@ to shutdown a connector :
 
 You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in aioconnectors\_test.py
 
-### 3.You have 2 options to send/receive messages with the API, either through the command line tool, or programmatically.
+### 3.send/receive messages with the API
 
-3.1.command line tool  
-To configure the Connector API, create a <config\_json\_path> file based on the API template json.
+3.1.To configure the Connector API, create a <config\_json\_path> file based on the API template json.
 Relevant for both server and client.
 
     python3 -m aioconnectors print_config_templates
+    connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
 
-3.2.or you can directly initialize your ConnectorAPI kwargs  
+3.2.Or you can directly initialize your ConnectorAPI kwargs  
+
 Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in \_\_main\_\_.py (test\_receive\_messages and test\_send\_messages)  
 To send messages : 
 
-    await connector_api.send_message()
+    await connector_api.send_message(**kwargs)
 
 This returns a status (True or False).
 If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet
@@ -85,7 +86,8 @@ transport\_json is a json with keys related to the "transport layer" of our mess
 
     logger=None, use_default_logger=True, default_logger_log_level='INFO', config_file_path=<path>
 
-config\_file\_path can be the path of a json file like the following, or instead you can load its values as kwargs, as shown in aioconnectors\_test.py  
+config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in aioconnectors\_test.py  
+You can use both kwargs and config_file_path : if there are shared items, the ones from config_file_path will override the kwargs.  
 
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
