@@ -73,6 +73,8 @@ class ConnectorAPI:
         self.reader_writer_uds_path_send = None
         self.message_waiters = {}
         self.uds_path_receive_from_connector = {}
+        self.send_message_lock = asyncio.Lock()
+        
         if self.is_server:        
             self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])            
             self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))            

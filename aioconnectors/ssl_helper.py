@@ -57,6 +57,7 @@ class SSL_helper:
             self.CLIENT_KEY_PATH  = os.path.join(self.CLIENT_BASE_PATH, 'client-certs/{}.'+self.KEY_NAME_EXTENSION)
             #self.CLIENT_DEFAULT_ORGANIZATION = '9d2f849c877b4e50b6fccb54d6cd1818'    #'Internet Widgits Pty Ltd'  #'company' 
             self.CLIENT_SERVER_CRT_PATH  = os.path.join(self.CLIENT_BASE_PATH, 'server-cert/server.crt')                        
+            #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
             
             if self.is_server:
                 self.source_id_2_cert_path = os.path.join(self.SERVER_CERTS_PATH, self.SOURCE_ID_2_CERT)

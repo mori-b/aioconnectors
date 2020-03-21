@@ -1067,7 +1067,9 @@ class Connector:
         context.verify_mode = ssl.CERT_REQUIRED        
         context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),\
 		    keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
-        context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH) # optional 
+        #in case server certificate change, client should first replace/chain the new server certificate in its cafile
+        context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)    #optional
+        #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
         return context
 
 

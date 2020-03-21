@@ -111,11 +111,15 @@ if len(sys.argv) > 1:
         cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
         stdout = subprocess.check_output(cmd, shell=True)
         shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
+        #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
  
 #        2) Create client default certificate
         client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
-        client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)       
-        cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}'
+        client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
+        organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
+        #we might want to obfuscate organization
+        organization = str(abs(hash(organization)) % (10 ** 8))
+        cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
         stdout = subprocess.check_output(cmd, shell=True)        
         shutil.copy(client_default_pem, SERVER_CERTS_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
 
