@@ -119,7 +119,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     }
 
 Here is an example of config\_file\_path, with ConnectorAPI class arguments, used to send/receive messages.  
-These are a subset of ConnectorManager arguments
+These are a subset of ConnectorManager arguments : which means you can use the ConnectorManager config file also for ConnectorAPI.
 
     {
     "client_name": null,
