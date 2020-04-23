@@ -104,10 +104,12 @@ class Connector:
     USE_SSL = True
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
     SERVER_VALIDATES_CLIENTS = True    
-    DISK_PERSISTENCE = False    #can be boolean, or list of message types having disk persistence enabled
+    DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
     #however the code still exists partially, in case of future change
-    PERSISTENCE_FILE_NAME = 'connector_disk_persistence_from_{}_to_peer'
+    PERSISTENCE_SEND_FILE_NAME = 'connector_disk_persistence_send_from_{}_to_peer'
+    DISK_PERSISTENCE_RECV = False
+    PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
     MAX_SIZE_PERSISTENCE_PATH = 1000000000 #1gb
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
@@ -140,7 +142,7 @@ class Connector:
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None,
                  use_ssl=USE_SSL, certificates_directory_path=None, validates_clients=SERVER_VALIDATES_CLIENTS,
-                 disk_persistence=DISK_PERSISTENCE,
+                 disk_persistence_send=DISK_PERSISTENCE_SEND, disk_persistence_recv=DISK_PERSISTENCE_RECV,
                  max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, tool_only=False, file_type2dirpath=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
@@ -164,7 +166,7 @@ class Connector:
             self.uds_path_send_preserve_socket = uds_path_send_preserve_socket
             self.silent = silent
             if self.debug_msg_counts:
-                self.msg_counts = {'store_persistence':0, 'load_persistence':0, 'send_no_persist':0, 'queue_sent':0,'queue_recv':0, 'msg_recvd_uds':0}
+                self.msg_counts = {'store_persistence_send':0, 'load_persistence_send':0, 'send_no_persist':0, 'queue_sent':0,'queue_recv':0, 'msg_recvd_uds':0, 'store_persistence_recv':0, 'load_persistence_recv':0}
                 self.previous_msg_counts = deepcopy(self.msg_counts)
             
             self.server_sockaddr = server_sockaddr
@@ -233,18 +235,29 @@ class Connector:
                 else:                        
                     self.logger.info('Connector will not use ssl')                                                               
                     
-                self.disk_persistence = disk_persistence
-                self.persistence_path = os.path.join(self.connector_files_dirpath, self.PERSISTENCE_FILE_NAME.format(self.alnum_source_id) + '_')
+                self.disk_persistence = disk_persistence_send
+                self.persistence_path = os.path.join(self.connector_files_dirpath, self.PERSISTENCE_SEND_FILE_NAME.format(self.alnum_source_id) + '_') #peer name will be appended
+                self.disk_persistence_recv = disk_persistence_recv
+                self.persistence_recv_path = os.path.join(self.connector_files_dirpath, self.PERSISTENCE_RECV_FILE_NAME.format(self.alnum_source_id) + '_') #msg type will be appended         
                 self.ram_persistence = False #ram_persistence    
                 self.max_size_persistence_path = max_size_persistence_path
                 if self.disk_persistence:
                     if self.persistence_path:
-                        self.logger.info('Connector will use persistence path {} with max size {}'.format(self.persistence_path, self.max_size_persistence_path))
+                        self.logger.info('Connector will use send persistence path {} with max size {}'.format(self.persistence_path, self.max_size_persistence_path))
                     else:
-                        self.logger.warning('Connector misconfigured : disk_persistence is enabled without persistence_path')
+                        self.logger.warning('Connector misconfigured : disk_persistence is enabled without persistence_path send')
                         #self.logger.info('Connector will use persistence ram')
                 else:
-                    self.logger.info('Connector will not use persistence')                                
+                    self.logger.info('Connector will not use persistence send')                                
+
+                if self.disk_persistence_recv:
+                    if self.persistence_recv_path:
+                        self.logger.info('Connector will use recv persistence path {} with max size {}'.format(self.persistence_recv_path, self.max_size_persistence_path))
+                    else:
+                        self.logger.warning('Connector misconfigured : disk_persistence is enabled without persistence_path recv')
+                        #self.logger.info('Connector will use persistence ram')
+                else:
+                    self.logger.info('Connector will not use persistence recv')                                
                     
                 #if self.disk_persistence:
                     #self.delete_previous_persistence_remains()
@@ -593,6 +606,7 @@ class Connector:
     def delete_previous_persistence_remains(self):
         try:
             self.logger.info(f'{self.source_id} delete_previous_persistence_remains checking files')
+            
             persistence_dir = os.path.dirname(self.persistence_path)
             persistence_basename = os.path.basename(self.persistence_path)
             for filename in os.listdir(persistence_dir):            
@@ -600,6 +614,15 @@ class Connector:
                     old_persistence_path = os.path.join(persistence_dir, filename)
                     self.logger.warning(f'{self.source_id} delete_previous_persistence_remains Deleting old persistent file : {old_persistence_path}')
                     os.remove(old_persistence_path)
+                    
+            persistence_recv_dir = os.path.dirname(self.persistence_recv_path)
+            persistence_recv_basename = os.path.basename(self.persistence_recv_path)
+            for filename in os.listdir(persistence_recv_dir):            
+                if filename.startswith(persistence_recv_basename):
+                    old_persistence_path = os.path.join(persistence_recv_dir, filename)
+                    self.logger.warning(f'{self.source_id} delete_previous_persistence_remains Deleting old persistent file : {old_persistence_path}')
+                    os.remove(old_persistence_path)
+                    
         except Exception:
             self.logger.exception(f'{self.source_id} delete_previous_persistence_remains')
                 
@@ -902,11 +925,89 @@ class Connector:
                 writer.close()
             except Exception:
                 pass
+      
+    def store_message_to_persistence_recv(self, msg_type, message):
+        persistence_path = self.persistence_recv_path + msg_type
+        try:
+            if os.path.exists(persistence_path) and os.path.getsize(persistence_path) > self.max_size_persistence_path:
+                self.logger.warning(f'{self.source_id} Cannot store message to persistence_recv for msg_type {msg_type} because {persistence_path} is too big')
+                return
+            self.logger.debug(f'{self.source_id} Storing message to persistence_recv for msg_type {msg_type}')
+            if DEBUG_SHOW_DATA:
+                self.logger.info('With data : '+str(message[200:210]))
+            with open(persistence_path, mode='ab') as fd:
+                fd.write(self.PERSISTENCE_SEPARATOR)
+                #fd.write(peername.encode()+b'\n')
+                fd.write(message)
+            if self.debug_msg_counts:
+                self.msg_counts['store_persistence_recv'] += 1
+                
+        except Exception:
+            self.logger.exception(f'{self.source_id} store_message_to_persistence_recv')        
+          
+    async def load_messages_from_persistence_recv(self, msg_type, dst_queue):
+        self.logger.info(f'{self.source_id} Loading messages from persistence_recv {msg_type}')
 
+       # async with self.persistence_lock:                       
+        persistence_recv_path = self.persistence_recv_path + msg_type
+        try:
+            #if not os.path.exists(persistence_recv_path):
+            #    self.logger.info('The persistence path '+persistence_recv_path+' does not exist')
+            #    return
+            persistence_content = None
+            with open(persistence_recv_path, mode='rb') as fd:
+                persistence_content = fd.read()
+            persistent_count = 0
+            if persistence_content:
+                persistence_units = persistence_content.split(self.PERSISTENCE_SEPARATOR)[1:]
+                persistence_content = None
+                for message in persistence_units:
+                    self.logger.debug('Loading persistent_recv message to queue : '+msg_type)
+                    if DEBUG_SHOW_DATA:
+                        self.logger.debug('With data : '+str(message[200:210]))                                     
+                    await dst_queue.put(message)
+                    persistent_count += 1
+                    #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
+                    #because of this cpu intensive loop
+                    await asyncio.sleep(0)#0.001)
+                    if self.debug_msg_counts:
+                        self.msg_counts['load_persistence_recv']+=1                            
+
+            self.logger.info(f'{self.source_id} load_messages_from_persistence_recv finished loading {persistent_count} messages to transition_queue. Deleting persistence file {persistence_recv_path}')
+            try:
+                os.remove(persistence_recv_path)
+            except Exception:
+                self.logger.exception(f'{self.source_id} load_messages_from_persistence_recv delete persistence file')
+                            
+        except Exception:
+            self.logger.exception(f'{self.source_id} load_messages_from_persistence_recv')                    
+            
     async def queue_recv_from_connector(self):        
         self.logger.info(f'{self.source_id} queue_recv_from_connector task created')        
+        
+            
+        persistence_recv_enabled = []    #list of msg_types
+        transition_queues = {}    #key=msg_type, value=Queue of message_bytes
         while True:
             try:
+                if persistence_recv_enabled:
+                    #test if connectivity is back (per msg_type) : if yes, do transition from file to queue
+                    msg_types_ready_for_transition = []
+                    for msg_type in persistence_recv_enabled:
+                        try:
+                            uds_path_receive = self.uds_path_receive_from_connector.get(msg_type)                            
+                            reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
+                                                               limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                            writer.close()
+                            msg_types_ready_for_transition.append(msg_type)
+                        except Exception as exc: #ConnectionRefusedError:
+                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
+                    for msg_type in msg_types_ready_for_transition:
+                        transition_queues[msg_type] = asyncio.Queue(maxsize=self.connector.MAX_QUEUE_SIZE)
+                        #read file into queue, delete file
+                        await self.load_messages_from_persistence_recv(msg_type, transition_queues[msg_type])
+                        persistence_recv_enabled.remove(msg_type)                                 
+                 
                 queue_recv_size = self.queue_recv.qsize()
                 if queue_recv_size:
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')                    
@@ -915,26 +1016,58 @@ class Connector:
                     #else:
                     #    self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
                 else:
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')
-                    
-                transport_json, data, binary = await self.queue_recv.get()
-                self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : ' + str(transport_json))
-                self.queue_recv.task_done()  #if someone uses 'join'
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')      
+                
+                if transition_queues:
+                    #read from transition_queues, emptying one after the other, before coming back to self.queue_recv
+                    msg_type_key = list(transition_queues.keys())[0]
+                    transition_queue = transition_queues[msg_type_key]                    
+                    message_bytes = await transition_queue.get()
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message')
+                    if transition_queue.empty():
+                        self.logger.info(f'Finished reading from transition queue : {msg_type_key}')
+                        del transition_queues[msg_type_key]                        
+                else:
+                    transport_json, data, binary = await self.queue_recv.get()
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : ' + str(transport_json))
+                    self.queue_recv.task_done()  #if someone uses 'join'
                 
                 uds_path_receive = self.uds_path_receive_from_connector.get(transport_json[MessageFields.MESSAGE_TYPE])
                 if not uds_path_receive:
                     self.logger.error(f'{self.source_id} Invalid message type received by queue_recv_from_connector {transport_json[MessageFields.MESSAGE_TYPE]}')
                     transport_json, data, binary = None, None, None
                     continue
-                                    
+
+                #here we could remove some fields from transport_json if better
+                message_bytes = self.pack_message(transport_json=transport_json, data=data, binary=binary)
+                
+                msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)
+                if msg_type in persistence_recv_enabled:
+                    #here, if persistence_recv_enabled has a msg_type element, it means this msg_type has no connectivity, and must be kept in file                    
+                    self.store_message_to_persistence_recv(msg_type, message_bytes)
+                    continue
+                
                 if not os.path.exists(uds_path_receive):        
                     self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to non existing {uds_path_receive}')
+                    disk_persistence_recv = self.disk_persistence_recv
+                    if isinstance(disk_persistence_recv, list):
+                        #disk_persistence can be a list of message types
+                        disk_persistence_recv = (msg_type in disk_persistence_recv)
+                    if disk_persistence_recv:
+                        self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
+                        if msg_type not in persistence_recv_enabled:
+                            persistence_recv_enabled.append(msg_type)
+                        if msg_type in transition_queues:
+                            #in case disconnection happens during transition, first copy queue into new file
+                            transition_queue = transition_queues[msg_type]
+                            while not transition_queue.empty():
+                                message_bytes_queue = await transition_queue.get()
+                                self.store_message_to_persistence_recv(msg_type, message_bytes_queue)                            
+                        self.store_message_to_persistence_recv(msg_type, message_bytes)
+
                     transport_json, data, binary = None, None, None
                     continue
         
-                #here we could remove some fields from transport_json if better
-                message_bytes = self.pack_message(transport_json=transport_json, data=data, binary=binary)
-
                 if self.uds_path_receive_preserve_socket:
                     #this requires start_waiting_for_messages in connectors_api to have a client_connected_cb in a while loop, not a simple callback
                     use_existing_connection = False
@@ -950,6 +1083,7 @@ class Connector:
                         except Exception:
                             del self.reader_writer_uds_path_receive[uds_path_receive]                        
                             self.logger.exception('queue_recv_from_connector')
+                            persistence_recv_enabled = True
                             
                     if not use_existing_connection:
                         self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
@@ -958,7 +1092,22 @@ class Connector:
                                                                limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                         except Exception as exc: #ConnectionRefusedError:
                             self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                            #no outgoing persistence... message is lost
+                            disk_persistence_recv = self.disk_persistence_recv
+                            msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)                            
+                            if isinstance(disk_persistence_recv, list):
+                                #disk_persistence can be a list of message types
+                                disk_persistence_recv = (msg_type in disk_persistence_recv)
+                            if disk_persistence_recv:
+                                self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
+                                if msg_type not in persistence_recv_enabled:
+                                    persistence_recv_enabled.append(msg_type)
+                                if msg_type in transition_queues:
+                                    #in case disconnection happens during transition, first copy queue into new file
+                                    transition_queue = transition_queues[msg_type]
+                                    while not transition_queue.empty():
+                                        message_bytes_queue = await transition_queue.get()
+                                        self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
+                                self.store_message_to_persistence_recv(msg_type, message_bytes)
                             transport_json, data, binary = None, None, None
                             continue                        
                         writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
@@ -975,7 +1124,22 @@ class Connector:
                                                            limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                     except Exception as exc: #ConnectionRefusedError:
                         self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                        #no outgoing persistence... message is lost
+                        disk_persistence_recv = self.disk_persistence_recv
+                        msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                                    
+                        if isinstance(disk_persistence_recv, list):
+                            #disk_persistence can be a list of message types
+                            disk_persistence_recv = (msg_type in disk_persistence_recv)
+                        if disk_persistence_recv:
+                            self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
+                            if msg_type not in persistence_recv_enabled:
+                                persistence_recv_enabled.append(msg_type)
+                            if msg_type in transition_queues:
+                                #in case disconnection happens during transition, first copy queue into new file
+                                transition_queue = transition_queues[msg_type]
+                                while not transition_queue.empty():
+                                    message_bytes_queue = await transition_queue.get()
+                                    self.store_message_to_persistence_recv(msg_type, message_bytes_queue)                                
+                            self.store_message_to_persistence_recv(msg_type, message_bytes)
                         transport_json, data, binary = None, None, None
                         continue                        
                     writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                

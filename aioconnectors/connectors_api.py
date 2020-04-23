@@ -13,7 +13,7 @@ class ConnectorManager:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                      is_server=False, server_sockaddr=None, use_ssl=Connector.USE_SSL, 
                      certificates_directory_path=None, client_name=None, send_message_types=None, recv_message_types=None, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
-                     disk_persistence=Connector.DISK_PERSISTENCE, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
+                     disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                      file_type2dirpath=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
                      uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET):
         
@@ -34,7 +34,7 @@ class ConnectorManager:
             
         self.is_server, self.server_sockaddr, self.use_ssl, self.certificates_directory_path, self.client_name = is_server, server_sockaddr, use_ssl, certificates_directory_path, client_name
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
-        self.disk_persistence, self.max_size_persistence_path = disk_persistence, max_size_persistence_path
+        self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_type2dirpath, self.debug_msg_counts, self.silent = file_type2dirpath, debug_msg_counts, silent
         self.uds_path_receive_preserve_socket, self.uds_path_send_preserve_socket = uds_path_receive_preserve_socket, uds_path_send_preserve_socket
         
@@ -65,7 +65,7 @@ class ConnectorManager:
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, use_ssl=self.use_ssl,
                                    certificates_directory_path=self.certificates_directory_path, client_name=self.client_name,
                                    send_message_types=self.send_message_types, recv_message_types=self.recv_message_types,
-                                   disk_persistence=self.disk_persistence,
+                                   disk_persistence_send=self.disk_persistence_send, disk_persistence_recv=self.disk_persistence_recv,
                                    max_size_persistence_path=self.max_size_persistence_path, file_type2dirpath=self.file_type2dirpath,
                                    debug_msg_counts=self.debug_msg_counts, silent=self.silent, connector_files_dirpath=self.connector_files_dirpath, #use_ack=use_ack,
                                    uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, uds_path_send_preserve_socket=self.uds_path_send_preserve_socket)        
