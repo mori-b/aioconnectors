@@ -98,7 +98,8 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "debug_msg_counts": true,
     "default_logger_dirpath": "/tmp/aioconnectors",
     "default_logger_log_level": "INFO",
-    "disk_persistence": false,
+    "disk_persistence_send": true,
+    "disk_persistence_recv": ["any"],
     "file_type2dirpath": {},
     "is_server": false,
     "send_message_types": [
@@ -150,7 +151,8 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
 -In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_type2dirpath, as shown in aioconnectors\_test.py  
--In order to enable persistence (supported on both client and server sides), use disk\_persistence=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
+-In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
+-In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
 -uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
 -uds\_path\_send\_preserve\_socket should always be True for better performance.
 
