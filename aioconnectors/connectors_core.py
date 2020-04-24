@@ -963,9 +963,10 @@ class Connector:
                 persistence_content = None
                 for message in persistence_units:
                     self.logger.debug('Loading persistent_recv message to queue : '+msg_type)
+                    message_tuple = self.unpack_message(message)
                     if DEBUG_SHOW_DATA:
-                        self.logger.debug('With data : '+str(message[200:210]))                                     
-                    await dst_queue.put(message)
+                        self.logger.debug('With data : '+str(message_tuple[1][:10]))
+                    await dst_queue.put(message_tuple)
                     persistent_count += 1
                     #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
                     #because of this cpu intensive loop
@@ -981,6 +982,27 @@ class Connector:
                             
         except Exception:
             self.logger.exception(f'{self.source_id} load_messages_from_persistence_recv')                    
+            
+    async def transition_to_persistent_recv(self, msg_type, message_bytes, persistence_recv_enabled, transition_queues):        
+        disk_persistence_recv = self.disk_persistence_recv
+        if isinstance(disk_persistence_recv, list):
+            #disk_persistence can be a list of message types
+            disk_persistence_recv = (msg_type in disk_persistence_recv)
+        if disk_persistence_recv:
+            self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
+            if msg_type not in persistence_recv_enabled:
+                persistence_recv_enabled.append(msg_type)
+            self.store_message_to_persistence_recv(msg_type, message_bytes)                                    
+            if msg_type in transition_queues:
+                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}')
+                #in case disconnection happens during transition, copy queue remainings into new file
+                transition_queue = transition_queues[msg_type]
+                while not transition_queue.empty():
+                    transport_json, data, binary = await transition_queue.get()
+                    message_bytes_queue = self.pack_message(transport_json=transport_json, data=data, binary=binary)
+                    self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
+                del transition_queues[msg_type]
+            
             
     async def queue_recv_from_connector(self):        
         self.logger.info(f'{self.source_id} queue_recv_from_connector task created')        
@@ -1009,7 +1031,7 @@ class Connector:
                         except Exception as exc: #ConnectionRefusedError:
                             self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
                     for msg_type in msg_types_ready_for_transition:
-                        transition_queues[msg_type] = asyncio.Queue(maxsize=self.connector.MAX_QUEUE_SIZE)
+                        transition_queues[msg_type] = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)
                         #read file into queue, delete file
                         await self.load_messages_from_persistence_recv(msg_type, transition_queues[msg_type])
                         persistence_recv_enabled.remove(msg_type)                                 
@@ -1028,8 +1050,8 @@ class Connector:
                     #read from transition_queues, emptying one after the other, before coming back to self.queue_recv
                     msg_type_key = list(transition_queues.keys())[0]
                     transition_queue = transition_queues[msg_type_key]                    
-                    message_bytes = await transition_queue.get()
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message')
+                    transport_json, data, binary = await transition_queue.get()
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message with : ' + str(transport_json))
                     if transition_queue.empty():
                         self.logger.info(f'Finished reading from transition queue : {msg_type_key}')
                         del transition_queues[msg_type_key]
@@ -1055,24 +1077,7 @@ class Connector:
                 
                 if not os.path.exists(uds_path_receive):        
                     self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to non existing {uds_path_receive}')
-                    disk_persistence_recv = self.disk_persistence_recv
-                    if isinstance(disk_persistence_recv, list):
-                        #disk_persistence can be a list of message types
-                        disk_persistence_recv = (msg_type in disk_persistence_recv)
-                    if disk_persistence_recv:
-                        self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
-                        if msg_type not in persistence_recv_enabled:
-                            persistence_recv_enabled.append(msg_type)
-                        self.store_message_to_persistence_recv(msg_type, message_bytes)                            
-                        if msg_type in transition_queues:
-                            self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}')
-                            #in case disconnection happens during transition, copy queue remainings into new file
-                            transition_queue = transition_queues[msg_type]
-                            while not transition_queue.empty():
-                                message_bytes_queue = await transition_queue.get()
-                                self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
-                            del transition_queues[msg_type]
-
+                    await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)
                     transport_json, data, binary = None, None, None
                     continue
         
@@ -1089,9 +1094,8 @@ class Connector:
                             use_existing_connection = True
                             self.logger.debug(f'{self.source_id} queue_recv_from_connector reusing existing connection')
                         except Exception:
-                            del self.reader_writer_uds_path_receive[uds_path_receive]                        
+                            del self.reader_writer_uds_path_receive[uds_path_receive]
                             self.logger.exception('queue_recv_from_connector')
-                            persistence_recv_enabled = True
                             
                     if not use_existing_connection:
                         self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
@@ -1100,25 +1104,7 @@ class Connector:
                                                                limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                         except Exception as exc: #ConnectionRefusedError:
                             self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                            disk_persistence_recv = self.disk_persistence_recv
-                            msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)                            
-                            if isinstance(disk_persistence_recv, list):
-                                #disk_persistence can be a list of message types
-                                disk_persistence_recv = (msg_type in disk_persistence_recv)
-                            if disk_persistence_recv:
-                                self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
-                                if msg_type not in persistence_recv_enabled:
-                                    persistence_recv_enabled.append(msg_type)
-                                self.store_message_to_persistence_recv(msg_type, message_bytes)                                    
-                                if msg_type in transition_queues:
-                                    self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}')
-                                    #in case disconnection happens during transition, copy queue remainings into new file
-                                    transition_queue = transition_queues[msg_type]
-                                    while not transition_queue.empty():
-                                        message_bytes_queue = await transition_queue.get()
-                                        self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
-                                    del transition_queues[msg_type]
-
+                            await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)
                             transport_json, data, binary = None, None, None
                             continue                        
                         writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
@@ -1135,24 +1121,7 @@ class Connector:
                                                            limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                     except Exception as exc: #ConnectionRefusedError:
                         self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                        disk_persistence_recv = self.disk_persistence_recv
-                        msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                                    
-                        if isinstance(disk_persistence_recv, list):
-                            #disk_persistence can be a list of message types
-                            disk_persistence_recv = (msg_type in disk_persistence_recv)
-                        if disk_persistence_recv:
-                            self.logger.info(f'{self.source_id} queue_recv transition to persistence_recv for queue {msg_type}')
-                            if msg_type not in persistence_recv_enabled:
-                                persistence_recv_enabled.append(msg_type)
-                            self.store_message_to_persistence_recv(msg_type, message_bytes)                                
-                            if msg_type in transition_queues:
-                                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}')
-                                #in case disconnection happens during transition, copy queue remainings into new file
-                                transition_queue = transition_queues[msg_type]
-                                while not transition_queue.empty():
-                                    message_bytes_queue = await transition_queue.get()
-                                    self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
-                                del transition_queues[msg_type]
+                        await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)                                
                         transport_json, data, binary = None, None, None
                         continue                        
                     writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
