@@ -297,9 +297,22 @@ class ConnectorAPI(ConnectorBaseTool):
             raise            
 
     async def client_connected_cb(self, message_received_cb, reader, writer):
+        #if not os.path.exists('/tmp/yomo'):
+        #    with open('/tmp/yomo', 'w') as fd:
+        #        fd.write('0')
         while True:
             transport_json , data, binary = await self.recv_message(reader, writer)
             if transport_json:
+                #cc = None
+                #with open('/tmp/yomo','r') as fd:
+                #    aa = fd.read()
+                #    if aa:
+                #        cc = int(aa) + 1
+                #if cc:
+                #    print(cc)
+                #    with open('/tmp/yomo', 'w') as fd:
+                #        fd.write(str(cc))
+                    
                 await message_received_cb(transport_json , data, binary)
             else:
                 return

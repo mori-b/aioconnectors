@@ -626,7 +626,7 @@ class Connector:
         except Exception:
             self.logger.exception(f'{self.source_id} delete_previous_persistence_remains')
                 
-    def store_message_to_persistence(self, peername, message):
+    def store_message_to_persistence(self, peername, message, ignore_count=False):
         persistence_path = self.persistence_path + self.alnum_name(peername)
         try:
             if os.path.exists(persistence_path) and os.path.getsize(persistence_path) > self.max_size_persistence_path:
@@ -639,8 +639,9 @@ class Connector:
                 fd.write(self.PERSISTENCE_SEPARATOR)
                 #fd.write(peername.encode()+b'\n')
                 fd.write(message)
-            if self.debug_msg_counts:
-                self.msg_counts['store_persistence'] += 1
+            if self.debug_msg_counts and not ignore_count:
+                #ignore_count is nice to understand we are in a Special case. But msg_counts['load_persistence'] will still contain duplicates
+                self.msg_counts['store_persistence_send'] += 1
                 
         except Exception:
             self.logger.exception(f'{self.source_id} store_message_to_persistence')        
@@ -683,7 +684,7 @@ class Connector:
                     #because of this cpu intensive loop
                     await asyncio.sleep(0)#0.001)
                     if self.debug_msg_counts:
-                        self.msg_counts['load_persistence']+=1                            
+                        self.msg_counts['load_persistence_send']+=1                            
 
             self.logger.info(f'{self.source_id} load_messages_from_persistence finished loading {persistent_count} messages to queue_send_transition_to_connect. Deleting persistence file {persistence_path}')
             try:
@@ -926,7 +927,7 @@ class Connector:
             except Exception:
                 pass
       
-    def store_message_to_persistence_recv(self, msg_type, message):
+    def store_message_to_persistence_recv(self, msg_type, message, ignore_count=False):
         persistence_path = self.persistence_recv_path + msg_type
         try:
             if os.path.exists(persistence_path) and os.path.getsize(persistence_path) > self.max_size_persistence_path:
@@ -939,7 +940,8 @@ class Connector:
                 fd.write(self.PERSISTENCE_SEPARATOR)
                 #fd.write(peername.encode()+b'\n')
                 fd.write(message)
-            if self.debug_msg_counts:
+            if self.debug_msg_counts and not ignore_count:
+                #ignore_count is nice to understand we are in a Special case. But msg_counts['load_persistence_recv'] will still contain duplicates
                 self.msg_counts['store_persistence_recv'] += 1
                 
         except Exception:
@@ -994,13 +996,13 @@ class Connector:
                 persistence_recv_enabled.append(msg_type)
             self.store_message_to_persistence_recv(msg_type, message_bytes)                                    
             if msg_type in transition_queues:
-                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}')
                 #in case disconnection happens during transition, copy queue remainings into new file
                 transition_queue = transition_queues[msg_type]
+                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}. Transferring {transition_queue.qsize()} messages')                
                 while not transition_queue.empty():
-                    transport_json, data, binary = await transition_queue.get()
+                    transport_json, data, binary = transition_queue.get_nowait()
                     message_bytes_queue = self.pack_message(transport_json=transport_json, data=data, binary=binary)
-                    self.store_message_to_persistence_recv(msg_type, message_bytes_queue)
+                    self.store_message_to_persistence_recv(msg_type, message_bytes_queue, ignore_count=True)
                 del transition_queues[msg_type]
             
             
@@ -1667,7 +1669,7 @@ class FullDuplex:
                 if not self.is_stopping:                
                     if self.connector.disk_persistence:       
                         if queue_send != self.connector.queue_send.pop(self.peername, None):
-                            self.logger.info('Special case : disconnection happens during transition')
+                            self.logger.info(f'Special case : disconnection happens during transition. Transferring {queue_send.qsize()} messages')
                             #we should copy queue_send_transition_to_connect content into a new recreated persistent file                            
                             count = 0
                             disk_persistence_is_list = isinstance(self.connector.disk_persistence, list)
@@ -1682,7 +1684,7 @@ class FullDuplex:
                                     message = self.connector.pack_message(transport_json=transport_json,
                                                                           data=data, binary=binary)
                                     self.logger.info(f'Emptying transition queue_send, Storing message number {count} to persistence to peername {self.peername}')
-                                    self.connector.store_message_to_persistence(self.peername, message)                                              
+                                    self.connector.store_message_to_persistence(self.peername, message, ignore_count=True)                                              
                         else:
                             #regular case of disconnection
                             self.stop_nowait_for_persistence(message_tuple=message_tuple)
