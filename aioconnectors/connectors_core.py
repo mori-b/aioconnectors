@@ -100,7 +100,7 @@ def full_path(the_path):
 class Connector:
     ############################################
     #default values configurable at __init__
-    SERVER_ADDR =  ('127.0.0.1',12345)
+    SERVER_ADDR =  ('127.0.0.1',10673)
     USE_SSL = True
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
     SERVER_VALIDATES_CLIENTS = True    

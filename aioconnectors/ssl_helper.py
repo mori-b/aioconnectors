@@ -25,7 +25,7 @@ ln -s ../default.pem <hash.0>
 
 
 class SSL_helper:
-    DEFAULT_BASE_PATH = os.getcwd()
+    DEFAULT_BASE_PATH = '/tmp/aioconnectors' #os.getcwd()
     CLIENT_DEFAULT_CERT_NAME = 'default'    
     SOURCE_ID_2_CERT = 'source_id_2_cert.json'
     CERT_NAME_EXTENSION = "pem"

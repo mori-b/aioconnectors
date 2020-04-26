@@ -25,8 +25,8 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
-If you don't specify optional\_directory\_path, certificates will be created in cwd.
-This results in the creation of 2 directories : certificates/server and certificates/client.
+A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
+Under it, 2 subdirectories will be created : certificates/server and certificates/client.
 All you have to do is copy certificates/server to your server, and certificates/client to your client.
 
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.  
@@ -101,7 +101,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "disk_persistence_send": true,
     "disk_persistence_recv": ["any"],
     "file_type2dirpath": {},
-    "is_server": false,
+    "is_server": true,
     "send_message_types": [
         "any"
     ],
@@ -111,7 +111,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     ],
     "server_sockaddr": [
         "127.0.0.1",
-        12345
+        10673
     ],
     "silent": true,
     "uds_path_receive_preserve_socket": true,
@@ -127,7 +127,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     "connector_files_dirpath": "/tmp/aioconnectors",
     "default_logger_dirpath": "/tmp/aioconnectors",
     "default_logger_log_level": "INFO",
-    "is_server": false,
+    "is_server": true,
     "send_message_types": [
         "any"
     ],
@@ -136,7 +136,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     ],
     "server_sockaddr": [
         "127.0.0.1",
-        12345
+        10673
     ],
     "uds_path_receive_preserve_socket": true,
     "uds_path_send_preserve_socket": true

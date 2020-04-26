@@ -17,7 +17,7 @@ python3 aioconnectors_test.py send2server
 python3 aioconnectors_test.py send2client <client name>
 '''
 
-SERVER_SOCKADDR = ('127.0.0.1',12345)
+SERVER_SOCKADDR = ('127.0.0.1',10673)
 CERTIFICATES_DIRECTORY_PATH = None#'/tmp/mo'  #None #default is cwd/connectors/certificates
 
         

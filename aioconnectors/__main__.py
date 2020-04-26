@@ -141,7 +141,7 @@ if len(sys.argv) > 1:
         Connector = aioconnectors.connectors_core.Connector
     
         manager_config_template = dict(default_logger_log_level='INFO', default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
-                        is_server=False, server_sockaddr=Connector.SERVER_ADDR, use_ssl=Connector.USE_SSL, 
+                        is_server=True, server_sockaddr=Connector.SERVER_ADDR, use_ssl=Connector.USE_SSL, 
                         certificates_directory_path=None, client_name=None, send_message_types=Connector.DEFAULT_MESSAGE_TYPES, recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                         file_type2dirpath={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
@@ -150,7 +150,7 @@ if len(sys.argv) > 1:
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
                 
         api_config_template = dict(default_logger_log_level='INFO', default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
-                        is_server=False, server_sockaddr=Connector.SERVER_ADDR, client_name=None,
+                        is_server=True, server_sockaddr=Connector.SERVER_ADDR, client_name=None,
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, recv_message_types=Connector.DEFAULT_MESSAGE_TYPES)                 
         print('\nAPI TEMPLATE, used to send/receive messages')
