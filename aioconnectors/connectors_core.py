@@ -140,7 +140,7 @@ class Connector:
     UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT = 'uds_path_receive_from_connector_client_{}_{}'    
     
     
-    def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None,
+    def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, validates_clients=SERVER_VALIDATES_CLIENTS,
                  disk_persistence_send=DISK_PERSISTENCE_SEND, disk_persistence_recv=DISK_PERSISTENCE_RECV,
                  max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
@@ -184,12 +184,14 @@ class Connector:
                 if recv_message_types is None:
                     recv_message_types = self.DEFAULT_MESSAGE_TYPES
                 self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+                
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))
                 self.uds_path_receive_from_connector = {}
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
                 
-            else:                
+            else:
+                self.client_bind_ip = client_bind_ip
                 self.source_id = client_name
                 self.logger.info('Client has source id : '+self.source_id)   
                 self.alnum_source_id = self.alnum_name(self.source_id)                            
@@ -331,6 +333,8 @@ class Connector:
                 self.sock.bind(self.server_sockaddr)
                 self.tasks['run_server'] = self.loop.create_task(self.run_server())
             else:
+                if self.client_bind_ip:
+                    self.sock.bind((self.client_bind_ip,0))
                 self.sock.connect(self.server_sockaddr)   
                 self.sock.setblocking(False)                
                 self.logger.info('Created socket for '+self.source_id+' with info '+str(self.sock.getsockname())+' to peer '+str(self.sock.getpeername()))

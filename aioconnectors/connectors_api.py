@@ -12,7 +12,7 @@ DEFAULT_LOGGER_LOG_LEVEL = 'INFO'
 
 class ConnectorManager:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
-                     is_server=False, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False,
+                     is_server=False, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, client_bind_ip=None,
                      certificates_directory_path=None, client_name=None, send_message_types=None, recv_message_types=None, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                      disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                      file_type2dirpath=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
@@ -33,7 +33,8 @@ class ConnectorManager:
         else:
             self.logger = logger
             
-        self.is_server, self.server_sockaddr, self.use_ssl, self.ssl_allow_all, self.certificates_directory_path, self.client_name = is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path, client_name
+        self.is_server, self.server_sockaddr, self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
+        self.client_name, self.client_bind_ip = client_name, client_bind_ip
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_type2dirpath, self.debug_msg_counts, self.silent = file_type2dirpath, debug_msg_counts, silent
@@ -68,7 +69,7 @@ class ConnectorManager:
             self.source_id = self.client_name
         
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all,
-                                   certificates_directory_path=self.certificates_directory_path, client_name=self.client_name,
+                                   certificates_directory_path=self.certificates_directory_path, client_name=self.client_name, client_bind_ip=self.client_bind_ip,
                                    send_message_types=self.send_message_types, recv_message_types=self.recv_message_types,
                                    disk_persistence_send=self.disk_persistence_send, disk_persistence_recv=self.disk_persistence_recv,
                                    max_size_persistence_path=self.max_size_persistence_path, file_type2dirpath=self.file_type2dirpath,

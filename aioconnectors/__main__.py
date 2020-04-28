@@ -142,7 +142,7 @@ if len(sys.argv) > 1:
     
         manager_config_template = dict(default_logger_log_level='INFO', default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, use_ssl=Connector.USE_SSL, ssl_allow_all=False,
-                        certificates_directory_path=None, client_name=None, send_message_types=Connector.DEFAULT_MESSAGE_TYPES, recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
+                        certificates_directory_path=None, client_name=None, client_bind_ip=None, send_message_types=Connector.DEFAULT_MESSAGE_TYPES, recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                         file_type2dirpath={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET)
