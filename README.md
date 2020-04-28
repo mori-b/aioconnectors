@@ -27,7 +27,11 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.
-All you have to do is copy certificates/server to your server, and certificates/client to your client.
+All you have to do is copy certificates/server to your server, and certificates/client to your client.  
+Less secure options :  
+By setting ssl_allow_all, you can use encryption without sharing certificates, so that any client and server can communicate.
+By unsetting use_ssl, you can disable encryption at all.
+
 
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.  
 2.1.Command line tool  

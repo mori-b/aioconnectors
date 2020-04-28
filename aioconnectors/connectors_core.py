@@ -141,7 +141,7 @@ class Connector:
     
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None,
-                 use_ssl=USE_SSL, certificates_directory_path=None, validates_clients=SERVER_VALIDATES_CLIENTS,
+                 use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, validates_clients=SERVER_VALIDATES_CLIENTS,
                  disk_persistence_send=DISK_PERSISTENCE_SEND, disk_persistence_recv=DISK_PERSISTENCE_RECV,
                  max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, tool_only=False, file_type2dirpath=None,
@@ -171,7 +171,7 @@ class Connector:
             
             self.server_sockaddr = server_sockaddr
             self.is_server = is_server            
-            self.use_ssl, self.certificates_directory_path = use_ssl, full_path(certificates_directory_path)
+            self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = use_ssl, ssl_allow_all, full_path(certificates_directory_path)
             self.server = self.send_to_connector_server = None
 
             if self.is_server:
@@ -224,7 +224,7 @@ class Connector:
 
                     if self.is_server:                
                         pass
-                    else:
+                    elif not self.ssl_allow_all:
                         if os.path.exists(self.ssl_helper.CLIENT_PEM_PATH.format(self.source_id)):
                             self.client_certificate_name = self.source_id
                             self.logger.info('Client will use a unique certificate : '+self.client_certificate_name)                
@@ -1149,7 +1149,10 @@ class Connector:
             ssl_context = self.build_server_ssl_context() if self.use_ssl else None
             self.server = await asyncio.start_server(self.manage_full_duplex, sock=self.sock, ssl=ssl_context, limit=self.MAX_SOCKET_BUFFER_SIZE)
             if self.use_ssl:
-                self.logger.info('server is running with ssl')
+                if self.ssl_allow_all:
+                    self.logger.info('server is running with ssl, allow all')
+                else:
+                    self.logger.info('server is running with ssl')
             else:
                 self.logger.info('server is running without ssl')
         except asyncio.CancelledError:
@@ -1161,7 +1164,10 @@ class Connector:
     
     async def run_client(self):
         if self.use_ssl:
-            self.logger.info(f'{self.source_id} Running client with certificate : '+self.client_certificate_name)
+            if self.ssl_allow_all:
+                self.logger.info(f'{self.source_id} Running client with certificate {self.client_certificate_name}, allow all')
+            else:
+                self.logger.info(f'{self.source_id} Running client with certificate {self.client_certificate_name}')
         else:
             self.logger.info(f'{self.source_id} Running client without ssl')
         try:
@@ -1191,19 +1197,24 @@ class Connector:
 
     def build_server_ssl_context(self):    #, client_socket=False):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.verify_mode = ssl.CERT_REQUIRED
-        #OBSOLETE sni_callback : happens at each new connection. But this is necessary only for new clients connecting with newly created personal certs
-        #the override enables to create a new and updated server ssl context each time a new client connects
-        #this is necessary because after the new client certificate has been generated and written into SERVER_SYMLINKS_PATH, it
-        #is not yet loaded automatically into the current context : so when the client reconnects to the server with its new
-        #certificate, the context needs to be rebuilt in order to call again load_verify_locations(capath, which will
-        #take into account the new certificate.
-        #if not client_socket:
-        #    context.sni_callback = self.overide_server_ssl_context
-        context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
-        #for first client connection : the server ssl socket accepts new clients (using default cert)
-        #and also already authenticated clients (using client certs)
-        context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
+        if self.ssl_allow_all:
+            context.verify_mode = ssl.CERT_NONE
+            context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
+            
+        else:
+            context.verify_mode = ssl.CERT_REQUIRED
+            #OBSOLETE sni_callback : happens at each new connection. But this is necessary only for new clients connecting with newly created personal certs
+            #the override enables to create a new and updated server ssl context each time a new client connects
+            #this is necessary because after the new client certificate has been generated and written into SERVER_SYMLINKS_PATH, it
+            #is not yet loaded automatically into the current context : so when the client reconnects to the server with its new
+            #certificate, the context needs to be rebuilt in order to call again load_verify_locations(capath, which will
+            #take into account the new certificate.
+            #if not client_socket:
+            #    context.sni_callback = self.overide_server_ssl_context
+            context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
+            #for first client connection : the server ssl socket accepts new clients (using default cert)
+            #and also already authenticated clients (using client certs)
+            context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
         return context
     
     #def overide_server_ssl_context(self, ssl_obj, sn, ssl_context):
@@ -1212,12 +1223,15 @@ class Connector:
 
     def build_client_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        context.verify_mode = ssl.CERT_REQUIRED        
-        context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),\
-		    keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
-        #in case server certificate change, client should first replace/chain the new server certificate in its cafile
-        context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)    #optional
-        #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
+        if self.ssl_allow_all:
+            context.verify_mode = ssl.CERT_NONE
+        else:        
+            context.verify_mode = ssl.CERT_REQUIRED        
+            context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
+                                    keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
+            #in case server certificate change, client should first replace/chain the new server certificate in its cafile
+            context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)    #optional
+            #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
         return context
 
 
@@ -1341,23 +1355,28 @@ class FullDuplex:
             peer_identification_finished = False
             if self.connector.is_server:
                 if self.connector.use_ssl:
-                    peer_cert = self.writer.get_extra_info('ssl_object').getpeercert()
-# {'subject': ((('organizationName', '{}'),), (('commonName', '{}'),)), 'issuer': ((('organizationName', '{}'),), (('commonName', '{}'),)), 'version': 1, 'serialNumber': '8F7A25089D8D4DF0F3FE6CE5B1DA059C7D6837', 'notBefore': 'Feb 25 10:20:26 2020 GMT', 'notAfter': 'Mar 26 10:20:26 2020 GMT'}
-                    #for client peer validation
-                    #client_certificate_common_name = peer_cert["subject"][1][0][1]
-                    self.client_certificate_serial = peer_cert['serialNumber']
-
-                    if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial:
-                        peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
-                        if not peername:
-                            self.logger.error(f'Authorized client with certificate {self.client_certificate_serial} has no source_id ! Aborting')
-                            raise Exception('Unknown client')
-                        peer_identification_finished = True                    
+                    if not self.connector.ssl_allow_all:
+                        peer_cert = self.writer.get_extra_info('ssl_object').getpeercert()
+    # {'subject': ((('organizationName', '{}'),), (('commonName', '{}'),)), 'issuer': ((('organizationName', '{}'),), (('commonName', '{}'),)), 'version': 1, 'serialNumber': '8F7A25089D8D4DF0F3FE6CE5B1DA059C7D6837', 'notBefore': 'Feb 25 10:20:26 2020 GMT', 'notAfter': 'Mar 26 10:20:26 2020 GMT'}
+                        #for client peer validation
+                        #client_certificate_common_name = peer_cert["subject"][1][0][1]
+                        
+                        self.client_certificate_serial = peer_cert['serialNumber']
+    
+                        if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial:
+                            peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
+                            if not peername:
+                                self.logger.error(f'Authorized client with certificate {self.client_certificate_serial} has no source_id ! Aborting')
+                                raise Exception('Unknown client')
+                            peer_identification_finished = True                    
+                        else:
+                            #we could use the default_client_serial, but prefer to have a unique peername per client
+                            #for rare case where 2 clients are connecting simultaneously and have same default_client_serial
+                            peername = str(self.writer.get_extra_info('peername'))
+                            #for client with default certificate, creation of handle_outgoing_connection task is not necessary and not performed
                     else:
-                        #we could use the default_client_serial, but prefer to have a unique peername per client
-                        #for rare case where 2 clients are connecting simultaneously and have same default_client_serial
+                        #in ssl_allow_all mode, no cert can be obtained, peer_identification_finished will be finished in handle_ssl_messages_server
                         peername = str(self.writer.get_extra_info('peername'))
-                        #for client with default certificate, creation of handle_outgoing_connection task is not necessary and not performed
                 else:
                     #this creates a temporary entry in queue_send, peername will be replaced by client_id after handshake_no_ssl
                     peername = str(self.writer.get_extra_info('peername'))     
@@ -1402,7 +1421,7 @@ class FullDuplex:
     def server_validates_client(self, transport_json):
         #called only if self.connector.use_ssl:
         #check if client_certificate_serial in peer client certificate is the serial of the certificate created by server for the requested source_id
-        if self.client_certificate_serial != self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]):
+        if (not self.connector.ssl_allow_all) and ( self.client_certificate_serial != self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]) ):
             self.logger.warning('Client {} tried to impersonate client {}'.format(self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
             return False
         return True
@@ -1441,11 +1460,17 @@ class FullDuplex:
                             await self.handle_ssl_messages_server(data, transport_json)
                             #don't send ssl messages to queues
                             return
-                        valid_client = self.server_validates_client(transport_json)
-                        if self.connector.validates_clients:
-                            if not valid_client:
-                                self.stop_task()
-                                return
+                            valid_client = self.server_validates_client(transport_json)
+                            if self.connector.validates_clients:
+                                if not valid_client:
+                                    self.stop_task()
+                                    return
+                        elif message_type == 'handshake_ssl':
+                            #server waits for handshake_ssl from client                        
+                            await self.handle_ssl_messages_server(data, transport_json)  
+                            #don't send handshake_ssl messages to queues
+                            continue                        
+                            
                     else:
                         if message_type == 'handshake_no_ssl':      
                             #server waits for handshake_no_ssl from client                        
@@ -1786,36 +1811,53 @@ class FullDuplex:
         
     async def handle_ssl_messages_server(self, data=None, transport_json=None):
         try:
-            data_json = json.loads(data.decode())                
-            if data_json.get('cmd') == 'get_new_certificate':
-                if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial:                
-                    self.logger.warning('handle_ssl_messages_server Client {} tried to get_new_certificate with private certificate. Stopping...'.format(self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)))
-                    self.stop_task() 
-                    return
-                
-                self.logger.info('handle_ssl_messages_server receiving get_new_certificate,and calling create_client_certificate')                    
-                #we could have check if client current certificate is default, but is seems limiting, code would be like :
-                #cert_der = self.writer.get_extra_info("ssl_object").getpeercert()
-                #common_name = cert_der["subject"][1][0][1]
-                #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:                         
-                crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=transport_json[MessageFields.SOURCE_ID], common_name=None)
-                with open(crt_path, 'r') as fd:
-                    crt = fd.read()
-                with open(key_path, 'r') as fd:
-                    key = fd.read()                        
-                response = {'cmd': 'set_new_certificate',
-                            'crt': crt,
-                            'key': key}
-                #we might want to delete now the client private key from server :
-                if self.connector.DELETE_CLIENT_PRIVATE_KEY_ON_SERVER:
-                    os.remove(key_path)
-                params_as_string = json.dumps(response)
-                self.logger.info('handle_ssl_messages_server sending set_new_certificate')                
-                await self.send_message(message_type='_ssl', data=params_as_string)
+            if not self.connector.ssl_allow_all:
+                data_json = json.loads(data.decode())                
+                if data_json.get('cmd') == 'get_new_certificate':
+                    
+                    if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial: 
+                        self.logger.warning('handle_ssl_messages_server Client {} tried to get_new_certificate with private certificate. Stopping...'.format(self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)))
+                        self.stop_task() 
+                        return
+                    
+                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate, and calling create_client_certificate')                    
+                    #we could have check if client current certificate is default, but is seems limiting, code would be like :
+                    #cert_der = self.writer.get_extra_info("ssl_object").getpeercert()
+                    #common_name = cert_der["subject"][1][0][1]
+                    #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:                         
+                    crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=transport_json[MessageFields.SOURCE_ID], common_name=None)
+                    with open(crt_path, 'r') as fd:
+                        crt = fd.read()
+                    with open(key_path, 'r') as fd:
+                        key = fd.read()                        
+                    response = {'cmd': 'set_new_certificate',
+                                'crt': crt,
+                                'key': key}
+                    #we might want to delete now the client private key from server :
+                    if self.connector.DELETE_CLIENT_PRIVATE_KEY_ON_SERVER:
+                        os.remove(key_path)
+                    params_as_string = json.dumps(response)
+                    self.logger.info('handle_ssl_messages_server sending set_new_certificate')                
+                    await self.send_message(message_type='_ssl', data=params_as_string)
+                else:
+                    self.logger.warning('handle_ssl_messages_server got invalid command : '+str(data_json.get('cmd')))
+                #now server disconnects
+                self.stop_task()
             else:
-                self.logger.warning('handle_ssl_messages_server got invalid command : '+str(data_json.get('cmd')))
-            #now server disconnects
-            self.stop_task()
+                if data != b'hello':            
+                    self.logger.warning(f'Received bad handshake ssl data : {data[:100]}, from client : {transport_json[MessageFields.SOURCE_ID]}')
+                    self.stop_task()
+                    return          
+                self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
+                old_peername = self.peername
+                new_peername = transport_json[MessageFields.SOURCE_ID]
+                self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
+                self.peername = new_peername                
+                self.connector.queue_send[new_peername] = self.connector.queue_send.pop(old_peername)
+                self.connector.tasks[self.peername+'_incoming'] = self.connector.tasks.pop(old_peername+'_incoming')
+                task_outgoing_connection = self.loop.create_task(self.handle_outgoing_connection())
+                self.connector.tasks[self.peername+'_outgoing'] = task_outgoing_connection
+                    
         except asyncio.CancelledError:
             raise                        
         except Exception:
@@ -1824,34 +1866,39 @@ class FullDuplex:
                     
     async def handle_ssl_messages_client(self):
         try:
-            if self.connector.client_certificate_name == self.connector.ssl_helper.CLIENT_DEFAULT_CERT_NAME:
-                params_as_string = json.dumps({'cmd':'get_new_certificate'})    #, 'source_id':self.connector.source_id})
-                self.logger.info('handle_ssl_messages_client sending get_new_certificate')                
-                await self.send_message(message_type='_ssl', data=params_as_string)
-                
-                transport_json, data, binary = await self.recv_message()
-                if transport_json[MessageFields.MESSAGE_TYPE] != '_ssl':
-                    msg = 'handle_ssl_messages_client received bad message_type : '+str(transport_json)
-                    self.logger.warning(msg)
-                    raise Exception(msg)                     
-
-                data_json = json.loads(data.decode())
-                if data_json.get('cmd') == 'set_new_certificate':
-                    self.logger.info('handle_ssl_messages_client receiving set_new_certificate')                                          
-                    crt, key = data_json.get('crt'), data_json.get('key')
-                    with open(self.connector.ssl_helper.CLIENT_PEM_PATH.format(self.connector.source_id), 'w') as fd:
-                        fd.write(crt)
-                    with open(self.connector.ssl_helper.CLIENT_KEY_PATH.format(self.connector.source_id), 'w') as fd:
-                        fd.write(key)
-                    #close this connection, and open new connection with newly received certificate
-                    self.connector.client_certificate_name = self.connector.source_id
-                    #self.stop_task()
-                    raise self.TransitionClientCertificateException()
+            if not self.connector.ssl_allow_all:
+                if self.connector.client_certificate_name == self.connector.ssl_helper.CLIENT_DEFAULT_CERT_NAME:
+                    params_as_string = json.dumps({'cmd':'get_new_certificate'})    #, 'source_id':self.connector.source_id})
+                    self.logger.info('handle_ssl_messages_client sending get_new_certificate')                
+                    await self.send_message(message_type='_ssl', data=params_as_string)
                     
-                else:
-                    msg = 'handle_ssl_messages_client got invalid command : '+str(data_json.get('cmd'))
-                    self.logger.warning(msg)
-                    raise Exception(msg)                     
+                    transport_json, data, binary = await self.recv_message()
+                    if transport_json[MessageFields.MESSAGE_TYPE] != '_ssl':
+                        msg = 'handle_ssl_messages_client received bad message_type : '+str(transport_json)
+                        self.logger.warning(msg)
+                        raise Exception(msg)                     
+    
+                    data_json = json.loads(data.decode())
+                    if data_json.get('cmd') == 'set_new_certificate':
+                        self.logger.info('handle_ssl_messages_client receiving set_new_certificate')                                          
+                        crt, key = data_json.get('crt'), data_json.get('key')
+                        with open(self.connector.ssl_helper.CLIENT_PEM_PATH.format(self.connector.source_id), 'w') as fd:
+                            fd.write(crt)
+                        with open(self.connector.ssl_helper.CLIENT_KEY_PATH.format(self.connector.source_id), 'w') as fd:
+                            fd.write(key)
+                        #close this connection, and open new connection with newly received certificate
+                        self.connector.client_certificate_name = self.connector.source_id
+                        #self.stop_task()
+                        raise self.TransitionClientCertificateException()
+                        
+                    else:
+                        msg = 'handle_ssl_messages_client got invalid command : '+str(data_json.get('cmd'))
+                        self.logger.warning(msg)
+                        raise Exception(msg)                     
+            else:
+                self.logger.info('handle_ssl_messages_client sending hello')            
+                await self.send_message(message_type='handshake_ssl', data='hello')
+                
         except self.TransitionClientCertificateException:
             #restart client connector with newly received certificate
             raise
@@ -1881,7 +1928,7 @@ class FullDuplex:
             #self.connector.tasks[new_peername+'_outgoing'] = self.connector.tasks.pop(old_peername+'_outgoing')
             
             self.connector.queue_send[new_peername] = self.connector.queue_send.pop(old_peername)
-            
+            self.connector.tasks[self.peername+'_incoming'] = self.connector.tasks.pop(old_peername+'_incoming')
             #if old_peername in self.connector.queue_send_transition_to_connect:
             #    self.connector.queue_send_transition_to_connect[new_peername] = self.connector.queue_send_transition_to_connect.pop(old_peername)
             

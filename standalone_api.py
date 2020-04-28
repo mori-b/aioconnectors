@@ -6,6 +6,7 @@ import asyncio
 import json
 from structs import Struct
 from functools import partial
+import uuid
 
 class MessageFields:
     MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', <user-defined>, ...
@@ -66,10 +67,15 @@ class ConnectorAPI:
         if self.server_sockaddr:
             self.server_sockaddr = tuple(self.server_sockaddr)        
 
-        if not self.is_server and not self.client_name:
-            raise Exception('Client must have a client_name')                           
-        #source_id is used by send_message, will be overriden by queue_send_to_connector_put if invalid
-        self.source_id = self.client_name or str(self.server_sockaddr)  
+        #source_id is used by send_message, will be overriden by queue_send_to_connector_put if invalid                
+        if self.is_server:
+            self.source_id = str(self.server_sockaddr)
+        else:
+            if not self.client_name:
+                #raise Exception('Client must have a client_name')
+                self.client_name = uuid.uuid4().hex[:8]
+                self.logger.warning(f'No client_name provided, using {self.client_name} instead')                
+            self.source_id = self.client_name
         self.reader_writer_uds_path_send = None
         self.message_waiters = {}
         self.uds_path_receive_from_connector = {}
