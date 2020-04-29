@@ -26,12 +26,12 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
-Under it, 2 subdirectories will be created : certificates/server and certificates/client.
-The default mode is the most secure : use_ssl is enabled and ssl_allow_all is disabled :  
+Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
+The default mode is the most secure : use_ssl is enabled and ssl_allow_all is disabled.  
 In such a case, you need to copy certificates/server to your server, and certificates/client to your client.  
 This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.  
 Less secure options :  
-By setting ssl_allow_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy them. This disables authentication, so that any client and server can communicate.  
+By setting ssl_allow_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
 By unsetting use_ssl, you can disable encryption at all.
 
 
