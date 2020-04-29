@@ -27,9 +27,10 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.
-All you have to do is copy certificates/server to your server, and certificates/client to your client.  
+All you have to do is copy certificates/server to your server, and certificates/client to your client.
+This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.
 Less secure options :  
-By setting ssl_allow_all, you can use encryption without sharing certificates, so that any client and server can communicate.
+By setting ssl_allow_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side. This disables authentication, so that any client and server can communicate.  
 By unsetting use_ssl, you can disable encryption at all.
 
 
@@ -97,20 +98,21 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
 
     {
     "certificates_directory_path": null,
+    "client_bind_ip": null,
     "client_name": null,
     "connector_files_dirpath": "/tmp/aioconnectors",
     "debug_msg_counts": true,
     "default_logger_dirpath": "/tmp/aioconnectors",
     "default_logger_log_level": "INFO",
-    "disk_persistence_send": true,
-    "disk_persistence_recv": ["any"],
+    "disk_persistence_recv": true,
+    "disk_persistence_send": ["any"],
     "file_type2dirpath": {},
     "is_server": true,
-    "send_message_types": [
-        "any"
-    ],
     "max_size_persistence_path": 1000000000,
     "recv_message_types": [
+        "any"
+    ],
+    "send_message_types": [
         "any"
     ],
     "server_sockaddr": [
@@ -118,6 +120,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         10673
     ],
     "silent": true,
+    "ssl_allow_all": false,
     "uds_path_receive_preserve_socket": true,
     "uds_path_send_preserve_socket": true,
     "use_ssl": true
@@ -148,8 +151,9 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
 -is\_server (boolean) is important to differentiate between server and client  
 -server\_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides.  
--client\_name is mandatory on client side. It is the name that will be associated with this client on server side.  
--use\_ssl is a boolean  
+-client\_name is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
+-client_bind_ip is optional, specifies the interface to bind your client.  
+-use\_ssl and ssl_allow_all are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
 -certificates\_directory\_path is where your certificates are located, if use\_ssl is True  
 -connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
@@ -158,7 +162,8 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
 -In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
 -uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
--uds\_path\_send\_preserve\_socket should always be True for better performance.
+-uds\_path\_send\_preserve\_socket should always be True for better performance.  
+-debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.
 
 
 ### 5.More details about the send\_message arguments
