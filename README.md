@@ -1,9 +1,9 @@
 # aioconnectors
-Simple secure asynchronous persistent message broker (Unix-like)
+Simple secure asynchronous persistent message broker
 
 ## FEATURES
 
-aioconnectors is an easy to set up broker that works on Unix like systems, using Python >= 3.6.
+aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It is built on the client/server model but both peers can push messages, it provides optional authentication and encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
 It comes with a command line tool that enables to easily run a connector, and manage it.
 It provides a simple programmatic API, with simple functionalities like starting/stopping a connector, sending a message, or receiving messages.
@@ -213,6 +213,12 @@ to run several interesting commands like :
     python3 -m aioconnectors test_send_messages <config_json_path>
 
 
+## MISC
+
+To port aioconnectors to Windows, these steps should be taken, and probably more :
+-Replace usage of unix sockets by local sockets (for example)
+-Port the usage of openssl in ssl_helper.py
+-Convert paths format
 
 
 
