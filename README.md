@@ -215,10 +215,10 @@ to run several interesting commands like :
 
 ## MISC
 
-To port aioconnectors to Windows, these steps should be taken, and probably more :
--Replace usage of unix sockets by local sockets (for example)
--Port the usage of openssl in ssl_helper.py
--Convert paths format
+To port aioconnectors to Windows, these steps should be taken, and probably more :  
+-Replace usage of unix sockets by local sockets (for example)  
+-Port the usage of openssl in ssl_helper.py  
+-Convert paths format  
 
 
 
