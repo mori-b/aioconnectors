@@ -12,7 +12,7 @@ DEFAULT_LOGGER_LOG_LEVEL = 'INFO'
 
 class ConnectorManager:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
-                     is_server=False, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, client_bind_ip=None,
+                     is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, client_bind_ip=None,
                      certificates_directory_path=None, client_name=None, send_message_types=None, recv_message_types=None, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                      disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                      file_type2dirpath=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
@@ -261,7 +261,7 @@ class ConnectorAPI(ConnectorBaseTool):
                 await asyncio.wait_for(writer.drain(), timeout=Connector.ASYNC_TIMEOUT)
             except Exception:
                 self.logger.exception('send_message writer drain')
-            #bware to not lock the await_response recv_message with send_message_lock
+            #beware to not lock the await_response recv_message with send_message_lock
             if await_response:            
                 the_response = await self.recv_message(reader, writer)
             self.logger.debug('send_message finished sending')                    

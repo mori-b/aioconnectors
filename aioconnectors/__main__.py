@@ -2,9 +2,12 @@ import sys
 import os
 import logging
 import subprocess
-import shutil
 import asyncio
 import json
+import argparse
+import signal
+import random
+import shutil
 
 import aioconnectors
 
@@ -29,26 +32,11 @@ HELP = '\naioconnectors supported commands :\n\n- print_config_templates\n- crea
 - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate)\n\
 - create_connector <config file path>\n- test_receive_messages <config file path>\n- test_send_messages <config file path>\n- ping <config file path>\n'
 
+
+    
+    
 if len(sys.argv) > 1:
     if sys.argv[1] == 'create_certificates':
-        '''
-        
-        1) Create Server certificate
-        openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout server.key -out server.pem -config csr_details.conf
-        put in SERVER_PEM_PATH, SERVER_KEY_PATH, CLIENT_SERVER_CRT_PATH (pem renamed to crt)
-        
-        2) Create client default certificate
-        openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout default.key -out default.pem -config csr_details.conf
-        ########openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O=9d2f849c877b4e50b6fccb54d6cd1818' -keyout default.key -out default.pem -config csr_details.conf  #'/O=default/CN=default.cn.com'
-        put in CLIENT_PEM_PATH, CLIENT_KEY_PATH, SERVER_CERTS_PATH (only pem)
-        
-        3) Calculate hash of client default certificate
-        openssl x509 -hash -noout -in default.pem    #add '.0' as an extension
-        
-        4) Create symlink of client default certificate in server directory
-        ln -s ../default.pem <hash.0>
-        
-        '''        
         
         logger.info('Starting create_certificates')
         if len(sys.argv) == 3:
@@ -58,84 +46,9 @@ if len(sys.argv) > 1:
             certificates_directory_path = full_path(sys.argv[2])
         else:
             certificates_directory_path = None
-        ssl_helper = aioconnectors.ssl_helper.SSL_helper(logger, is_server=False, certificates_directory_path=certificates_directory_path)
-
-        certificates_path = os.path.join(ssl_helper.BASE_PATH, 'certificates')
-        logger.info('Certificates will be created under directory : '+certificates_path)
-        if os.path.exists(certificates_path) and os.listdir(certificates_path):
-            logger.error(certificates_path+' should be empty before starting this process')
+        res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path)
+        if res is False:
             sys.exit(1)
-            
-        certificates_path_server = os.path.join(certificates_path, 'server')
-        certificates_path_server_client = os.path.join(certificates_path_server, 'client-certs')       
-        certificates_path_server_client_sym = os.path.join(certificates_path_server_client, 'symlinks')               
-        certificates_path_server_server = os.path.join(certificates_path_server, 'server-cert')                
-        certificates_path_client = os.path.join(certificates_path, 'client')        
-        certificates_path_client_client = os.path.join(certificates_path_client, 'client-certs')        
-        certificates_path_client_server = os.path.join(certificates_path_client, 'server-cert')                
-        
-        if not os.path.exists(certificates_path_server_server):
-            os.makedirs(certificates_path_server_server)
-        if not os.path.exists(certificates_path_server_client_sym):
-            os.makedirs(certificates_path_server_client_sym)     
-        if not os.path.exists(certificates_path_client_server):
-            os.makedirs(certificates_path_client_server)          
-        if not os.path.exists(certificates_path_client_client):
-            os.makedirs(certificates_path_client_client)                   
-            
-        SERVER_PEM_PATH = os.path.join(certificates_path_server_server, 'server.pem')
-        SERVER_KEY_PATH = os.path.join(certificates_path_server_server, 'server.key')
-        CLIENT_SERVER_CRT_PATH = os.path.join(certificates_path_client_server, 'server.crt')
-        
-        CLIENT_PEM_PATH = os.path.join(certificates_path_client_client, '{}.pem')
-        CLIENT_KEY_PATH = os.path.join(certificates_path_client_client, '{}.key')
-        SERVER_CERTS_PATH = os.path.join(certificates_path_server_client, '{}.pem')
-        
-        csr_details_conf = os.path.join(certificates_path_server, 'csr_details.conf')
-        
-        with open(csr_details_conf, 'w') as fd:
-            fd.write(
-                '''
-                [req]
-                prompt = no
-                default_bits = 2048
-                default_md = sha256
-                distinguished_name = dn
-                
-                [ dn ]
-                C=US
-                O=Company)
-                ''')
-        
-#        1) Create Server certificate            
-        cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
-        stdout = subprocess.check_output(cmd, shell=True)
-        shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
-        #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
- 
-#        2) Create client default certificate
-        client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
-        client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
-        organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
-        #we might want to obfuscate organization
-        organization = str(abs(hash(organization)) % (10 ** 8))
-        cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
-        stdout = subprocess.check_output(cmd, shell=True)        
-        shutil.copy(client_default_pem, SERVER_CERTS_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
-
-#        3) Calculate hash of client default certificate
-        cmd = f'openssl x509 -hash -noout -in {client_default_pem}'
-        stdout = subprocess.check_output(cmd, shell=True)
-        the_hash_name = stdout.decode().strip()+'.0'
-        
-#        4) Create symlink of client default certificate in server directory
-        dst = os.path.join(certificates_path_server_client_sym, the_hash_name)
-        if os.path.exists(dst):
-            os.remove(dst)
-        
-        cmd = f'ln -s ../{ssl_helper.CLIENT_DEFAULT_CERT_NAME}.pem '+dst
-        stdout = subprocess.check_output(cmd, shell=True)
-        logger.info('Finished create_certificates')
         
     elif sys.argv[1] == 'print_config_templates':
         Connector = aioconnectors.connectors_core.Connector
@@ -390,7 +303,139 @@ if len(sys.argv) > 1:
         except:
             task_send.cancel()
             print('ping stopped !')
+
+    elif sys.argv[1] == 'chat':
+        #usage
+        #python3 -m aioconnectors chat --server
+        #python3 -m aioconnectors chat --ip 127.0.0.1 [--upload <path>]
+        #inside chat, possible to type "!exit" to exit, and "!upload <path>" to upload
+        custom_prompt = 'aioconnectors>> '
+        parser = argparse.ArgumentParser()
+        parser.add_argument('chat')
+        parser.add_argument('--server', nargs='?', default=False, const=True)
+        parser.add_argument('--ip', nargs='?', default=None, help="server ip, mandatory for client, recommended for server (otherwise 0.0.0.0 will be used)")
+        parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")        
+        parser.add_argument('--upload', nargs='?', default=False, help="path of directory or file to upload")
+        args = parser.parse_args()
+        chat_client_name = 'chat_client'
+        
+        if args.server:            
+            server_sockaddr = (args.ip or '0.0.0.0', args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+            connector_files_dirpath = '/tmp/aioconnectors'
+            aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
+            connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
+                                                               connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
+                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath})
+                        
+            connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
+                                                               send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
+            destination_id = chat_client_name
+        else:
+            server_sockaddr = (args.ip, args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+            connector_files_dirpath = '/tmp/aioconnectors'
+            aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
+            connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
+                                                               connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
+                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath}, client_name=chat_client_name)
+
+            connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath, client_name=chat_client_name,
+                                                               send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
+            destination_id = None
+            
+            
+        loop = asyncio.get_event_loop()        
+        task_manager = loop.create_task(connector_manager.start_connector())
+        task_recv = task_console = task_send_file = None
+        
+        async def message_received_cb(transport_json , data, binary):
+            if transport_json.get('await_response'):
+                loop.create_task(connector_api.send_message(data=data, data_is_json=False, message_type='any', response_id=transport_json['request_id'],
+                                                            destination_id=transport_json['source_id']))
+            if data:
+                print(data.decode())
+                print(custom_prompt,end='', flush=True)                
+
+        if not args.upload:        
+            task_recv = loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
+            
+        async def send_file(data, destination_id, with_file, delete_after_upload):
+            await connector_api.send_message(data=data, data_is_json=False, destination_id=destination_id, await_response=True, request_id=random.randint(1,1000),
+                                                        message_type='any', with_file=with_file)
+            if delete_after_upload:
+                os.remove(delete_after_upload)
+            
+        class InputProtocolFactory(asyncio.Protocol):
+            def connection_made(self, *args, **kwargs):
+                super().connection_made(*args, **kwargs)
+                print(custom_prompt,end='', flush=True)
+                
+            def data_received(self, data):
+                data = data.decode().strip()
+                if data == '!exit':
+                    os.kill(os.getpid(), signal.SIGINT)
+                with_file = None
+                delete_after_upload = False
+                
+                if data.startswith('!upload '):
+                    upload_path = data[len('!upload '):]
                     
+                    if os.path.isdir(upload_path):
+                        upload_path_zip = f'{upload_path}.zip'
+                        if not os.path.exists(upload_path_zip):
+                            shutil.make_archive(upload_path, 'zip', upload_path)
+                            delete_after_upload = upload_path = upload_path_zip   
+                        #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
+                    
+                    data = 'Currently receiving '+upload_path
+                    with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}                   
+                    loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
+                else:
+                    loop.create_task(connector_api.send_message(data=data, data_is_json=False, destination_id=destination_id, message_type='any'))
+                    
+                print(custom_prompt,end='', flush=True)
+            
+        async def connect_pipe(loop):
+            #print('>> ',end='', flush=True)
+            transport, protocol = await loop.connect_read_pipe(InputProtocolFactory, sys.stdin)        
+        
+        async def upload_file(args, destination_id):
+            await asyncio.sleep(3)    #wait for connection      
+            upload_path = args.upload
+            delete_after_upload = False
+            if os.path.isdir(upload_path):
+                upload_path_zip = f'{upload_path}.zip'
+                if not os.path.exists(upload_path_zip):
+                    shutil.make_archive(upload_path, 'zip', upload_path)
+                    delete_after_upload = upload_path = upload_path_zip                  
+                #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
+                
+            with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}    
+            await send_file('', destination_id, with_file, delete_after_upload)
+                
+        if not args.upload:
+            task_console = loop.create_task(connect_pipe(loop))
+        else:
+            task_send_file = loop.create_task(upload_file(args, destination_id))
+            task_send_file.add_done_callback(lambda inp:os.kill(os.getpid(), signal.SIGINT))
+
+        try:
+            loop.run_forever()
+        except:    
+            print('Connector stopped !')
+
+        task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))            
+        loop.run_until_complete(task_stop)
+        if task_console:
+            del task_console
+        if task_recv:
+            del task_recv
+        del task_stop
+        del task_manager
+        del connector_manager
+        if os.path.exists(connector_files_dirpath):
+            shutil.rmtree(connector_files_dirpath)
+        
+                        
     elif sys.argv[1] == '--help':
         print(HELP)
     else:

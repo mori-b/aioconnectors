@@ -138,7 +138,7 @@ if __name__ == '__main__':
             print('Started client')
             if TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY:
                 disk_persistence = ['event']
-            connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
+            connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=False, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
                                                     client_name=local_name, disk_persistence_send=PERSISTENCE_CLIENT, disk_persistence_recv=PERSISTENCE_CLIENT, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
                                                     send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES,
                                                     uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
             print('Started send2client')
             own_source_id = local_name or CLIENT_NAMES[0]
             
-            connector_api = aioconnectors.ConnectorAPI(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, server_sockaddr=SERVER_SOCKADDR, client_name=own_source_id,
+            connector_api = aioconnectors.ConnectorAPI(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, server_sockaddr=SERVER_SOCKADDR, client_name=own_source_id, is_server=False,
                                                        send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES,
                                                        uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET)#, uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET)
             loop = asyncio.get_event_loop()

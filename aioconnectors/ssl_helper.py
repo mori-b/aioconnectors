@@ -3,25 +3,7 @@ import asyncio
 import json
 import subprocess
 import uuid
-
-'''
-
-1) Create Server certificate
-openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout server.key -out server.pem -config csr_details.conf
-put in SERVER_PEM_PATH, SERVER_KEY_PATH, CLIENT_SERVER_CRT_PATH (pem renamed to crt)
-
-2) Create client default certificate
-openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout default.key -out default.pem -config csr_details.conf
-########openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O=9d2f849c877b4e50b6fccb54d6cd1818' -keyout default.key -out default.pem -config csr_details.conf  #'/O=default/CN=default.cn.com'
-put in CLIENT_PEM_PATH, CLIENT_KEY_PATH, SERVER_CERTS_PATH (only pem)
-
-3) Calculate hash of client default certificate
-openssl x509 -hash -noout -in default.pem    #add '.0' as an extension
-
-4) Create symlink of client default certificate in server directory
-ln -s ../default.pem <hash.0>
-
-'''
+import shutil
 
 
 class SSL_helper:
@@ -230,4 +212,105 @@ class SSL_helper:
         except Exception as exc:
             self.logger.exception('remove_client_cert_on_server')
             return json.dumps({'status':False, 'msg':str(exc)})
+
+def create_certificates(logger, certificates_directory_path):
+    '''
+    
+    1) Create Server certificate
+    openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout server.key -out server.pem -config csr_details.conf
+    put in SERVER_PEM_PATH, SERVER_KEY_PATH, CLIENT_SERVER_CRT_PATH (pem renamed to crt)
+    
+    2) Create client default certificate
+    openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout default.key -out default.pem -config csr_details.conf
+    ########openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O=9d2f849c877b4e50b6fccb54d6cd1818' -keyout default.key -out default.pem -config csr_details.conf  #'/O=default/CN=default.cn.com'
+    put in CLIENT_PEM_PATH, CLIENT_KEY_PATH, SERVER_CERTS_PATH (only pem)
+    
+    3) Calculate hash of client default certificate
+    openssl x509 -hash -noout -in default.pem    #add '.0' as an extension
+    
+    4) Create symlink of client default certificate in server directory
+    ln -s ../default.pem <hash.0>
+    
+    '''        
+    
+    ssl_helper = SSL_helper(logger, is_server=False, certificates_directory_path=certificates_directory_path)
+
+    #certificates_path = os.path.join(ssl_helper.BASE_PATH, 'certificates')
+    certificates_path = ssl_helper.certificates_base_path
+    logger.info('Certificates will be created under directory : '+certificates_path)
+    if os.path.exists(certificates_path) and os.listdir(certificates_path):
+        logger.error(certificates_path+' should be empty before starting this process')
+        return False
+        
+    certificates_path_server = os.path.join(certificates_path, 'server')
+    certificates_path_server_client = os.path.join(certificates_path_server, 'client-certs')       
+    certificates_path_server_client_sym = os.path.join(certificates_path_server_client, 'symlinks')               
+    certificates_path_server_server = os.path.join(certificates_path_server, 'server-cert')                
+    certificates_path_client = os.path.join(certificates_path, 'client')        
+    certificates_path_client_client = os.path.join(certificates_path_client, 'client-certs')        
+    certificates_path_client_server = os.path.join(certificates_path_client, 'server-cert')                
+    
+    if not os.path.exists(certificates_path_server_server):
+        os.makedirs(certificates_path_server_server)
+    if not os.path.exists(certificates_path_server_client_sym):
+        os.makedirs(certificates_path_server_client_sym)     
+    if not os.path.exists(certificates_path_client_server):
+        os.makedirs(certificates_path_client_server)          
+    if not os.path.exists(certificates_path_client_client):
+        os.makedirs(certificates_path_client_client)                   
+        
+    SERVER_PEM_PATH = os.path.join(certificates_path_server_server, 'server.pem')
+    SERVER_KEY_PATH = os.path.join(certificates_path_server_server, 'server.key')
+    CLIENT_SERVER_CRT_PATH = os.path.join(certificates_path_client_server, 'server.crt')
+    
+    CLIENT_PEM_PATH = os.path.join(certificates_path_client_client, '{}.pem')
+    CLIENT_KEY_PATH = os.path.join(certificates_path_client_client, '{}.key')
+    SERVER_CERTS_PATH = os.path.join(certificates_path_server_client, '{}.pem')
+    
+    csr_details_conf = os.path.join(certificates_path_server, 'csr_details.conf')
+    
+    with open(csr_details_conf, 'w') as fd:
+        fd.write(
+            '''
+            [req]
+            prompt = no
+            default_bits = 2048
+            default_md = sha256
+            distinguished_name = dn
+            
+            [ dn ]
+            C=US
+            O=Company)
+            ''')
+    
+#        1) Create Server certificate            
+    cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
+    stdout = subprocess.check_output(cmd, shell=True)
+    shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
+    #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
+ 
+#        2) Create client default certificate
+    client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
+    client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
+    organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
+    #we might want to obfuscate organization
+    organization = str(abs(hash(organization)) % (10 ** 8))
+    cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
+    stdout = subprocess.check_output(cmd, shell=True)        
+    shutil.copy(client_default_pem, SERVER_CERTS_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
+
+#        3) Calculate hash of client default certificate
+    cmd = f'openssl x509 -hash -noout -in {client_default_pem}'
+    stdout = subprocess.check_output(cmd, shell=True)
+    the_hash_name = stdout.decode().strip()+'.0'
+    
+#        4) Create symlink of client default certificate in server directory
+    dst = os.path.join(certificates_path_server_client_sym, the_hash_name)
+    if os.path.exists(dst):
+        os.remove(dst)
+    
+    cmd = f'ln -s ../{ssl_helper.CLIENT_DEFAULT_CERT_NAME}.pem '+dst
+    stdout = subprocess.check_output(cmd, shell=True)
+    logger.info('Finished create_certificates')
+    return True
             
