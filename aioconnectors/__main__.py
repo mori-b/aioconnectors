@@ -30,7 +30,8 @@ def clearscreen():
     
 HELP = '\naioconnectors supported commands :\n\n- print_config_templates\n- create_certificates [optional dirpath]\n\
 - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate)\n\
-- create_connector <config file path>\n- test_receive_messages <config file path>\n- test_send_messages <config file path>\n- ping <config file path>\n'
+- create_connector <config file path>\n- test_receive_messages <config file path>\n- test_send_messages <config file path>\n- ping <config file path>\n\
+- chat [--target <server_ip>] [--upload <path>] [--help]'
 
 
     
@@ -309,12 +310,15 @@ if len(sys.argv) > 1:
         #python3 -m aioconnectors chat
         #python3 -m aioconnectors chat --target 127.0.0.1 [--upload <path>]
         #inside chat, possible to type "!exit" to exit, and "!upload <path>" to upload
+        print('\nWelcome to aioconnectors chat')
+        print('Type !exit to exit, !upload <file or dir path> to upload\n')
+        logger = aioconnectors.connectors_core.get_logger(logger_name='chat', first_run=True)
         custom_prompt = 'aioconnectors>> '
         parser = argparse.ArgumentParser()
         parser.add_argument('chat')
         parser.add_argument('--target', nargs='?', default=None, help="server ip, mandatory for client")
         parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")
-        parser.add_argument('--bind_server_ip', nargs='?', default=None)        
+        parser.add_argument('--bind_server_ip', nargs='?', default=None, help="bind to ip, optional for server")        
         parser.add_argument('--upload', nargs='?', default=False, help="path of directory or file to upload")
         args = parser.parse_args()
         chat_client_name = 'chat_client'
@@ -390,7 +394,7 @@ if len(sys.argv) > 1:
                         upload_path = upload_path_zip
                         #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
                     
-                    data = 'Currently receiving '+upload_path
+                    data = '!Receiving '+upload_path
                     with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}                   
                     loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
                 else:
