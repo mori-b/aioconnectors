@@ -28,7 +28,7 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
 The default mode is the most secure : use_ssl is enabled and ssl_allow_all is disabled.  
-In such a case, you need to copy certificates/server to your server, and certificates/client to your client.  
+In such a case, you need to copy certificates/server to your server, and certificates/client to your client. That's all you have to do.  
 This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.  
 Less secure options :  
 By setting ssl_allow_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
@@ -78,14 +78,14 @@ To send messages :
     await connector_api.send_message(**kwargs)
 
 This returns a status (True or False).
-If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet
+If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet.
 
 To register to receive messages of a specific type : 
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
 
 message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (transport\_json, data, binary).  
-transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc
+transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
@@ -155,7 +155,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -client\_name is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
 -client_bind_ip is optional, specifies the interface to bind your client.  
 -use\_ssl and ssl_allow_all are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
--certificates\_directory\_path is where your certificates are located, if use\_ssl is True  
+-certificates\_directory\_path is where your certificates are located, if use\_ssl is True.  
 -connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
@@ -175,11 +175,11 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
 These arguments must be filled on the application layer by the user  
 -message\_type is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.  
--destination\_id is mandatory for server : it is the remote client id  
+-destination\_id is mandatory for server : it is the remote client id.  
 -data is the payload of your message. Usually it is a json, but it can even be binary. However you probably prefer to use a binary payload together with some text information, so best practice would be to keep "data" as a json or string, and use the "binary" argument for binary payload.  
 -data\_is\_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
 -with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_type2dirpath". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent.  
--request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer  
+-request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer.  
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
 This is shown in aioconnectors\_test.py.  
