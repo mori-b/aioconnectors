@@ -6,7 +6,7 @@ Simple secure asynchronous persistent message broker
 aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It is built on the client/server model but both peers can push messages, it provides optional authentication and encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
 It comes with a command line tool that enables to easily run a connector, and manage it.
-It provides a simple programmatic API, with simple functionalities like starting/stopping a connector, sending a message, or receiving messages.
+It provides a simple programmatic API, with functionalities like starting/stopping a connector, sending a message, or receiving messages.
 
 
 ## HIGH LEVEL DESIGN
@@ -186,7 +186,7 @@ This is shown in aioconnectors\_test.py.
 -wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1000 messages per second.
 
 
-### 6.Other management command line tools supported
+### 6.Other management command line tools
 
     python3 -m aioconnectors cli
 
@@ -198,7 +198,7 @@ to run several interesting commands like :
 -ignore\_peer\_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages.  
 
 
-### 7.Testing command line tools supported.
+### 7.Testing command line tools
 
 -To send pings to a remote connector, and print its replies. 
 
@@ -211,6 +211,40 @@ to run several interesting commands like :
 -To simulate a simple application sending dummy messages.
 
     python3 -m aioconnectors test_send_messages <config_json_path>
+
+
+### 8.Funny embedded chat
+
+As simple chat using aioconnectors is embedded, it is encrypted, and allows you to exchange messages, files and directories easily between 2 Linux stations.  
+It is not a multi user chat, but more of a tool to easily transfer stuff between your computers.
+
+-On the 1st station (server side), type : 
+
+    python3 -m aioconnectors chat
+
+-Then on the 2nd station (client side), type :
+
+    python3 -m aioconnectors chat --target <server_ip> 
+
+You can also upload files during a chat, by typing "!upload <file or dir path>"  
+A directory will be transferred as a zip file.  
+
+-On client side, you can also directly upload a file or directory to the server without opening a chat :
+
+     python3 -m aioconnectors chat --target <server_ip> --upload <file or dir path>
+
+
+-More info :
+
+    python3 -m aioconnectors chat --help
+
+-If you need your server to listen on a specific interface :
+
+    python3 -m aioconnectors chat bind_server_ip <server_ip>
+    
+-If you don't want your server to use the default port (10673) : 
+
+    python3 -m aioconnectors chat --port <port> [--target <server_ip>]
 
 
 ## MISC
