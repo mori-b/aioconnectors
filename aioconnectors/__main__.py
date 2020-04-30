@@ -311,7 +311,7 @@ if len(sys.argv) > 1:
         #python3 -m aioconnectors chat --target 127.0.0.1 [--upload <path>]
         #inside chat, possible to type "!exit" to exit, and "!upload <path>" to upload
         print('\nWelcome to aioconnectors chat')
-        print('Type !exit to exit, !upload <file or dir path> to upload\n')
+        print('Type messages, or !exit to exit, !upload <file or dir path> to upload, or any shell command preceded by a !\n')
         logger = aioconnectors.connectors_core.get_logger(logger_name='chat', first_run=True)
         custom_prompt = 'aioconnectors>> '
         parser = argparse.ArgumentParser()
@@ -380,10 +380,11 @@ if len(sys.argv) > 1:
                 data = data.decode().strip()
                 if data == '!exit':
                     os.kill(os.getpid(), signal.SIGINT)
-                with_file = None
-                delete_after_upload = False
+                    return
                 
                 if data.startswith('!upload '):
+                    with_file = None
+                    delete_after_upload = False                    
                     upload_path = data[len('!upload '):]
                     
                     if os.path.isdir(upload_path):
@@ -394,12 +395,26 @@ if len(sys.argv) > 1:
                         upload_path = upload_path_zip
                         #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
                     
-                    data = '!Receiving '+upload_path
+                    data = f'Receiving {os.path.join(CONNECTOR_FILES_DIRPATH,upload_path)}'
                     with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}                   
                     loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
-                else:
-                    loop.create_task(connector_api.send_message(data=data, data_is_json=False, destination_id=destination_id, message_type='any'))
-                    
+                    print(custom_prompt,end='', flush=True)
+                    return
+                
+                elif data.startswith('!'):
+                    data_shell = data[1:]
+                    if data_shell:
+                        try:
+                            res = subprocess.check_output(data_shell, stderr=subprocess.PIPE, shell=True)
+                            res = res.decode().strip()
+                        except subprocess.CalledProcessError as exc:
+                            res = str(exc)
+                        print(custom_prompt,end='', flush=True)
+                        print(res)
+                        print(custom_prompt,end='', flush=True)
+                        return
+
+                loop.create_task(connector_api.send_message(data=data, data_is_json=False, destination_id=destination_id, message_type='any'))                   
                 print(custom_prompt,end='', flush=True)
             
         async def connect_pipe(loop):
