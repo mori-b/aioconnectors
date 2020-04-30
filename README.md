@@ -226,8 +226,8 @@ It is not a multi user chat, but more of a tool to easily transfer stuff between
 
     python3 -m aioconnectors chat --target <server_ip> 
 
-You can execute local shell commands by preceding them with a \"\!\".
-You can also upload files during a chat, by typing \"\!upload \<file or dir path\>\"  
+You can execute local shell commands by preceding them with a \"\!\".  
+You can also upload files during a chat, by typing \"\!upload \<file or dir path\>\".  
 A directory will be transferred as a zip file.  
 
 -On client side, you can also directly upload a file or directory to the server without opening a chat :
