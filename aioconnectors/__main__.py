@@ -306,22 +306,26 @@ if len(sys.argv) > 1:
 
     elif sys.argv[1] == 'chat':
         #usage
-        #python3 -m aioconnectors chat --server
-        #python3 -m aioconnectors chat --ip 127.0.0.1 [--upload <path>]
+        #python3 -m aioconnectors chat
+        #python3 -m aioconnectors chat --target 127.0.0.1 [--upload <path>]
         #inside chat, possible to type "!exit" to exit, and "!upload <path>" to upload
         custom_prompt = 'aioconnectors>> '
         parser = argparse.ArgumentParser()
         parser.add_argument('chat')
-        parser.add_argument('--server', nargs='?', default=False, const=True)
-        parser.add_argument('--ip', nargs='?', default=None, help="server ip, mandatory for client, recommended for server (otherwise 0.0.0.0 will be used)")
-        parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")        
+        parser.add_argument('--target', nargs='?', default=None, help="server ip, mandatory for client")
+        parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")
+        parser.add_argument('--bind_server_ip', nargs='?', default=None)        
         parser.add_argument('--upload', nargs='?', default=False, help="path of directory or file to upload")
         args = parser.parse_args()
         chat_client_name = 'chat_client'
+        CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
+        delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
+
+        loop = asyncio.get_event_loop()
         
-        if args.server:            
-            server_sockaddr = (args.ip or '0.0.0.0', args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
-            connector_files_dirpath = '/tmp/aioconnectors'
+        if not args.target:    #means server
+            server_sockaddr = (args.bind_server_ip or '0.0.0.0', args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+            connector_files_dirpath = CONNECTOR_FILES_DIRPATH
             aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
             connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                                connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
@@ -331,8 +335,8 @@ if len(sys.argv) > 1:
                                                                send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
             destination_id = chat_client_name
         else:
-            server_sockaddr = (args.ip, args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
-            connector_files_dirpath = '/tmp/aioconnectors'
+            server_sockaddr = (args.target, args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+            connector_files_dirpath = CONNECTOR_FILES_DIRPATH
             aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
             connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                                connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
@@ -343,7 +347,6 @@ if len(sys.argv) > 1:
             destination_id = None
             
             
-        loop = asyncio.get_event_loop()        
         task_manager = loop.create_task(connector_manager.start_connector())
         task_recv = task_console = task_send_file = None
         
@@ -383,7 +386,8 @@ if len(sys.argv) > 1:
                         upload_path_zip = f'{upload_path}.zip'
                         if not os.path.exists(upload_path_zip):
                             shutil.make_archive(upload_path, 'zip', upload_path)
-                            delete_after_upload = upload_path = upload_path_zip   
+                            delete_after_upload = upload_path_zip   
+                        upload_path = upload_path_zip
                         #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
                     
                     data = 'Currently receiving '+upload_path
@@ -406,7 +410,8 @@ if len(sys.argv) > 1:
                 upload_path_zip = f'{upload_path}.zip'
                 if not os.path.exists(upload_path_zip):
                     shutil.make_archive(upload_path, 'zip', upload_path)
-                    delete_after_upload = upload_path = upload_path_zip                  
+                    delete_after_upload = upload_path_zip    
+                upload_path = upload_path_zip
                 #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
                 
             with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}    
@@ -428,11 +433,12 @@ if len(sys.argv) > 1:
         if task_console:
             del task_console
         if task_recv:
+            connector_api.stop_waiting_for_messages(message_type='any')
             del task_recv
         del task_stop
         del task_manager
         del connector_manager
-        if os.path.exists(connector_files_dirpath):
+        if delete_connector_dirpath_later and os.path.exists(connector_files_dirpath):
             shutil.rmtree(connector_files_dirpath)
         
                         

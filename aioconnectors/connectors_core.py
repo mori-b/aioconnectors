@@ -1532,6 +1532,8 @@ class FullDuplex:
                     dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
                     if dst_dirpath:
                         try:
+                            if not binary:
+                                binary = b''
                             binary_offset = with_file.get('binary_offset', 0)                            
                             dst_fullpath = os.path.join(dst_dirpath, with_file.get('dst_name',''))
                             if os.path.exists(dst_fullpath):
