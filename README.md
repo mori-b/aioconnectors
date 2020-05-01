@@ -28,9 +28,9 @@ In order to have all clients/server connections authenticated and encrypted, the
 And then to share the created directories between server and clients as explained in 1-.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
-The following lines describe a possible approach to do that using aioconnectors. However, reading the rest of the documentation is necessary to understand them.
+The following lines describe a possible approach to do that using aioconnectors. However, reading the rest of the documentation is necessary to understand them.  
 Each node should be running a server, and be able to also spawn a client each time it initiates a connection to a different remote server.  
-Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show_connected_peers method in aioconnectors_core.py.
+Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in aioconnectors\_core.py.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
 
 ## USAGE
