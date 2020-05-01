@@ -8,6 +8,7 @@ import argparse
 import signal
 import random
 import shutil
+import zipfile
 
 import aioconnectors
 
@@ -310,8 +311,8 @@ if len(sys.argv) > 1:
         #python3 -m aioconnectors chat
         #python3 -m aioconnectors chat --target 127.0.0.1 [--upload <path>]
         #inside chat, possible to type "!exit" to exit, and "!upload <path>" to upload
-        print('\nWelcome to aioconnectors chat')
-        print('Type messages, or !exit to exit, !upload <file or dir path> to upload, or any shell command preceded by a !\n')
+        print('\nWelcome to aioconnectors chat !')
+        print('Usage :\n- Type messages, or !exit to exit, or any shell command preceded by a ! to execute locally\n- !upload <file or dir path> to upload to peer\'s /tmp/aioconnectors\n- !import <downloaded file name> to import a received file from /tmp/aioconnectors to cwd\n- !zimport <downloaded file name> to import and unzip it\n')
         logger = aioconnectors.connectors_core.get_logger(logger_name='chat', first_run=True)
         custom_prompt = 'aioconnectors>> '
         parser = argparse.ArgumentParser()
@@ -400,6 +401,15 @@ if len(sys.argv) > 1:
                     loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
                     print(custom_prompt,end='', flush=True)
                     return
+                
+                if data.startswith('!import ') or data.startswith('!zimport '):
+                    target = data.split('import ')[1]
+                    #copy target to cwd
+                    shutil.copy(os.path.join(CONNECTOR_FILES_DIRPATH, target), target)
+                    if data.startswith('!zimport '):
+                        target_dir = target.split('.zip')[0]
+                        with zipfile.ZipFile(target) as zf:
+                            zf.extractall(path=target_dir)
                 
                 elif data.startswith('!'):
                     data_shell = data[1:]

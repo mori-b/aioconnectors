@@ -1545,7 +1545,8 @@ class FullDuplex:
                             #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
                             binary = binary[:binary_offset]
                             if len(binary) == 0:
-                                del transport_json[MessageFields.WITH_BINARY]
+                                if MessageFields.WITH_BINARY in transport_json:
+                                    del transport_json[MessageFields.WITH_BINARY]
                         except Exception:
                             self.logger.exception(f'{self.connector.source_id} from peer {self.peername} handle_incoming_connection with_file')
                     else:
@@ -1634,17 +1635,19 @@ class FullDuplex:
                             binary_file = fd.read()
                     except Exception:
                         self.logger.exception('handle_outgoing_connection handling file : '+str(file_src_path))
-                    if binary_file:
-                        #append the file byte content to "binary"
-                        if binary:
-                            len_binary = len(binary)
-                            self.logger.info('handle_outgoing_connection prepare message with both binary and binary file at offset '+str(len_binary))
-                            with_file_dict['binary_offset'] = len_binary
-                            binary = binary + binary_file
-                        else:
-                            binary = binary_file
-                            transport_json[MessageFields.WITH_BINARY] = True
-                        binary_file = None
+                        del transport_json[MessageFields.WITH_FILE]
+                    else:
+                        if binary_file:
+                            #append the file byte content to "binary"
+                            if binary:
+                                len_binary = len(binary)
+                                self.logger.info('handle_outgoing_connection prepare message with both binary and binary file at offset '+str(len_binary))
+                                with_file_dict['binary_offset'] = len_binary
+                                binary = binary + binary_file
+                            else:
+                                binary = binary_file
+                                transport_json[MessageFields.WITH_BINARY] = True
+                            binary_file = None
 
                 #use_ack = self.use_ack
                 #if self.use_ack_is_list:

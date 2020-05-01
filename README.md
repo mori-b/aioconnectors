@@ -229,6 +229,8 @@ It is not a multi user chat, but more of a tool to easily transfer stuff between
 You can execute local shell commands by preceding them with a \"\!\".  
 You can also upload files during a chat, by typing \"\!upload \<file or dir path\>\".  
 Files are uploaded to /tmp/aioconnectors. A directory is transferred as a zip file.  
+When receiving a file, you can automatically copy it from /tmp/aioconnectors to your current working directoy by typing \"\!import \<file path\>\".  
+You can also additionaly unzip it by using instead \"\!zimport \<file path\>\".  
 
 -On client side, you can also directly upload a file or directory to the server without opening a chat :
 
@@ -254,6 +256,5 @@ To port aioconnectors to Windows, these steps should be taken, and probably more
 -Replace usage of unix sockets by local sockets (for example)  
 -Port the usage of openssl in ssl_helper.py  
 -Convert paths format  
-
 
 
