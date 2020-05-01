@@ -219,7 +219,7 @@ to run several interesting commands like :
 
 ### 7.Testing command line tools
 
--To send pings to a remote connector, and print its replies. 
+-To let your connector send pings to a remote connector, and print its replies. 
 
     python3 -m aioconnectors ping <config_json_path>
 
