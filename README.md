@@ -260,13 +260,13 @@ To port aioconnectors to Windows, these steps should be taken, and probably more
 
 ## BASIC EXAMPLE
 
-This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to aioconnectors_test.py or __main__.py.  
+This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to aioconnectors_test.py or \_\_main\_\_.py.  
 First step is to run : 
 
     python3 -m aioconnectors create_certificates
 
-In order not to enable allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.
-
+In order not to enable allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
+For both server and client, connector_manager is running the connector, and connector_api is sending/receiving messages. In this example, connector_manager and connector_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.
 
 ### Server example
 
