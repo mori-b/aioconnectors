@@ -6,6 +6,8 @@ from copy import deepcopy
 
 import aioconnectors
 
+#This file contains only test examples
+
 '''usage :
 First you can create your certificates with the command :
 python3 -m aioconnectors create_certificates <optional dir path>
