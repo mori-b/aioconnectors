@@ -4,8 +4,10 @@ Simple secure asynchronous persistent message broker
 ## FEATURES
 
 aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
-It is built on the client/server model but both peers can push messages, it provides optional authentication and encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss. It is asynchronous, provides the option to wait for response, and to wait for ack.
-It comes with a command line tool that enables to easily run a connector, and manage it.
+It is built on the client/server model but both peers can push messages.  
+It provides optional authentication and encryption, transfer of messages (string and binary) and of files, persistence in case of connection loss.  
+It is asynchronous, provides the option to wait asynchronously for response, or to wait for ack.  
+It comes with a command line tool that enables to easily run a connector, and manage it.  
 It provides a simple programmatic API, with functionalities like starting/stopping a connector, sending a message, or receiving messages.
 
 
@@ -14,6 +16,22 @@ It provides a simple programmatic API, with functionalities like starting/stoppi
 The client and server are connected by one single tcp client/server socket.
 When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can chose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.
 The optional encryption uses TLS. The server certificate is predefined, as well as the default client certificate. So that a server and client without prior knowledge of these certificates cannot interfere. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
+
+
+## USE CASES
+
+-The standard use case is running a server or a client on each station. Each client station can then initiate a connection to the server station.  
+In order to have all clients/server connections authenticated and encrypted, the first step is to call
+
+    python3 -m aioconnectors create_certificates <optional_directory_path>
+
+And then to share the created directories between server and clients as explained in 1-.  
+
+-You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
+The following lines describe a possible approach to do that using aioconnectors. However, reading the rest of the documentation is necessary to understand them.
+Each node should be running a server, and be able to also spawn a client each time it initiates a connection to a different remote server.  
+Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show_connected_peers method in aioconnectors_core.py.
+A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
 
 ## USAGE
 
@@ -35,7 +53,8 @@ By setting ssl_allow_all, you can use encryption without the hassle of sharing c
 By unsetting use_ssl, you can disable encryption at all.
 
 
-### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.  
+### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.
+
 2.1.Command line tool  
 -To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json.
 Relevant for both server and client.

@@ -82,7 +82,7 @@ if len(sys.argv) > 1:
             the_path = Connector.CONNECTOR_FILES_DIRPATH
         
         while True:
-            name = input('\nTo check your server, please type your server <ip> <port>.\nTo check your client, please type your client name.\nType "q" to quit.\n')
+            name = input(f'\nTo check your server, please type your server <ip> <port> (default port is {Connector.SERVER_ADDR[1]}).\nTo check your client, please type your client name.\nType "q" to quit.\n')
             if name == 'q':
                 sys.exit(0)
             names = name.split(maxsplit=1) #assume that client name has no spaces
@@ -384,33 +384,47 @@ if len(sys.argv) > 1:
                     return
                 
                 if data.startswith('!upload '):
-                    with_file = None
-                    delete_after_upload = False                    
-                    upload_path = data[len('!upload '):]
-                    
-                    if os.path.isdir(upload_path):
-                        upload_path_zip = f'{upload_path}.zip'
-                        if not os.path.exists(upload_path_zip):
-                            shutil.make_archive(upload_path, 'zip', upload_path)
-                            delete_after_upload = upload_path_zip   
-                        upload_path = upload_path_zip
-                        #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
-                    
-                    data = f'Receiving {os.path.join(CONNECTOR_FILES_DIRPATH,upload_path)}'
-                    with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}                   
-                    loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
+                    try:
+                        with_file = None
+                        delete_after_upload = False                    
+                        upload_path = data[len('!upload '):]
+                        
+                        if not os.path.exists(upload_path):
+                            raise Exception(upload_path + ' does not exist')
+                        if os.path.isdir(upload_path):
+                            upload_path_zip = f'{upload_path}.zip'
+                            if not os.path.exists(upload_path_zip):
+                                shutil.make_archive(upload_path, 'zip', upload_path)
+                                delete_after_upload = upload_path_zip   
+                            upload_path = upload_path_zip
+                            #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
+                        
+                        data = f'Receiving {os.path.join(CONNECTOR_FILES_DIRPATH,upload_path)}'
+                        with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}                   
+                        loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
+                    except Exception as exc:
+                        res = str(exc)
+                        print(custom_prompt,end='', flush=True)
+                        print(res)                        
                     print(custom_prompt,end='', flush=True)
                     return
                 
                 if data.startswith('!import ') or data.startswith('!zimport '):
-                    target = data.split('import ')[1]
-                    #copy target to cwd
-                    shutil.copy(os.path.join(CONNECTOR_FILES_DIRPATH, target), target)
-                    if data.startswith('!zimport '):
-                        target_dir = target.split('.zip')[0]
-                        with zipfile.ZipFile(target) as zf:
-                            zf.extractall(path=target_dir)
-                
+                    try:
+                        target = data.split('import ')[1]
+                        #copy target to cwd
+                        shutil.copy(os.path.join(CONNECTOR_FILES_DIRPATH, target), target)
+                        if data.startswith('!zimport '):
+                            target_dir = target.split('.zip')[0]
+                            with zipfile.ZipFile(target) as zf:
+                                zf.extractall(path=target_dir)
+                    except Exception as exc:
+                        res = str(exc)
+                        print(custom_prompt,end='', flush=True)
+                        print(res)
+                    print(custom_prompt,end='', flush=True)
+                    return                        
+                        
                 elif data.startswith('!'):
                     data_shell = data[1:]
                     if data_shell:
