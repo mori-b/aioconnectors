@@ -269,10 +269,11 @@ You can also additionaly unzip it by using instead \"\!zimport \<file name\>\".
     python3 -m aioconnectors chat --port <port> [--target <server_ip>]
 
 
-## MISC
+## Windows ?
 
 To port aioconnectors to Windows, these steps should be taken, and probably more :  
--Replace usage of unix sockets by local sockets (for example)  
+-Replace usage of unix sockets by local sockets (for example).  
+Since the implementation relies on unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
 -Port the usage of openssl in ssl_helper.py  
 -Convert paths format
 
