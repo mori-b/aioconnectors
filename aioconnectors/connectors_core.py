@@ -49,7 +49,7 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 
 class MessageFields:
-    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', <user-defined>, ...
+    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', <user-defined>, ...
     SOURCE_ID = 'source_id'    #str
     DESTINATION_ID = 'destination_id'    #str
     REQUEST_ID = 'request_id'    #int
@@ -1469,14 +1469,14 @@ class FullDuplex:
                                 if not valid_client:
                                     self.stop_task()
                                     return
-                        elif message_type == 'handshake_ssl':
-                            #server waits for handshake_ssl from client                        
+                        elif message_type == '_handshake_ssl':
+                            #server waits for _handshake_ssl from client                        
                             await self.handle_ssl_messages_server(data, transport_json)  
-                            #don't send handshake_ssl messages to queues
+                            #don't send _handshake_ssl messages to queues
                             continue                        
                             
                     else:
-                        if message_type == 'handshake_no_ssl':      
+                        if message_type == '_handshake_no_ssl':      
                             #server waits for handshake_no_ssl from client                        
                             await self.handle_handshake_no_ssl_server(data, transport_json)  
                             #don't send handshake_no_ssl messages to queues
@@ -1525,38 +1525,41 @@ class FullDuplex:
                         transport_json, data, binary = None, None, None
                         continue
                     
-                #dump file if with_file before sending message_tuple to queue
-                with_file = transport_json.get(MessageFields.WITH_FILE)
-                #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':}
-                if with_file:
-                    dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
-                    if dst_dirpath:
-                        try:
-                            if not binary:
-                                binary = b''
-                            binary_offset = with_file.get('binary_offset', 0)                            
-                            dst_fullpath = os.path.join(dst_dirpath, with_file.get('dst_name',''))
-                            if os.path.exists(dst_fullpath):
-                                self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} trying to override existing file {dst_fullpath}, ignoring...')
-                            else:
-                                self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} writing received file to {dst_fullpath}')
-                                with open(dst_fullpath, 'wb') as fd:
-                                    fd.write(binary[binary_offset:])
-                            #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
-                            binary = binary[:binary_offset]
-                            if len(binary) == 0:
-                                if MessageFields.WITH_BINARY in transport_json:
-                                    del transport_json[MessageFields.WITH_BINARY]
-                        except Exception:
-                            self.logger.exception(f'{self.connector.source_id} from peer {self.peername} handle_incoming_connection with_file')
-                    else:
-                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} tried to create file in non existing directory {dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')
-
                 if (message_type not in self.connector.recv_message_types) and (message_type != '_ping'):
                     self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} received a message with invalid type {message_type}. Ignoring...')   
                     put_msg_to_queue_recv = False
                 else:
-                    put_msg_to_queue_recv = True                    
+                    put_msg_to_queue_recv = True
+                    
+                if put_msg_to_queue_recv:
+                    #dump file if with_file before sending message_tuple to queue
+                    with_file = transport_json.get(MessageFields.WITH_FILE)
+                    #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':}
+                    if with_file:
+                        dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
+                        if dst_dirpath:
+                            try:
+                                if not binary:
+                                    binary = b''
+                                binary_offset = with_file.get('binary_offset', 0)                            
+                                dst_fullpath = os.path.join(dst_dirpath, with_file.get('dst_name',''))
+                                if os.path.exists(dst_fullpath):
+                                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} trying to override existing file {dst_fullpath}, ignoring...')
+                                else:
+                                    self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} writing received file to {dst_fullpath}')
+                                    with open(dst_fullpath, 'wb') as fd:
+                                        fd.write(binary[binary_offset:])
+                                #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
+                                binary = binary[:binary_offset]
+                                if len(binary) == 0:
+                                    if MessageFields.WITH_BINARY in transport_json:
+                                        del transport_json[MessageFields.WITH_BINARY]
+                            except Exception:
+                                self.logger.exception(f'{self.connector.source_id} from peer {self.peername} handle_incoming_connection with_file')
+                        else:
+                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} tried to create file in non existing directory {dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')
+                    
+                    #check if this message is a response to an awaiting request, and update put_msg_to_queue_recv
                     response_id = transport_json.get(MessageFields.RESPONSE_ID)                                
                     if response_id:
                         if response_id not in self.connector.messages_awaiting_response[message_type].get(self.peername, {}):
@@ -1906,7 +1909,7 @@ class FullDuplex:
                         raise Exception(msg)                     
             else:
                 self.logger.info('handle_ssl_messages_client sending hello')            
-                await self.send_message(message_type='handshake_ssl', data='hello')
+                await self.send_message(message_type='_handshake_ssl', data='hello')
                 
         except self.TransitionClientCertificateException:
             #restart client connector with newly received certificate
@@ -1956,7 +1959,7 @@ class FullDuplex:
         try:
             #the purpose of send_message is to send self.connector.source_id in transport_json
             self.logger.info('handle_handshake_no_ssl_client sending hello')            
-            await self.send_message(message_type='handshake_no_ssl', data='hello')
+            await self.send_message(message_type='_handshake_no_ssl', data='hello')
                 
         except asyncio.IncompleteReadError:
             self.logger.warning('handle_handshake_no_ssl_client Server disconnected')

@@ -235,7 +235,7 @@ to run several interesting commands like :
 ### 8.Funny embedded chat
 
 As simple chat using aioconnectors is embedded, it is encrypted, and allows you to exchange messages, files and directories easily between 2 Linux stations.  
-It is not a multi user chat, but more of a tool to easily transfer stuff between your computers.
+It is not a multi user chat, but more of a tool to easily transfer stuff between your computers. Warning : the server does not perform client authentication.
 
 -On the 1st station (server side), type : 
 
