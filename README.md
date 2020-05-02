@@ -84,7 +84,7 @@ You don't have to use a config file (config\_file\_path), you can also directly 
 ### 3.send/receive messages with the API
 
 3.1.To configure the Connector API, create a <config\_json\_path> file based on the API template json.
-Relevant for both server and client.
+Relevant for both server and client. This connector_api config file is a subset of the connector_manager config file. If you already have a relevant connector_manager config file on your machine, you can reuse it for connector_api, and you don't need to create a different connector_api config file.
 
     python3 -m aioconnectors print_config_templates
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
