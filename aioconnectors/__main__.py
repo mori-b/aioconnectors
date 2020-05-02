@@ -441,7 +441,7 @@ if len(sys.argv) > 1:
                 loop.create_task(connector_api.send_message(data=data, data_is_json=False, destination_id=destination_id, message_type='any'))                   
                 print(custom_prompt,end='', flush=True)
             
-        async def connect_pipe(loop):
+        async def connect_pipe_to_stdin(loop):
             #print('>> ',end='', flush=True)
             transport, protocol = await loop.connect_read_pipe(InputProtocolFactory, sys.stdin)        
         
@@ -461,7 +461,7 @@ if len(sys.argv) > 1:
             await send_file('', destination_id, with_file, delete_after_upload)
                 
         if not args.upload:
-            task_console = loop.create_task(connect_pipe(loop))
+            task_console = loop.create_task(connect_pipe_to_stdin(loop))
         else:
             task_send_file = loop.create_task(upload_file(args, destination_id))
             task_send_file.add_done_callback(lambda inp:os.kill(os.getpid(), signal.SIGINT))
