@@ -124,8 +124,9 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "debug_msg_counts": true,
     "default_logger_dirpath": "/tmp/aioconnectors",
     "default_logger_log_level": "INFO",
-    "disk_persistence_recv": true,
-    "disk_persistence_send": ["any"],
+    "disk_persistence_recv": false,
+    "disk_persistence_send": false,
+    "enable_client_try_reconnect": true,
     "file_type2dirpath": {},
     "is_server": true,
     "max_size_persistence_path": 1000000000,
@@ -183,8 +184,9 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
 -uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
 -uds\_path\_send\_preserve\_socket should always be True for better performance.  
--debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.
-
+-debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
+-enable_client_try_reconnect is a boolean always set to True. It lets the client try to reconnect automatically to the server every 5 seconds.  
+-hook_server_auth_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.
 
 ### 5.More details about the send\_message arguments
 
@@ -234,8 +236,9 @@ to run several interesting commands like :
 
 ### 8.Funny embedded chat
 
-As simple chat using aioconnectors is embedded, it is encrypted, and allows you to exchange messages, files and directories easily between 2 Linux stations.  
-It is not a multi user chat, but more of a tool to easily transfer stuff between your computers. Warning : the server does not perform client authentication.
+As simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux stations.  
+It is encrypted, and supports authentication by prompting to accept connections.  
+It is not a multi user chat, but more of a tool to easily transfer stuff between your computers.
 
 -On the 1st station (server side), type : 
 

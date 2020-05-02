@@ -146,7 +146,8 @@ class Connector:
                  max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, tool_only=False, file_type2dirpath=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
-                 uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET):
+                 uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
+                 hook_server_auth_client=None, enable_client_try_reconnect=True):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -178,6 +179,7 @@ class Connector:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
+                self.hook_server_auth_client = hook_server_auth_client
 
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
@@ -195,7 +197,8 @@ class Connector:
                 self.source_id = client_name
                 self.logger.info('Client has source id : '+self.source_id)   
                 self.alnum_source_id = self.alnum_name(self.source_id)                            
-
+                self.enable_client_try_reconnect = enable_client_try_reconnect
+                
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
                 if recv_message_types is None:
@@ -489,6 +492,10 @@ class Connector:
         #we don't want to lose events at transition
         self.logger.info(f'{self.source_id} client_wait_for_reconnect client entering Disconnected mode')      
         await self.stop(connector_socket_only=True, client_wait_for_reconnect=True)
+        
+        if not self.enable_client_try_reconnect:
+            self.logger.info(f'{self.source_id} client_wait_for_reconnect leaving because of enable_client_try_reconnect')      
+            return
         
         count = 1               
         while True:
@@ -1395,6 +1402,15 @@ class FullDuplex:
                 self.connector.cancel_tasks(task_names=[peername+'_incoming', peername+'_outgoing'])
                 
             self.peername = peername
+
+            if self.connector.is_server and self.connector.hook_server_auth_client:
+                accept = await self.connector.hook_server_auth_client(self.peername)
+                if accept:
+                    self.logger.info(f'{self.connector.source_id} accepting client {self.peername}')
+                else:
+                    self.logger.info(f'{self.connector.source_id} blocking client {self.peername}')
+                    await self.stop()
+                    return
 
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}')

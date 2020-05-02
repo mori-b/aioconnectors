@@ -60,7 +60,8 @@ if len(sys.argv) > 1:
                         certificates_directory_path=None, client_name=None, client_bind_ip=None, send_message_types=Connector.DEFAULT_MESSAGE_TYPES, recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                         file_type2dirpath={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
-                        uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET)
+                        uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
+                        enable_client_try_reconnect=True)
         print('\nMANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
                 
@@ -325,16 +326,39 @@ if len(sys.argv) > 1:
         chat_client_name = 'chat_client'
         CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
         delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
-
+        is_server = not args.target
         loop = asyncio.get_event_loop()
         
-        if not args.target:    #means server
+            
+        class AuthClient:
+            perform_client_authentication = False
+            authenticate = asyncio.Event()
+            allow = False
+            
+            @staticmethod
+            def update_allow(status):
+                AuthClient.allow = status
+                AuthClient.perform_client_authentication = False
+                AuthClient.authenticate.set()
+            
+            @staticmethod
+            async def authenticate_client(client_name):
+                AuthClient.perform_client_authentication = True
+                print(f'Accept client {client_name} ? y/n')
+                print(custom_prompt,end='', flush=True)                
+                await AuthClient.authenticate.wait()
+                AuthClient.authenticate.clear()
+                return AuthClient.allow
+
+        
+        if is_server:
             server_sockaddr = (args.bind_server_ip or '0.0.0.0', args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
             connector_files_dirpath = CONNECTOR_FILES_DIRPATH
             aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
             connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                                connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
-                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath})
+                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath},
+                                                               hook_server_auth_client=AuthClient.authenticate_client)
                         
             connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
                                                                send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
@@ -345,7 +369,8 @@ if len(sys.argv) > 1:
             aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
             connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                                connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
-                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath}, client_name=chat_client_name)
+                                                               send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath},
+                                                               client_name=chat_client_name, enable_client_try_reconnect=False)
 
             connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath, client_name=chat_client_name,
                                                                send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
@@ -375,10 +400,19 @@ if len(sys.argv) > 1:
         class InputProtocolFactory(asyncio.Protocol):
             def connection_made(self, *args, **kwargs):
                 super().connection_made(*args, **kwargs)
+                self.perform_client_authentication = is_server
                 print(custom_prompt,end='', flush=True)
                 
             def data_received(self, data):
                 data = data.decode().strip()
+                if AuthClient.perform_client_authentication:
+                    if data == 'y':
+                        AuthClient.update_allow(True)
+                    else:# data == 'n':
+                        AuthClient.update_allow(False)
+                    print(custom_prompt,end='', flush=True)
+                    return
+                
                 if data == '!exit':
                     os.kill(os.getpid(), signal.SIGINT)
                     return

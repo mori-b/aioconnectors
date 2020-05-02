@@ -16,7 +16,8 @@ class ConnectorManager:
                      certificates_directory_path=None, client_name=None, send_message_types=None, recv_message_types=None, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                      disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                      file_type2dirpath=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
-                     uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET):
+                     uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
+                     hook_server_auth_client=None, enable_client_try_reconnect=True):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -39,6 +40,7 @@ class ConnectorManager:
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_type2dirpath, self.debug_msg_counts, self.silent = file_type2dirpath, debug_msg_counts, silent
         self.uds_path_receive_preserve_socket, self.uds_path_send_preserve_socket = uds_path_receive_preserve_socket, uds_path_send_preserve_socket
+        self.hook_server_auth_client, self.enable_client_try_reconnect = hook_server_auth_client, enable_client_try_reconnect
         
         self.config_file_path = config_file_path
         if self.config_file_path:
@@ -74,7 +76,8 @@ class ConnectorManager:
                                    disk_persistence_send=self.disk_persistence_send, disk_persistence_recv=self.disk_persistence_recv,
                                    max_size_persistence_path=self.max_size_persistence_path, file_type2dirpath=self.file_type2dirpath,
                                    debug_msg_counts=self.debug_msg_counts, silent=self.silent, connector_files_dirpath=self.connector_files_dirpath, #use_ack=use_ack,
-                                   uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, uds_path_send_preserve_socket=self.uds_path_send_preserve_socket)        
+                                   uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, uds_path_send_preserve_socket=self.uds_path_send_preserve_socket,
+                                   hook_server_auth_client=self.hook_server_auth_client, enable_client_try_reconnect=self.enable_client_try_reconnect)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
