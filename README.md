@@ -65,7 +65,7 @@ Relevant for both server and client.
 
     python3 -m aioconnectors create_connector <config_json_path>
 
-2.2.Programmatically, examples are provided in aioconnectors\_test.py and in \_\_main\_\_.py  
+2.2.Programmatically, examples are provided in applications.py and in aioconnectors\_test.py.   
 to create and start a connector :
 
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
@@ -91,7 +91,7 @@ Relevant for both server and client. This connector_api config file is a subset 
 
 3.2.Or you can directly initialize your ConnectorAPI kwargs  
 
-Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in \_\_main\_\_.py (test\_receive\_messages and test\_send\_messages)  
+Then you can send and receive messages by calling the following coroutines in your program, as shown in aioconnectors\_test.py, and in applications.py (test\_receive\_messages and test\_send\_messages).  
 To send messages : 
 
     await connector_api.send_message(**kwargs)
@@ -283,7 +283,7 @@ Since the implementation relies on unix sockets paths, a possible approach would
 
 ## BASIC EXAMPLE
 
-This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to aioconnectors_test.py or \_\_main\_\_.py.  
+This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to applications.py or aioconnectors_test.py.  
 First step is to run : 
 
     python3 -m aioconnectors create_certificates
