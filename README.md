@@ -66,16 +66,16 @@ Relevant for both server and client.
     python3 -m aioconnectors create_connector <config_json_path>
 
 2.2.Programmatically, examples are provided in applications.py and in aioconnectors\_test.py.   
-to create and start a connector :
+To create and start a connector :
 
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
     task_manager = loop.create_task(connector_manager.start_connector())
 
-to stop a connector :
+To stop a connector :
 
     await connector_manager.stop_connector()
 
-to shutdown a connector :
+To shutdown a connector :
 
     await connector_manager.stop_connector(shutdown=True)
 
