@@ -239,6 +239,7 @@ def ping(config_file_path, logger=None):
     
 
 def chat(args, logger=None):
+    #chat supports sending messages and files/directories between 2 connectors
     if not logger:
         logger = aioconnectors.connectors_core.get_logger(logger_name='chat', first_run=True)
     custom_prompt = 'aioconnectors>> '        
