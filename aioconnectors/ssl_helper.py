@@ -50,7 +50,9 @@ class SSL_helper:
                 else:
                     self.source_id_2_cert = {'source_id_2_cert':{}, 'cert_2_source_id':{}}
                 #load default_client_serial
-                stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+str(os.path.join(self.SERVER_CERTS_PATH, self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
+                stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
+                                        str(os.path.join(self.SERVER_CERTS_PATH,
+                                            self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
                 hash_name, serial = stdout.decode().splitlines()
                 self.default_client_serial = serial.split('=')[1]
 
@@ -87,7 +89,8 @@ class SSL_helper:
                 create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={common_name}/CN={common_name}' -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
             else:
-                #necessary to set a unique field (like organization), so that each certificate has a unique hash, which is better for fast authentication
+                #necessary to set a unique field (like organization), so that each certificate has a unique hash, 
+                #which is better for fast authentication
                 organization = uuid.uuid4().hex
                 create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
@@ -99,7 +102,8 @@ class SSL_helper:
             #if stderr:
             #    self.logger.warning('create_certificate_cmd : '+stderr.decode())
         
-            #create symlink for the client certificate named by their fingerprints so they will be detected by context.load_verify_locations(capath=
+            #create symlink for the client certificate named by their fingerprints 
+            #so they will be detected by context.load_verify_locations(capath=
             #first, calculate hash for symlink name
             proc, stdout, stderr = await self.run_cmd(f'openssl x509 -hash -serial -noout -in {crt_path}')
             if stderr:
@@ -107,7 +111,8 @@ class SSL_helper:
             hash_name, serial = stdout.splitlines()
             serial = serial.split('=')[1]
             
-            #create a symlink called <hash>.<first free index, starting from 0>, pointing to f'../{source_id}.{self.CERT_NAME_EXTENSION}'
+            #create a symlink called <hash>.<first free index, starting from 0>, 
+            #pointing to f'../{source_id}.{self.CERT_NAME_EXTENSION}'
             index = 0
             while True:
                 candidate = os.path.join(self.SERVER_SYMLINKS_PATH, hash_name + '.' + str(index))
@@ -183,7 +188,8 @@ class SSL_helper:
                                 others.append(int(test_index))
                     if others:
                         for test_index in sorted(others):
-                            os.rename(os.path.join(self.SERVER_SYMLINKS_PATH, the_file_name+'.'+str(test_index)), os.path.join(self.SERVER_SYMLINKS_PATH, the_file_name+'.'+str(test_index-1)))                                    
+                            os.rename(os.path.join(self.SERVER_SYMLINKS_PATH, the_file_name+'.'+str(test_index)), 
+                                      os.path.join(self.SERVER_SYMLINKS_PATH, the_file_name+'.'+str(test_index-1)))                                    
                         
             #then remove paths 
             if not remove_only_symlink:

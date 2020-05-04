@@ -7,7 +7,8 @@ network layer :
 4 bytes = length, rest is data 
 
 transport layer :
-2 bytes = length, rest is json descriptor like : {'message_type':['_ssl','command','event'(,'file')], 'source_id':'gid:uid', 'destination_id':'<tsoc_ip>, ['request_id', 'response_id']:<int>, 'with_binary':true}
+2 bytes = length, the rest is a json descriptor like : {'message_type':['_ssl','command','event'(,'file')], 
+        'source_id':'src_id', 'destination_id':'dst_id', ['request_id', 'response_id']:<int>, 'with_binary':true}
 request_id and response_id are relevant for application layer
 
 application layer :
@@ -65,7 +66,8 @@ class Structures:
     MSG_2_STRUCT = Struct('H')    #2
 #MSG_LENGTH_STRUCT = Struct('Q')    #8
 
-def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, log_format=LOG_FORMAT, level=LOG_LEVEL):
+def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
+               log_format=LOG_FORMAT, level=LOG_LEVEL):
     logger = logging.getLogger(logger_name)
     logger.handlers = []
     if not first_run:
@@ -141,12 +143,13 @@ class Connector:
     
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
-                 use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, validates_clients=SERVER_VALIDATES_CLIENTS,
-                 disk_persistence_send=DISK_PERSISTENCE_SEND, disk_persistence_recv=DISK_PERSISTENCE_RECV,
-                 max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
+                 use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
+                 validates_clients=SERVER_VALIDATES_CLIENTS, disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, tool_only=False, file_type2dirpath=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
-                 uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
+                 uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
+                 uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True):
         
         self.logger = logger.getChild('server' if is_server else 'client')
@@ -167,7 +170,9 @@ class Connector:
             self.uds_path_send_preserve_socket = uds_path_send_preserve_socket
             self.silent = silent
             if self.debug_msg_counts:
-                self.msg_counts = {'store_persistence_send':0, 'load_persistence_send':0, 'send_no_persist':0, 'queue_sent':0,'queue_recv':0, 'msg_recvd_uds':0, 'store_persistence_recv':0, 'load_persistence_recv':0}
+                self.msg_counts = {'store_persistence_send':0, 'load_persistence_send':0, 'send_no_persist':0,
+                                   'queue_sent':0,'queue_recv':0, 'msg_recvd_uds':0, 'store_persistence_recv':0,
+                                   'load_persistence_recv':0}
                 self.previous_msg_counts = deepcopy(self.msg_counts)
             
             self.server_sockaddr = server_sockaddr
@@ -187,10 +192,12 @@ class Connector:
                     recv_message_types = self.DEFAULT_MESSAGE_TYPES
                 self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
                 
-                self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))
+                self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
+                                                               self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))
                 self.uds_path_receive_from_connector = {}
                 for recv_message_type in self.recv_message_types:
-                    self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
+                    self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
+                        self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
                 
             else:
                 self.client_bind_ip = client_bind_ip
@@ -205,13 +212,16 @@ class Connector:
                     recv_message_types = self.DEFAULT_MESSAGE_TYPES
                 self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
                 
-                self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))
+                self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
+                                                    self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))
                 self.uds_path_receive_from_connector = {}           
                 for recv_message_type in self.recv_message_types:
-                    self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                    self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
+                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
             
             self.commander_server = self.commander_server_task = None
-            self.uds_path_commander = os.path.join(self.connector_files_dirpath, self.UDS_PATH_COMMANDER.format(self.alnum_source_id))
+            self.uds_path_commander = os.path.join(self.connector_files_dirpath,
+                                                   self.UDS_PATH_COMMANDER.format(self.alnum_source_id))
                     
             if not tool_only:
                 
@@ -241,14 +251,17 @@ class Connector:
                     self.logger.info('Connector will not use ssl')                                                               
                     
                 self.disk_persistence = disk_persistence_send
-                self.persistence_path = os.path.join(self.connector_files_dirpath, self.PERSISTENCE_SEND_FILE_NAME.format(self.alnum_source_id) + '_') #peer name will be appended
+                self.persistence_path = os.path.join(self.connector_files_dirpath,
+                                            self.PERSISTENCE_SEND_FILE_NAME.format(self.alnum_source_id) + '_') #peer name will be appended
                 self.disk_persistence_recv = disk_persistence_recv
-                self.persistence_recv_path = os.path.join(self.connector_files_dirpath, self.PERSISTENCE_RECV_FILE_NAME.format(self.alnum_source_id) + '_') #msg type will be appended         
+                self.persistence_recv_path = os.path.join(self.connector_files_dirpath,
+                                            self.PERSISTENCE_RECV_FILE_NAME.format(self.alnum_source_id) + '_') #msg type will be appended         
                 self.ram_persistence = False #ram_persistence    
                 self.max_size_persistence_path = max_size_persistence_path
                 if self.disk_persistence:
                     if self.persistence_path:
-                        self.logger.info('Connector will use send persistence path {} with max size {}'.format(self.persistence_path, self.max_size_persistence_path))
+                        self.logger.info('Connector will use send persistence path {} with max '
+                                         'size {}'.format(self.persistence_path, self.max_size_persistence_path))
                     else:
                         self.logger.warning('Connector misconfigured : disk_persistence is enabled without persistence_path send')
                         #self.logger.info('Connector will use persistence ram')
@@ -257,7 +270,8 @@ class Connector:
 
                 if self.disk_persistence_recv:
                     if self.persistence_recv_path:
-                        self.logger.info('Connector will use recv persistence path {} with max size {}'.format(self.persistence_recv_path, self.max_size_persistence_path))
+                        self.logger.info('Connector will use recv persistence path {} with max '
+                                         'size {}'.format(self.persistence_recv_path, self.max_size_persistence_path))
                     else:
                         self.logger.warning('Connector misconfigured : disk_persistence is enabled without persistence_path recv')
                         #self.logger.info('Connector will use persistence ram')
@@ -340,7 +354,8 @@ class Connector:
                     self.sock.bind((self.client_bind_ip,0))
                 self.sock.connect(self.server_sockaddr)   
                 self.sock.setblocking(False)                
-                self.logger.info('Created socket for '+self.source_id+' with info '+str(self.sock.getsockname())+' to peer '+str(self.sock.getpeername()))
+                self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
+                                 f'to peer {self.sock.getpeername()}')
                 
                 self.tasks['run_client'] = self.loop.create_task(self.run_client())    
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
@@ -623,7 +638,8 @@ class Connector:
             for filename in os.listdir(persistence_dir):            
                 if filename.startswith(persistence_basename):
                     old_persistence_path = os.path.join(persistence_dir, filename)
-                    self.logger.warning(f'{self.source_id} delete_previous_persistence_remains Deleting old persistent file : {old_persistence_path}')
+                    self.logger.warning(f'{self.source_id} delete_previous_persistence_remains '
+                                        f'Deleting old persistent file : {old_persistence_path}')
                     os.remove(old_persistence_path)
                     
             persistence_recv_dir = os.path.dirname(self.persistence_recv_path)
@@ -631,7 +647,8 @@ class Connector:
             for filename in os.listdir(persistence_recv_dir):            
                 if filename.startswith(persistence_recv_basename):
                     old_persistence_path = os.path.join(persistence_recv_dir, filename)
-                    self.logger.warning(f'{self.source_id} delete_previous_persistence_remains Deleting old persistent file : {old_persistence_path}')
+                    self.logger.warning(f'{self.source_id} delete_previous_persistence_remains '
+                                        f'Deleting old persistent file : {old_persistence_path}')
                     os.remove(old_persistence_path)
                     
         except Exception:
@@ -641,7 +658,8 @@ class Connector:
         persistence_path = self.persistence_path + self.alnum_name(peername)
         try:
             if os.path.exists(persistence_path) and os.path.getsize(persistence_path) > self.max_size_persistence_path:
-                self.logger.warning(f'{self.source_id} Cannot store message to persistence for peer {peername} because {persistence_path} is too big')
+                self.logger.warning(f'{self.source_id} Cannot store message to persistence for peer '
+                                    f'{peername} because {persistence_path} is too big')
                 return
             self.logger.debug(f'{self.source_id} Storing message to persistence to peer {peername}')
             if DEBUG_SHOW_DATA:
@@ -697,7 +715,8 @@ class Connector:
                     if self.debug_msg_counts:
                         self.msg_counts['load_persistence_send']+=1                            
 
-            self.logger.info(f'{self.source_id} load_messages_from_persistence finished loading {persistent_count} messages to queue_send_transition_to_connect. Deleting persistence file {persistence_path}')
+            self.logger.info(f'{self.source_id} load_messages_from_persistence finished loading {persistent_count} '
+                             f'messages to queue_send_transition_to_connect. Deleting persistence file {persistence_path}')
             try:
                 os.remove(persistence_path)
             except Exception:
@@ -785,7 +804,8 @@ class Connector:
     
     async def queue_send_to_connector(self):
         self.logger.info(f'{self.source_id} queue_send_to_connector task created')
-        server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
+        server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, 
+                                                path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
         return server
 
     async def queue_send_to_connector_put(self, reader, writer):
@@ -808,7 +828,8 @@ class Connector:
                     if not peername:
                         transport_json[MessageFields.DESTINATION_ID] = peername = self.server_sockaddr 
                     elif peername != str(self.server_sockaddr):
-                        self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid destination id {peername} instead of {self.server_sockaddr}')
+                        self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid '
+                                            f'destination id {peername} instead of {self.server_sockaddr}')
                         transport_json[MessageFields.DESTINATION_ID] = peername = self.server_sockaddr
                 
                 if self.ignore_peer_traffic:
@@ -829,7 +850,8 @@ class Connector:
                 #sanity check, that source_id exists and is valid : that way connectors_api doesn't have to ensure source_id, and cannot modify it
                 #but still it is more efficient to rely on connectors_api source_id
                 if transport_json.get(MessageFields.SOURCE_ID) != self.source_id:
-                    self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid source id {transport_json.get(MessageFields.SOURCE_ID)} instead of {self.source_id}')
+                    self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid source id '
+                                        f'{transport_json.get(MessageFields.SOURCE_ID)} instead of {self.source_id}')
                     #update source_id in transport_json
                     transport_json[MessageFields.SOURCE_ID] = self.source_id
                 
@@ -845,45 +867,61 @@ class Connector:
                     if disk_persistence:
                         ##async with self.persistence_lock:     
                             ##check again the mode, since it may have changed during load_messages_from_persistence
-                        self.logger.debug(f'{self.source_id} queue_send_to_connector_put storing message to persistence for queue {peername}')
+                        self.logger.debug(f'{self.source_id} queue_send_to_connector_put storing message to '
+                                          f'persistence for queue {peername}')
                         send_to_queue = False                                
                         self.store_message_to_persistence(peername=peername, message=message)      
                     elif not self.ram_persistence:
                         #self.logger.info('Not adding message to queue_send_to_connector_put because ram_persistence is false')                        
-                        self.logger.debug(f'{self.source_id} Not forwarding message to absent peer {peername} to queue_send_to_connector_put because no persistence')                    
+                        self.logger.debug(f'{self.source_id} Not forwarding message to absent peer {peername} to '
+                                          'queue_send_to_connector_put because no persistence')                    
                         send_to_queue = False
                             
                 message_type = transport_json[MessageFields.MESSAGE_TYPE]
                 if (message_type not in self.send_message_types) and (message_type != '_ping'):
-                    self.logger.warning(f'{self.source_id} queue_send_to_connector_put received a message with invalid type {message_type}. Ignoring...')                    
+                    self.logger.warning(f'{self.source_id} queue_send_to_connector_put received a message with '
+                                        f'invalid type {message_type}. Ignoring...')                    
                     send_to_queue = False                    
                 elif transport_json.get(MessageFields.AWAIT_RESPONSE):
                     request_id = transport_json.get(MessageFields.REQUEST_ID)
                     if not request_id:
-                        self.logger.warning(f'{self.source_id} sending message with AWAIT_RESPONSE enabled, but without request_id')
+                        self.logger.warning(f'{self.source_id} sending message with AWAIT_RESPONSE enabled, but '
+                                            'without request_id')
                         #if no application level request_id has been set, we create a dummy unique request_id to be able to detect response
                         #in case peer's application responds smartly, otherwise AWAIT_RESPONSE_TIMEOUT will stop the waiting
                         request_id = uuid.uuid4().hex
                     if request_id in self.messages_awaiting_response[message_type].get(peername, {}):
-                        self.logger.warning(f'Request id {request_id} for type {message_type} for peer {peername} already in self.messages_awaiting_response, ignoring')
+                        self.logger.warning(f'Request id {request_id} for type {message_type} for peer {peername} '
+                                            'already in self.messages_awaiting_response, ignoring')
                         send_to_queue = False
                     else:
                         if not send_to_queue:
                             if self.disk_persistence or self.ram_persistence:
-                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. Response to request_id {request_id} will be sent when peer goes up, since persistence is enabled')
+                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
+                                                    f'Response to request_id {request_id} will be sent when peer goes up'
+                                                    ', since persistence is enabled')
                                 await_response = True                        
                             else:
-                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. Response to request_id {request_id} will not be sent since persistence is disabled')
+                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
+                                                    f'Response to request_id {request_id} will not be sent since '
+                                                    'persistence is disabled')
                         else:
                             if len(self.messages_awaiting_response[message_type].get(peername, {})) > self.MAX_NUMBER_OF_AWAITING_REQUESTS:
-                                self.logger.error(f'{self.source_id} messages_awaiting_response dict has {len(self.messages_awaiting_response[message_type].get(peername,{}))} entries for message type {message_type} and peername {peername}. Stop adding entries until it goes below {self.MAX_NUMBER_OF_AWAITING_REQUESTS}')
+                                self.logger.error(f'{self.source_id} messages_awaiting_response dict has '
+                                                  f'{len(self.messages_awaiting_response[message_type].get(peername,{}))}'
+                                                  f' entries for message type {message_type} and peername {peername}. '
+                                                  'Stop adding entries until it goes '
+                                                  f'below {self.MAX_NUMBER_OF_AWAITING_REQUESTS}')
                             else:
-                                self.logger.info(f'{self.source_id} Adding request {request_id} to messages_awaiting_response dict for type {message_type} and peer {peername}')
+                                self.logger.info(f'{self.source_id} Adding request {request_id} to '
+                                                 f'messages_awaiting_response dict for type {message_type} and '
+                                                 f'peer {peername}')
                                 await_response = True
                         if await_response:
                             if peername not in self.messages_awaiting_response[message_type]:
                                 self.messages_awaiting_response[message_type][peername] = {}
-                            self.messages_awaiting_response[message_type][peername][request_id] = [asyncio.Event(),None]    #2nd element will contain the response set by handle_incoming_connection
+                            #2nd element will contain the response set by handle_incoming_connection
+                            self.messages_awaiting_response[message_type][peername][request_id] = [asyncio.Event(),None]    
                             
                 if send_to_queue:            
                     queue_send = self.queue_send[peername]
@@ -897,12 +935,15 @@ class Connector:
                         
                 if await_response:
                     try:
-                        await asyncio.wait_for(self.messages_awaiting_response[message_type][peername][request_id][0].wait(), timeout=self.AWAIT_RESPONSE_TIMEOUT)
+                        await asyncio.wait_for(self.messages_awaiting_response[message_type][peername][request_id][0].wait(), 
+                                               timeout=self.AWAIT_RESPONSE_TIMEOUT)
                     except asyncio.TimeoutError:
                         self.logger.warning(f'{self.source_id} Request id {request_id} timed out awaiting response')
                     else:
                         transport_json, data, binary = self.messages_awaiting_response[message_type][peername][request_id][1]
-                        self.logger.info(f'{self.source_id} Receiving response and removing request {request_id} from messages_awaiting_response dict for type {message_type} and peer {peername}')
+                        self.logger.info(f'{self.source_id} Receiving response and removing request {request_id} '
+                                         f'from messages_awaiting_response dict for type {message_type} '
+                                         f'and peer {peername}')
                         message_bytes = self.pack_message(transport_json=transport_json, data=data, binary=binary)
                         # send the length to be sent next                    
                         writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])
@@ -942,7 +983,8 @@ class Connector:
         persistence_path = self.persistence_recv_path + msg_type
         try:
             if os.path.exists(persistence_path) and os.path.getsize(persistence_path) > self.max_size_persistence_path:
-                self.logger.warning(f'{self.source_id} Cannot store message to persistence_recv for msg_type {msg_type} because {persistence_path} is too big')
+                self.logger.warning(f'{self.source_id} Cannot store message to persistence_recv for msg_type {msg_type}'
+                                    f' because {persistence_path} is too big')
                 return
             self.logger.debug(f'{self.source_id} Storing message to persistence_recv for msg_type {msg_type}')
             if DEBUG_SHOW_DATA:
@@ -952,7 +994,8 @@ class Connector:
                 #fd.write(peername.encode()+b'\n')
                 fd.write(message)
             if self.debug_msg_counts and not ignore_count:
-                #ignore_count is nice to understand we are in a Special case. But msg_counts['load_persistence_recv'] will still contain duplicates
+                #ignore_count is nice to understand we are in a Special case.
+                #But msg_counts['load_persistence_recv'] will still contain duplicates
                 self.msg_counts['store_persistence_recv'] += 1
                 
         except Exception:
@@ -987,7 +1030,8 @@ class Connector:
                     if self.debug_msg_counts:
                         self.msg_counts['load_persistence_recv']+=1                            
 
-            self.logger.info(f'{self.source_id} load_messages_from_persistence_recv finished loading {persistent_count} messages to transition_queue. Deleting persistence file {persistence_recv_path}')
+            self.logger.info(f'{self.source_id} load_messages_from_persistence_recv finished loading {persistent_count}'
+                             f' messages to transition_queue. Deleting persistence file {persistence_recv_path}')
             try:
                 os.remove(persistence_recv_path)
             except Exception:
@@ -1009,7 +1053,8 @@ class Connector:
             if msg_type in transition_queues:
                 #in case disconnection happens during transition, copy queue remainings into new file
                 transition_queue = transition_queues[msg_type]
-                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue {msg_type}. Transferring {transition_queue.qsize()} messages')                
+                self.logger.info(f'{self.source_id} Special case : disconnection happens during transition for queue '
+                                 f'{msg_type}. Transferring {transition_queue.qsize()} messages')                
                 while not transition_queue.empty():
                     transport_json, data, binary = transition_queue.get_nowait()
                     message_bytes_queue = self.pack_message(transport_json=transport_json, data=data, binary=binary)
@@ -1025,7 +1070,8 @@ class Connector:
         #all messages from persistence file are stored into msg_types_ready_for_transition queue, and file is deleted
         #if a transition queue is ready, it takes precedence over regular self.queue_recv
         #unfortunately, transition queues are emptied one after the other, not keeping the order between different message types.
-        #special case : if disconnection happens during the transition to connectivity, we move all content from transition queue to a new recreated file
+        #special case : if disconnection happens during the transition to connectivity, 
+        #we move all content from transition queue to a new recreated file
         
         persistence_recv_enabled = []    #list of msg_types
         transition_queues = {}    #key=msg_type, value=Queue of message_bytes
@@ -1042,7 +1088,8 @@ class Connector:
                             writer.close()
                             msg_types_ready_for_transition.append(msg_type)
                         except Exception as exc: #ConnectionRefusedError:
-                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
+                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to '
+                                                f'{uds_path_receive} : {exc}')
                     for msg_type in msg_types_ready_for_transition:
                         transition_queues[msg_type] = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)
                         #read file into queue, delete file
@@ -1051,7 +1098,8 @@ class Connector:
                  
                 queue_recv_size = self.queue_recv.qsize()
                 if queue_recv_size:
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')                    
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : '
+                                      f'{queue_recv_size}')                    
                     #if queue_recv_size > 10:
                     #    self.logger.info(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
                     #else:
@@ -1064,18 +1112,21 @@ class Connector:
                     msg_type_key = list(transition_queues.keys())[0]
                     transition_queue = transition_queues[msg_type_key]                    
                     transport_json, data, binary = await transition_queue.get()
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message with : ' + str(transport_json))
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message with : '
+                                      f'{transport_json}')
                     if transition_queue.empty():
                         self.logger.info(f'Finished reading from transition queue : {msg_type_key}')
                         del transition_queues[msg_type_key]
                 else:
                     transport_json, data, binary = await self.queue_recv.get()
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : ' + str(transport_json))
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : '
+                                      f'{transport_json}')
                     self.queue_recv.task_done()  #if someone uses 'join'
                 
                 uds_path_receive = self.uds_path_receive_from_connector.get(transport_json[MessageFields.MESSAGE_TYPE])
                 if not uds_path_receive:
-                    self.logger.error(f'{self.source_id} Invalid message type received by queue_recv_from_connector {transport_json[MessageFields.MESSAGE_TYPE]}')
+                    self.logger.error(f'{self.source_id} Invalid message type received by '
+                                      f'queue_recv_from_connector {transport_json[MessageFields.MESSAGE_TYPE]}')
                     transport_json, data, binary = None, None, None
                     continue
 
@@ -1084,18 +1135,22 @@ class Connector:
                 
                 msg_type = transport_json.get(MessageFields.MESSAGE_TYPE)
                 if msg_type in persistence_recv_enabled:
-                    #here, if persistence_recv_enabled has a msg_type element, it means this msg_type has no connectivity, and must be kept in file                    
+                    #here, if persistence_recv_enabled has a msg_type element, 
+                    #it means this msg_type has no connectivity, and must be kept in file                    
                     self.store_message_to_persistence_recv(msg_type, message_bytes)
                     continue
                 
                 if not os.path.exists(uds_path_receive):        
-                    self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to non existing {uds_path_receive}')
-                    await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)
+                    self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to '
+                                        f'non existing {uds_path_receive}')
+                    await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, 
+                                                             transition_queues)
                     transport_json, data, binary = None, None, None
                     continue
         
                 if self.uds_path_receive_preserve_socket:
-                    #this requires start_waiting_for_messages in connectors_api to have a client_connected_cb in a while loop, not a simple callback
+                    #this requires start_waiting_for_messages in connectors_api to have a 
+                    #client_connected_cb in a while loop, not a simple callback
                     use_existing_connection = False
                     #try to reuse connection to uds
                     if uds_path_receive in self.reader_writer_uds_path_receive:
@@ -1113,34 +1168,42 @@ class Connector:
                     if not use_existing_connection:
                         self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
                         try:
-                            self.reader_writer_uds_path_receive[uds_path_receive] = reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
-                                                               limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                            self.reader_writer_uds_path_receive[uds_path_receive] = reader, writer = await \
+                                                asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
+                                                        limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                         except Exception as exc: #ConnectionRefusedError:
-                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                            await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)
+                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect '
+                                                f'to {uds_path_receive} : {exc}')
+                            await self.transition_to_persistent_recv(msg_type, message_bytes, 
+                                                                     persistence_recv_enabled, transition_queues)
                             transport_json, data, binary = None, None, None
                             continue                        
                         writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
                         writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])
 #                       await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)                                       
                         await writer.drain()                
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector finished sending data to {uds_path_receive}')                    
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector finished sending data '
+                                      f'to {uds_path_receive}')                    
                     
                 else:
-                    #this requires start_waiting_for_messages in connectors_api to have a client_connected_cb as a simple callback, not in a while loop
+                    #this requires start_waiting_for_messages in connectors_api to have a 
+                    #client_connected_cb as a simple callback, not in a while loop
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
                     try:
                         reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                            limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                     except Exception as exc: #ConnectionRefusedError:
-                        self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to {uds_path_receive} : {exc}')
-                        await self.transition_to_persistent_recv(msg_type, message_bytes, persistence_recv_enabled, transition_queues)                                
+                        self.logger.warning(f'{self.source_id} queue_recv_from_connector could not '
+                                            f'connect to {uds_path_receive} : {exc}')
+                        await self.transition_to_persistent_recv(msg_type, message_bytes, 
+                                                                 persistence_recv_enabled, transition_queues)                                
                         transport_json, data, binary = None, None, None
                         continue                        
                     writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])                                                                
                     writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])
                     await writer.drain()                                    
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector finished sending data to {uds_path_receive}')                                        
+                    self.logger.debug(f'{self.source_id} queue_recv_from_connector finished sending '
+                                      f'data to {uds_path_receive}')                                        
                     writer.close()                                       
 
                 message_bytes, transport_json, data, binary = None, None, None, None                
@@ -1158,7 +1221,8 @@ class Connector:
         self.logger.info('Running server')
         try:
             ssl_context = self.build_server_ssl_context() if self.use_ssl else None
-            self.server = await asyncio.start_server(self.manage_full_duplex, sock=self.sock, ssl=ssl_context, limit=self.MAX_SOCKET_BUFFER_SIZE)
+            self.server = await asyncio.start_server(self.manage_full_duplex, sock=self.sock, ssl=ssl_context,
+                                                     limit=self.MAX_SOCKET_BUFFER_SIZE)
             if self.use_ssl:
                 if self.ssl_allow_all:
                     self.logger.info('server is running with ssl, allow all')
@@ -1185,7 +1249,8 @@ class Connector:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=self.sock, ssl=ssl_context,
-                                    server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)                                                                     
+                                    server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), 
+                                    timeout=self.ASYNC_TIMEOUT)                                                                     
             await self.manage_full_duplex(reader, writer)
             self.logger.info(f'{self.source_id} client is running')            
         except asyncio.CancelledError:
@@ -1199,7 +1264,8 @@ class Connector:
         full_duplex = FullDuplex(weakref.proxy(self), reader, writer)
         
         if self.is_server:
-            self.logger.info(f'{self.source_id} manage_full_duplex received new connection from client {writer.get_extra_info("peername")}')            
+            self.logger.info(f'{self.source_id} manage_full_duplex received new connection from '
+                             f'client {writer.get_extra_info("peername")}')            
             self.full_duplex_connections.append(full_duplex)
         else:
             self.logger.info(f'{self.source_id} manage_full_duplex Starting connection')            
@@ -1299,7 +1365,8 @@ class FullDuplex:
                         count += 1
                         message = self.connector.pack_message(transport_json=transport_json,
                                                               data=data, binary=binary)
-                        self.logger.info(f'Emptying queue_send, Storing message number {count} to persistence to peername {self.peername}')
+                        self.logger.info(f'Emptying queue_send, Storing message number {count} to persistence '
+                                         f'to peername {self.peername}')
                         self.connector.store_message_to_persistence(self.peername, message)                                              
         except Exception:
             self.logger.exception(f'{self.connector.source_id} stop_nowait_for_persistence')            
@@ -1312,10 +1379,12 @@ class FullDuplex:
         try:
             self.is_stopping = True
             self.logger.info(f'{self.connector.source_id} stop FullDuplex to peer {self.peername}')
-            self.logger.info(f'queue_recv size {self.connector.queue_recv.qsize()} , queue_send size {self.connector.queue_send[self.peername].qsize() if self.peername in self.connector.queue_send else "popped"}')            
+            self.logger.info(f'queue_recv size {self.connector.queue_recv.qsize()} , queue_send size '
+    f'{self.connector.queue_send[self.peername].qsize() if self.peername in self.connector.queue_send else "popped"}')            
             #first, cancel incoming task to stop receiving messages from peer into queue_recv
             self.connector.cancel_tasks(task_names=[self.peername+'_incoming'])
-            #we never stop listening to uds queue_send_to_connector, but we remove peername from queue_send so that it stops writing messages into queue_send
+            #we never stop listening to uds queue_send_to_connector,
+            #but we remove peername from queue_send so that it stops writing messages into queue_send
             #this has been done already in stop_nowait_for_persistence in case of persistence, but need to be done here otherwise
             if not self.connector.disk_persistence:            
                 #this has been done already in stop_nowait_for_persistence if disk_persistence
@@ -1323,24 +1392,29 @@ class FullDuplex:
                 queue_send = self.connector.queue_send.pop(self.peername, None)
                 if queue_send:
                     if hard:
-                        self.logger.info(self.connector.source_id+' not waiting for queue_send to empty (hard stop), with peer '+self.peername)                                
+                        self.logger.info(f'{self.connector.source_id} not waiting for queue_send to empty (hard stop), '
+                                         f'with peer {self.peername}')                                
                     else:
-                        self.logger.info(self.connector.source_id+' waiting for queue_send to empty (soft stop), with peer '+self.peername)
+                        self.logger.info(f'{self.connector.source_id} waiting for queue_send to empty (soft stop), '
+                                         f'with peer {self.peername}')                                
                         #let handle_outgoing_connection send remainings of queue_send into peer                        
                         await queue_send.join()
 
             if hard:
-                self.logger.info(self.connector.source_id+' not waiting for queue_recv to empty (hard stop), with peer '+self.peername)                                
+                self.logger.info(f'{self.connector.source_id} not waiting for queue_recv to empty (hard stop), '
+                                 f'with peer {self.peername}')                                
             else:
-                self.logger.info(self.connector.source_id+' waiting for queue_recv to empty (soft stop), with peer '+self.peername)
+                self.logger.info(f'{self.connector.source_id} waiting for queue_recv to empty (soft stop), '
+                                 f'with peer {self.peername}')                                
                 #let queue_recv_from_connector read all messages from queue_recv                
                 await self.connector.queue_recv.join()
 
             if hard:
-                self.logger.info(self.connector.source_id+' stop, without waiting for queues to peer '+self.peername)    
+                self.logger.info(f'{self.connector.source_id} stop, without waiting for queues to peer {self.peername}')    
             else:
-                self.logger.info(self.connector.source_id+' stop, after waiting for queues to peer '+self.peername)    
-            self.logger.info(f'queue_recv size {self.connector.queue_recv.qsize()} , queue_send size {self.connector.queue_send[self.peername].qsize() if self.peername in self.connector.queue_send else "popped"}')            
+                self.logger.info(f'{self.connector.source_id} stop, after waiting for queues to peer {self.peername}')    
+            self.logger.info(f'queue_recv size {self.connector.queue_recv.qsize()} , queue_send size '
+        f'{self.connector.queue_send[self.peername].qsize() if self.peername in self.connector.queue_send else "popped"}')            
             
             self.writer.close()
             if PYTHON_GREATER_37:
@@ -1350,11 +1424,13 @@ class FullDuplex:
                     #cath exception because of scenario seen in TEST_PERSISTENCE_CLIENT with TEST_WITH_SSL=False
                     self.logger.warning(self.connector.source_id+' stop wait_closed : '+str(exc))
                     
-            self.loop.create_task(self.connector.cancel_tasks_async(task_names=[self.peername+'_incoming', self.peername+'_outgoing']))        
+            self.loop.create_task(self.connector.cancel_tasks_async(task_names=[self.peername+'_incoming', 
+                                                                                self.peername+'_outgoing']))        
             
             if client_wait_for_reconnect and not self.connector.is_server:
                 #try to restart the client if server disconnected
-                self.connector.tasks['client_wait_for_reconnect'] = self.loop.create_task(self.connector.client_wait_for_reconnect())    
+                self.connector.tasks['client_wait_for_reconnect'] = \
+                    self.loop.create_task(self.connector.client_wait_for_reconnect())    
             
         except Exception as exc:
             self.logger.exception(self.connector.source_id+' stop : '+str(exc))
@@ -1377,16 +1453,19 @@ class FullDuplex:
                         if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial:
                             peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
                             if not peername:
-                                self.logger.error(f'Authorized client with certificate {self.client_certificate_serial} has no source_id ! Aborting')
+                                self.logger.error(f'Authorized client with certificate '
+                                                  f'{self.client_certificate_serial} has no source_id ! Aborting')
                                 raise Exception('Unknown client')
                             peer_identification_finished = True                    
                         else:
                             #we could use the default_client_serial, but prefer to have a unique peername per client
                             #for rare case where 2 clients are connecting simultaneously and have same default_client_serial
                             peername = str(self.writer.get_extra_info('peername'))
-                            #for client with default certificate, creation of handle_outgoing_connection task is not necessary and not performed
+                            #for client with default certificate, creation of handle_outgoing_connection task 
+                            #is not necessary and not performed
                     else:
-                        #in ssl_allow_all mode, no cert can be obtained, peer_identification_finished will be finished in handle_ssl_messages_server
+                        #in ssl_allow_all mode, no cert can be obtained, peer_identification_finished will be 
+                        #finished in handle_ssl_messages_server
                         peername = str(self.writer.get_extra_info('peername'))
                 else:
                     #this creates a temporary entry in queue_send, peername will be replaced by client_id after handshake_no_ssl
@@ -1397,7 +1476,8 @@ class FullDuplex:
                 peer_identification_finished = True
                 
             if peername+'_incoming' in self.connector.tasks:
-                #problem here in case of server, after client without ssh had its peername replaced. we won't detect the redundant connection
+                #problem here in case of server, after client without ssh had its peername replaced. 
+                #we won't detect the redundant connection
                 self.logger.warning('peername : '+str(peername)+' already connected : Disconnecting and reconnecting...')
                 self.connector.cancel_tasks(task_names=[peername+'_incoming', peername+'_outgoing'])
                 
@@ -1415,7 +1495,8 @@ class FullDuplex:
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}')
             else:
-                self.logger.info(f'{self.connector.source_id} start FullDuplex peer identification not finished yet for {self.peername}')
+                self.logger.info(f'{self.connector.source_id} start FullDuplex peer identification not finished yet '
+                                 f'for {self.peername}')
                                         
             if self.peername not in self.connector.queue_send:
                 self.logger.info(self.connector.source_id+' Creating queue_send for peername : '+str(self.peername))
@@ -1429,7 +1510,8 @@ class FullDuplex:
                 task_outgoing_connection = self.loop.create_task(self.handle_outgoing_connection())
                 self.connector.tasks[self.peername+'_outgoing'] = task_outgoing_connection
                 
-            self.logger.info(f'{self.connector.source_id} start FullDuplex, Now tasks are : '+str(list(self.connector.tasks.keys())))
+            self.logger.info(f'{self.connector.source_id} start FullDuplex, Now tasks are : '
+                             f'{list(self.connector.tasks.keys())}')
         except asyncio.CancelledError:
             raise                        
         except Exception:
@@ -1441,8 +1523,11 @@ class FullDuplex:
     def server_validates_client(self, transport_json):
         #called only if self.connector.use_ssl:
         #check if client_certificate_serial in peer client certificate is the serial of the certificate created by server for the requested source_id
-        if (not self.connector.ssl_allow_all) and ( self.client_certificate_serial != self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]) ):
-            self.logger.warning('Client {} tried to impersonate client {}'.format(self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
+        if (not self.connector.ssl_allow_all) and ( self.client_certificate_serial != \
+           self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]) ):
+            self.logger.warning('Client {} tried to impersonate client {}'.format(\
+                                self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(\
+                                            self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
             return False
         return True
         
@@ -1497,7 +1582,8 @@ class FullDuplex:
                             await self.handle_handshake_no_ssl_server(data, transport_json)  
                             #don't send handshake_no_ssl messages to queues
                             continue                        
-                self.logger.debug(self.connector.source_id+' handle_incoming_connection received from peer : ' + json.dumps(transport_json))
+                self.logger.debug(f'{self.connector.source_id} handle_incoming_connection received from peer : '
+                                  f'{json.dumps(transport_json)}')
                 if DEBUG_SHOW_DATA:
                     self.logger.info('handle_incoming_connection received data from peer : ' + str(data))
                     if binary:
@@ -1505,18 +1591,22 @@ class FullDuplex:
                 
                 if message_type == '_ack':     
                     #if ACK is received, update accordingly the ack_dict
-                    #this could be checked only when use_ack is true, because for it to happen we must have sent transport_id beforehand                    
+                    #this could be checked only when use_ack is true, 
+                    #because for it to happen we must have sent transport_id beforehand                    
                     transport_id = transport_json.pop(MessageFields.TRANSPORT_ID, None)                                        
                     if transport_id and (transport_id in self.ack_dict):
                         self.ack_dict[transport_id].set()
                     else:
-                        self.logger.warning(f'handle_incoming_connection ACK received from peer {self.peername} with unknown transport_id {transport_id}. Ignoring...')
+                        self.logger.warning(f'handle_incoming_connection ACK received from peer {self.peername} '
+                                            f'with unknown transport_id {transport_id}. Ignoring...')
                     continue
                 elif message_type == '_ping':
-                    #if _ping is received with await_response, it is a ping request : reply immediately WITHOUT await_response, to prevent ping infinite loop.
+                    #if _ping is received with await_response, it is a ping request : 
+                    #reply immediately WITHOUT await_response, to prevent ping infinite loop.
                     #if _ping is received without await_response, it is a ping reply, that we forward as usual
                     if transport_json.get(MessageFields.AWAIT_RESPONSE):
-                        transport_json_ping_reply = {MessageFields.MESSAGE_TYPE:'_ping', MessageFields.RESPONSE_ID:transport_json[MessageFields.REQUEST_ID]}                        
+                        transport_json_ping_reply = {MessageFields.MESSAGE_TYPE:'_ping', 
+                                                     MessageFields.RESPONSE_ID:transport_json[MessageFields.REQUEST_ID]}                        
                         await self.send_message(transport_json=transport_json_ping_reply, data=data, binary=binary)
                         transport_json, data, binary = None, None, None
                         continue
@@ -1525,8 +1615,10 @@ class FullDuplex:
                 transport_id = transport_json.pop(MessageFields.TRANSPORT_ID, None)                    
                 if transport_id:
                     #if peer sent a transport_id, we must answer ACK
-                    #we could have done this only if use_ack is true, but now it means that we are not dependent on configuration to support peers having use_ack true
-                    self.logger.info(f'handle_incoming_connection {self.connector.source_id} Sending ACK to peer {self.peername} for transport id {transport_id}')
+                    #we could have done this only if use_ack is true, but now it means that we are not dependent 
+                    #on configuration to support peers having use_ack true
+                    self.logger.info(f'handle_incoming_connection {self.connector.source_id} Sending ACK to '
+                                     f'peer {self.peername} for transport id {transport_id}')
                     transport_json_ack = {MessageFields.TRANSPORT_ID:transport_id, MessageFields.MESSAGE_TYPE:'_ack'}
                     await self.send_message(transport_json=transport_json_ack)                                           
                 
@@ -1537,12 +1629,15 @@ class FullDuplex:
                     else:
                         ignore_peer_traffic = (self.peername in self.connector.ignore_peer_traffic)
                     if ignore_peer_traffic:
-                        self.logger.debug(f'{self.connector.source_id} handle_incoming_connection : Ignoring message from peer {self.peername}')
+                        self.logger.debug(f'{self.connector.source_id} handle_incoming_connection : '
+                                          f'Ignoring message from peer {self.peername}')
                         transport_json, data, binary = None, None, None
                         continue
                     
                 if (message_type not in self.connector.recv_message_types) and (message_type != '_ping'):
-                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} received a message with invalid type {message_type}. Ignoring...')   
+                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                        f'{self.peername} received a message with invalid type {message_type}. '
+                                        'Ignoring...')   
                     put_msg_to_queue_recv = False
                 else:
                     put_msg_to_queue_recv = True
@@ -1560,9 +1655,12 @@ class FullDuplex:
                                 binary_offset = with_file.get('binary_offset', 0)                            
                                 dst_fullpath = os.path.join(dst_dirpath, with_file.get('dst_name',''))
                                 if os.path.exists(dst_fullpath):
-                                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} trying to override existing file {dst_fullpath}, ignoring...')
+                                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                                        f'peer {self.peername} trying to override existing file '
+                                                        f'{dst_fullpath}, ignoring...')
                                 else:
-                                    self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} writing received file to {dst_fullpath}')
+                                    self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                                     f'{self.peername} writing received file to {dst_fullpath}')
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
@@ -1571,25 +1669,35 @@ class FullDuplex:
                                     if MessageFields.WITH_BINARY in transport_json:
                                         del transport_json[MessageFields.WITH_BINARY]
                             except Exception:
-                                self.logger.exception(f'{self.connector.source_id} from peer {self.peername} handle_incoming_connection with_file')
+                                self.logger.exception(f'{self.connector.source_id} from peer {self.peername} '
+                                                      'handle_incoming_connection with_file')
                         else:
-                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} tried to create file in non existing directory {dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')
+                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                                f'{self.peername} tried to create file in non existing directory '
+                                                f'{dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')
                     
                     #check if this message is a response to an awaiting request, and update put_msg_to_queue_recv
                     response_id = transport_json.get(MessageFields.RESPONSE_ID)                                
                     if response_id:
                         if response_id not in self.connector.messages_awaiting_response[message_type].get(self.peername, {}):
-                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} got response_id {response_id} not existing in messages_awaiting_response for type {message_type}. Forwarding to queue_recv anyway...')
+                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                                f'{self.peername} got response_id {response_id} not existing in '
+                                                f'messages_awaiting_response for type {message_type}. '
+                                                'Forwarding to queue_recv anyway...')
                         else:
                             #set the response in case this is the response to a request that came with AWAIT_RESPONSE true
-                            self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} got response_id {response_id} in messages_awaiting_response for type {message_type}')                            
-                            self.connector.messages_awaiting_response[message_type][self.peername][response_id][1] = (transport_json, data, binary)
+                            self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                              f'{self.peername} got response_id {response_id} in '
+                                              f'messages_awaiting_response for type {message_type}')                            
+                            self.connector.messages_awaiting_response[message_type][self.peername][response_id][1] = \
+                                                                                (transport_json, data, binary)
                             self.connector.messages_awaiting_response[message_type][self.peername][response_id][0].set()
                             put_msg_to_queue_recv = False
                             
                 if put_msg_to_queue_recv:                   
                     # send the message to queue
-                    self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} putting message to queue_recv')                    
+                    self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from '
+                                      f'peer {self.peername} putting message to queue_recv')                    
                     self.connector.queue_recv.put_nowait((transport_json, data, binary))
 
                 transport_json, data, binary = None, None, None
@@ -1598,15 +1706,20 @@ class FullDuplex:
             except Exception as exc:
                 if isinstance(exc, asyncio.IncompleteReadError):                
                     if self.connector.is_server:                
-                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} Client disconnected')
+                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                            f'peer {self.peername} Client disconnected')
                     else:                    
-                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} Server disconnected')
+                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                            f'peer {self.peername} Server disconnected')
                 elif isinstance(exc, ConnectionResetError):
-                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} ConnectionResetError : {exc}')
+                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                        f'peer {self.peername} ConnectionResetError : {exc}')
                 elif isinstance(exc, ssl.SSLError):
-                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername} SSLError : {exc}')
+                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                        f'peer {self.peername} SSLError : {exc}')
                 else:
-                    self.logger.exception(f'{self.connector.source_id} handle_incoming_connection from peer {self.peername}')
+                    self.logger.exception(f'{self.connector.source_id} handle_incoming_connection '
+                                          f'from peer {self.peername}')
                 if not self.is_stopping:
                     if self.connector.disk_persistence:                    
                         self.stop_nowait_for_persistence()      
@@ -1617,19 +1730,23 @@ class FullDuplex:
         if self.connector.disk_persistence:
             if self.peername not in self.connector.queue_send_transition_to_connect:
                 if self.connector.persistence_existence_check(self.peername):
-                    self.logger.info(f'{self.connector.source_id} Creating queue_send_transition_to_connect for peer {self.peername}')
-                    self.connector.queue_send_transition_to_connect[self.peername] = asyncio.Queue(maxsize=self.connector.MAX_QUEUE_SIZE)                
+                    self.logger.info(f'{self.connector.source_id} Creating queue_send_transition_to_connect '
+                                     f'for peer {self.peername}')
+                    self.connector.queue_send_transition_to_connect[self.peername] = asyncio.Queue(maxsize=\
+                                                                   self.connector.MAX_QUEUE_SIZE)                
         
         if self.peername in self.connector.queue_send_transition_to_connect:
             #loading persistence messages into queue_send_transition_to_connect
             await self.connector.load_messages_from_persistence(self.peername)            
             queue_send = self.connector.queue_send_transition_to_connect[self.peername]        
-            self.logger.info(f'{self.connector.source_id} Entering handle_outgoing_connection_queue for peer {self.peername} with queue_send_transition_to_connect of length {queue_send.qsize()}')
+            self.logger.info(f'{self.connector.source_id} Entering handle_outgoing_connection_queue for peer '
+                             f'{self.peername} with queue_send_transition_to_connect of length {queue_send.qsize()}')
             await self.handle_outgoing_connection_queue(queue_send, lambda :not queue_send.empty())
             del self.connector.queue_send_transition_to_connect[self.peername]
             
         queue_send = self.connector.queue_send[self.peername]
-        self.logger.info(f'{self.connector.source_id} Entering handle_outgoing_connection_queue for peer {self.peername} with queue_send of length '+str(queue_send.qsize()))        
+        self.logger.info(f'{self.connector.source_id} Entering handle_outgoing_connection_queue for peer '
+                         f'{self.peername} with queue_send of length '+str(queue_send.qsize()))        
         await self.handle_outgoing_connection_queue(queue_send, lambda :True)
         
     async def handle_outgoing_connection_queue(self, queue_send, condition): 
@@ -1660,7 +1777,8 @@ class FullDuplex:
                             #append the file byte content to "binary"
                             if binary:
                                 len_binary = len(binary)
-                                self.logger.info('handle_outgoing_connection prepare message with both binary and binary file at offset '+str(len_binary))
+                                self.logger.info('handle_outgoing_connection prepare message with both binary and '
+                                                 f'binary file at offset {len_binary}')
                                 with_file_dict['binary_offset'] = len_binary
                                 binary = binary + binary_file
                             else:
@@ -1682,17 +1800,20 @@ class FullDuplex:
                     transport_json[MessageFields.TRANSPORT_ID] = self.transport_id
                     retry = 0
                     while retry <= self.MAX_RETRIES_BEFORE_ACK:
-                        self.logger.debug(f'handle_outgoing_connection {self.connector.source_id} send message with transport_id {self.transport_id} expecting ACK')
+                        self.logger.debug(f'handle_outgoing_connection {self.connector.source_id} send message with '
+                                          f'transport_id {self.transport_id} expecting ACK')
                         await self.send_message(transport_json=transport_json, data=data, binary=binary)
                         transport_json, data, binary, message_tuple = None, None, None, None
                         
                         try:
                             await asyncio.wait_for(self.ack_dict[self.transport_id].wait(), timeout=self.connector.ASYNC_TIMEOUT)
-                            self.logger.info(f'handle_outgoing_connection {self.connector.source_id} received ACK for transport id {self.transport_id}')
+                            self.logger.info(f'handle_outgoing_connection {self.connector.source_id} received ACK for '
+                                             f'transport id {self.transport_id}')
                             del self.ack_dict[self.transport_id]
                             break
                         except asyncio.TimeoutError:
-                            self.logger.warning(f'handle_outgoing_connection timed out waiting for ACK for transport id {self.transport_id} at retry {retry}')
+                            self.logger.warning(f'handle_outgoing_connection timed out waiting for ACK for '
+                                                f'transport id {self.transport_id} at retry {retry}')
                             retry += 1
                     else:
                         msg = f'handle_outgoing_connection ACK was not received for transport id {self.transport_id}'
@@ -1722,7 +1843,8 @@ class FullDuplex:
                 if not self.is_stopping:                
                     if self.connector.disk_persistence:       
                         if queue_send != self.connector.queue_send.pop(self.peername, None):
-                            self.logger.info(f'Special case : disconnection happens during transition. Transferring {queue_send.qsize()} messages')
+                            self.logger.info(f'Special case : disconnection happens during transition. '
+                                             f'Transferring {queue_send.qsize()} messages')
                             #we should copy queue_send_transition_to_connect content into a new recreated persistent file                            
                             count = 0
                             disk_persistence_is_list = isinstance(self.connector.disk_persistence, list)
@@ -1731,12 +1853,14 @@ class FullDuplex:
                                 disk_persistence = True                                
                                 if disk_persistence_is_list:
                                     #disk_persistence can be a list of message types
-                                    disk_persistence = (transport_json.get(MessageFields.MESSAGE_TYPE) in self.connector.disk_persistence)
+                                    disk_persistence = (transport_json.get(MessageFields.MESSAGE_TYPE) in \
+                                                        self.connector.disk_persistence)
                                 if disk_persistence:                    
                                     count += 1
                                     message = self.connector.pack_message(transport_json=transport_json,
                                                                           data=data, binary=binary)
-                                    self.logger.info(f'Emptying transition queue_send, Storing message number {count} to persistence to peername {self.peername}')
+                                    self.logger.info(f'Emptying transition queue_send, Storing message '
+                                                     f'number {count} to persistence to peername {self.peername}')
                                     self.connector.store_message_to_persistence(self.peername, message, ignore_count=True)                                              
                         else:
                             #regular case of disconnection
@@ -1746,8 +1870,8 @@ class FullDuplex:
 
 
     #4|2|json|4|data|4|binary
-    async def send_message(self, message=None, message_type=None, source_id=None, destination_id=None, request_id=None, response_id=None,
-                     transport_json=None, data=None, binary=None):
+    async def send_message(self, message=None, message_type=None, source_id=None, destination_id=None, request_id=None,
+                           response_id=None, transport_json=None, data=None, binary=None):
         try:
 #            async with self.lock_connection:       
             update_msg_counts = True                   
@@ -1757,7 +1881,8 @@ class FullDuplex:
                     self.logger.info('and with data {}'.format(message))                                                  
             else:
                 if transport_json:
-                    self.logger.debug(f'{self.connector.source_id} send_message {message_type or transport_json} with data length {len(data or "")}')     
+                    self.logger.debug(f'{self.connector.source_id} send_message {message_type or transport_json} '
+                                      f'with data length {len(data or "")}')     
                     if DEBUG_SHOW_DATA:
                         self.logger.info('and with data {}'.format(data))
                         if binary:
@@ -1770,8 +1895,9 @@ class FullDuplex:
                     #internal cases only like ssl/handhake_no_ssl, ack
                     if not source_id:
                         source_id = self.connector.source_id
-                message = self.connector.pack_message(message_type=message_type, source_id=source_id, destination_id=destination_id, 
-                                                      request_id=request_id, response_id=response_id, transport_json=transport_json,
+                message = self.connector.pack_message(message_type=message_type, source_id=source_id, 
+                                                      destination_id=destination_id, request_id=request_id,
+                                                      response_id=response_id, transport_json=transport_json,
                                                       data=data, binary=binary)
                 if DEBUG_SHOW_DATA:
                     self.logger.info('send_message full message ready to send : '+str(message))    
@@ -1828,7 +1954,8 @@ class FullDuplex:
             self.logger.warning(f'{self.connector.source_id} recv_message : peer {self.peername} disconnected')
             raise
         except ConnectionResetError as exc:
-            self.logger.warning(f'{self.connector.source_id} recv_message ConnectionResetError : {exc} with peer {self.peername}')
+            self.logger.warning(f'{self.connector.source_id} recv_message ConnectionResetError : {exc} with '
+                                f'peer {self.peername}')
             raise
         except ssl.SSLError as exc:
             self.logger.warning(f'{self.connector.source_id} recv_message SSLError : {exc} with peer {self.peername}')
@@ -1844,16 +1971,20 @@ class FullDuplex:
                 if data_json.get('cmd') == 'get_new_certificate':
                     
                     if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial: 
-                        self.logger.warning('handle_ssl_messages_server Client {} tried to get_new_certificate with private certificate. Stopping...'.format(self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)))
+                        self.logger.warning(f'handle_ssl_messages_server Client '
+                    f'{self.connector.ssl_helper.source_id_2_cert["cert_2_source_id"].get(self.client_certificate_serial)}'
+                    ' tried to get_new_certificate with private certificate. Stopping...')
                         self.stop_task() 
                         return
                     
-                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate, and calling create_client_certificate')                    
+                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate, and calling '
+                                     'create_client_certificate')                    
                     #we could have check if client current certificate is default, but is seems limiting, code would be like :
                     #cert_der = self.writer.get_extra_info("ssl_object").getpeercert()
                     #common_name = cert_der["subject"][1][0][1]
                     #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:                         
-                    crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=transport_json[MessageFields.SOURCE_ID], common_name=None)
+                    crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=\
+                                                            transport_json[MessageFields.SOURCE_ID], common_name=None)
                     with open(crt_path, 'r') as fd:
                         crt = fd.read()
                     with open(key_path, 'r') as fd:
@@ -1873,7 +2004,8 @@ class FullDuplex:
                 self.stop_task()
             else:
                 if data != b'hello':            
-                    self.logger.warning(f'Received bad handshake ssl data : {data[:100]}, from client : {transport_json[MessageFields.SOURCE_ID]}')
+                    self.logger.warning(f'Received bad handshake ssl data : {data[:100]}, from client : '
+                                        f'{transport_json[MessageFields.SOURCE_ID]}')
                     self.stop_task()
                     return          
                 self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
@@ -1944,7 +2076,8 @@ class FullDuplex:
     async def handle_handshake_no_ssl_server(self, data=None, transport_json=None):
         try:
             if data != b'hello':
-                self.logger.warning(f'Received bad handshake_no_ssl data : {data[:100]}, from client : {transport_json[MessageFields.SOURCE_ID]}')
+                self.logger.warning(f'Received bad handshake_no_ssl data : {data[:100]}, from client : '
+                                    f'{transport_json[MessageFields.SOURCE_ID]}')
                 self.stop_task()
                 return          
             self.logger.info('Received handshake_no_ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))

@@ -54,7 +54,8 @@ class ConnectorAPI:
                 try:
                     with open(self.config_file_path, 'r') as fd:
                         config_json = json.load(fd)
-                        self.logger.info(f'Overriding {type(self).__name__} attributes {list(config_json.keys())} from config file {self.config_file_path}')
+                        self.logger.info(f'Overriding {type(self).__name__} attributes {list(config_json.keys())} '
+                                        f'from config file {self.config_file_path}')
                         for key,val in config_json.items():                            
                             setattr(self, key, val)
                 except Exception:
@@ -83,14 +84,18 @@ class ConnectorAPI:
         
         if self.is_server:        
             self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])            
-            self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))            
+            self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, 
+                                                self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))            
             for recv_message_type in self.recv_message_types:
-                self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
+                self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
+                                self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
         else:
             self.alnum_source_id = self.alnum_name(self.source_id)                                        
-            self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))            
+            self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, 
+                                                self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))            
             for recv_message_type in self.recv_message_types:
-                self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
+                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
             
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,
@@ -147,13 +152,17 @@ class ConnectorAPI:
         return transport_json, data, binary    #json, bytes, bytes
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
-        res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, request_id=request_id, response_id=response_id,
-                           data=data, data_is_json=data_is_json, binary=binary, with_file=with_file, wait_for_ack=wait_for_ack)
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           wait_for_ack=False):
+        res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id,
+                                      request_id=request_id, response_id=response_id, data=data, 
+                                      data_is_json=data_is_json, binary=binary, with_file=with_file,
+                                      wait_for_ack=wait_for_ack)
         return res
 
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False): #, reuse_uds_connection=True):
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           wait_for_ack=False): #, reuse_uds_connection=True):
 
         try:  
             
@@ -171,15 +180,18 @@ class ConnectorAPI:
             if self.uds_path_send_preserve_socket and not await_response:
                 #try to reuse connection to uds
                 if not self.reader_writer_uds_path_send:     
-                    #either there is really no reader_writer_uds_path_send, or the send_message_lock is currently locked by another send_message whcih is
-                    #in the process of creating a reader_writer_uds_path_send. In such a case, we wait for send_message_lock, and check again if reader_writer_uds_path_send exists.
+                    #either there is really no reader_writer_uds_path_send, or the send_message_lock is currently 
+                    #locked by another send_message which is
+                    #in the process of creating a reader_writer_uds_path_send.
+                    #In such a case, we wait for send_message_lock, and check again if reader_writer_uds_path_send exists.
                     try:
                         await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
                     except asyncio.TimeoutError:
                         self.logger.warning('send_message could not acquire send_message_lock')
                         return False
                     else:
-                        #reader_writer_uds_path_send may have changed during wait_for(self.send_message_lock.acquire()) : checking again if reader_writer_uds_path_send exists
+                        #reader_writer_uds_path_send may have changed during wait_for(self.send_message_lock.acquire()) : 
+                        #checking again if reader_writer_uds_path_send exists
                         if self.reader_writer_uds_path_send:
                             #a new check reader_writer_uds_path_send has just been created by another send_message task : use it !
                             try:
@@ -187,7 +199,8 @@ class ConnectorAPI:
                             except Exception:
                                 self.logger.exception('send_message_lock release')
                         else:
-                            #we acquired send_message_lock, and there is no reader_writer_uds_path_send : we set send_message_lock_internally_acquired 
+                            #we acquired send_message_lock, and there is no reader_writer_uds_path_send : 
+                            #we set send_message_lock_internally_acquired 
                             #to prevent waiting a second time for send_message_lock in the following
                             send_message_lock_internally_acquired = True
                 
@@ -207,8 +220,10 @@ class ConnectorAPI:
                         
             self.logger.debug('send_message creating new connection')
             try:
-                #in case send_message is called as a task, we need the send_message_lock when creating a new connection to uds_path_send_to_connector
-                #otherwise the order of messages can be messed up. And also the shared reader_writer_uds_path_send mechanism can be messed up
+                #in case send_message is called as a task, we need the send_message_lock when 
+                #creating a new connection to uds_path_send_to_connector
+                #otherwise the order of messages can be messed up. 
+                #And also the shared reader_writer_uds_path_send mechanism can be messed up
                 if not send_message_lock_internally_acquired:
                     await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
                 
@@ -292,12 +307,15 @@ class ConnectorAPI:
         #message_received_cb must receive arguments transport_json , data, binary
         try:
             uds_path_receive_from_connector = self.uds_path_receive_from_connector.get(message_type)
-            self.logger.info('start_waiting_for_messages of type {} on socket {}'.format(message_type, uds_path_receive_from_connector))
+            self.logger.info('start_waiting_for_messages of type {} on socket {}'.format(message_type, 
+                             uds_path_receive_from_connector))
             
             if message_type in self.message_waiters:
-                raise Exception('Already waiting for messages of type {} on socket {}'.format(message_type, uds_path_receive_from_connector))
+                raise Exception('Already waiting for messages of type {} on socket {}'.format(message_type, 
+                                uds_path_receive_from_connector))
             client_connected_cb = partial(self.client_connected_cb, message_received_cb)
-            server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
+            server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, 
+                                                     limit=self.MAX_SOCKET_BUFFER_SIZE)
             self.message_waiters[message_type] = server
             return server
         except asyncio.CancelledError:
@@ -311,7 +329,8 @@ class ConnectorAPI:
         if message_type not in self.message_waiters:
             self.logger.warning('stop_waiting_for_messages has no {} waiter to stop'.format(message_type))
             return
-        self.logger.info('stop_waiting_for_messages of type {} on socket {}'.format(message_type, self.uds_path_receive_from_connector.get(message_type)))        
+        self.logger.info('stop_waiting_for_messages of type {} on socket {}'.format(message_type, 
+                         self.uds_path_receive_from_connector.get(message_type)))        
         server = self.message_waiters.pop(message_type)
         server.close()
         try:
