@@ -329,17 +329,12 @@ class Connector:
         self.is_running = True
         self.logger.info(f'{self.source_id} Connector starting ...')
         try:
-
             if not connector_socket_only:
                 self.queue_send = {}    #key=peername, value=asyncio.Queue
                 self.queue_send_transition_to_connect = {}
                 self.queue_recv = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)                
-                self.tasks = {}    #key=task name
-                if self.debug_msg_counts:
-                    self.tasks['log_msg_counts'] = self.loop.create_task(self.log_msg_counts())                
+                self.tasks = {}    #key=task name            
                 self.reader_writer_uds_path_receive = {}
-                self.tasks['queue_recv_from_connector'] = self.loop.create_task(self.queue_recv_from_connector())
-                self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
             
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
@@ -359,6 +354,13 @@ class Connector:
                 
                 self.tasks['run_client'] = self.loop.create_task(self.run_client())    
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
+                
+            if not connector_socket_only:
+                if self.debug_msg_counts:
+                    self.tasks['log_msg_counts'] = self.loop.create_task(self.log_msg_counts())                
+                self.tasks['queue_recv_from_connector'] = self.loop.create_task(self.queue_recv_from_connector())
+                self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
+                
             return
         except ConnectionRefusedError as exc:
             self.logger.warning(str(exc))
@@ -367,7 +369,8 @@ class Connector:
             return                
         except Exception:
             self.logger.exception('start')
-            self.loop.create_task(self.restart(sleep_between=self.SLEEP_BETWEEN_START_FAILURES))
+            if not self.is_server:
+                self.loop.create_task(self.restart(sleep_between=self.SLEEP_BETWEEN_START_FAILURES))
             return
         
     async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False, shutdown=False):
