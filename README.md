@@ -292,6 +292,7 @@ If you are running your server and client on the same machine, you can directly 
 Otherwise, you should :  
 -Modify server_sockaddr in both server and client code.  
 -In order not to enable the kwarg allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
+You can run multiple clients, just set a different client_name for each client.  
 For both server and client, connector_manager is running the connector, and connector_api is sending/receiving messages.  
 In this example, connector_manager and connector_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.
 
