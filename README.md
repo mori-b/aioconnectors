@@ -47,6 +47,7 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
+Encryption mode is, as everything else, configurable through the ConnectorManager kwargs or config file, as explained later in 4. The relevant parameters are use_ssl and ssl_allow_all.  
 The default mode is the most secure : use_ssl is enabled and ssl_allow_all is disabled.  
 In such a case, you need to copy certificates/server to your server, and certificates/client to your client. That's all you have to do.  
 This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.  
