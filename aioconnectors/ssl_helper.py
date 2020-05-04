@@ -85,6 +85,9 @@ class SSL_helper:
         try:
             crt_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
             key_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.KEY_NAME_EXTENSION}'
+            if os.path.exists(crt_path):
+                raise Exception(f'A certificate already exists for client {source_id}. '
+                                f'Use delete_client_certificate to delete it')
             if common_name:
                 create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={common_name}/CN={common_name}' -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
