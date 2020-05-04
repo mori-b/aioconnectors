@@ -288,8 +288,10 @@ First step is to run :
 
     python3 -m aioconnectors create_certificates
 
-In order not to enable allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
-For both server and client, connector_manager is running the connector, and connector_api is sending/receiving messages. In this example, connector_manager and connector_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.
+If you are running your server and client on the same machine, you can directly run the following server and client code.  
+Otherwise, in order not to enable the kwarg allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
+For both server and client, connector_manager is running the connector, and connector_api is sending/receiving messages.  
+In this example, connector_manager and connector_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.
 
 ### Server example
 
