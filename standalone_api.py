@@ -172,7 +172,7 @@ class ConnectorAPI:
                 destination_id = str(self.server_sockaddr)
             self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, request_id {request_id}')
                 
-            message_bytes = self.connector.pack_message(data=data, message_type=message_type, source_id=self.source_id,
+            message_bytes = self.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, binary=binary,
                                    await_response=await_response, with_file=with_file, wait_for_ack=wait_for_ack)
 
@@ -227,12 +227,12 @@ class ConnectorAPI:
                 if not send_message_lock_internally_acquired:
                     await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
                 
-                reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.connector.uds_path_send_to_connector, 
+                reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.uds_path_send_to_connector, 
                                                    limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                 if self.uds_path_send_preserve_socket and not await_response:
                     self.reader_writer_uds_path_send = reader, writer
             except Exception as exc: #ConnectionRefusedError: or TimeoutError
-                self.logger.warning(f'send_message could not connect to {self.connector.uds_path_send_to_connector} : {exc}')
+                self.logger.warning(f'send_message could not connect to {self.uds_path_send_to_connector} : {exc}')
                 return False                        
             finally:
                 try:
