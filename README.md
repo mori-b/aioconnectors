@@ -113,7 +113,7 @@ To register to receive messages of a specific type :
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
 
-message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (transport\_json, data, binary).  
+message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (logger, transport\_json, data, binary).  
 transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.
 
 
@@ -308,6 +308,9 @@ In this example, connector_manager and connector_api are running in the same pro
 
 ### Server example
 
+    import asyncio
+    import aioconnectors
+
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
@@ -320,7 +323,7 @@ In this example, connector_manager and connector_api are running in the same pro
 
     loop.create_task(connector_manager.start_connector())
 
-    async def message_received_cb(transport_json , data, binary):
+    async def message_received_cb(logger, transport_json , data, binary):
         print('SERVER : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
 
@@ -344,6 +347,9 @@ In this example, connector_manager and connector_api are running in the same pro
 
 ### Client example
 
+    import asyncio
+    import aioconnectors
+
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
@@ -358,7 +364,7 @@ In this example, connector_manager and connector_api are running in the same pro
 
     loop.create_task(connector_manager.start_connector())
 
-    async def message_received_cb(transport_json , data, binary):
+    async def message_received_cb(logger, transport_json , data, binary):
         print('CLIENT : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
 

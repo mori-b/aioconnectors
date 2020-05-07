@@ -179,12 +179,12 @@ if __name__ == '__main__':
             if TEST_COMMANDER_CLIENT:
                 loop.create_task(connector_api.delete_client_certificate())
             
-            async def client_cb_event(transport_json , data, binary):
+            async def client_cb_event(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                                    
                 increment_result(own_source_id, peer_id, 'event', 'recv')
 
                 
-            async def client_cb_command(transport_json , data, binary):
+            async def client_cb_command(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']   
                 increment_result(own_source_id, peer_id, 'command', 'recv')
 
@@ -302,12 +302,12 @@ if __name__ == '__main__':
             loop.create_task(print_queues(3))
             '''
                 
-            async def server_cb_event(transport_json , data, binary):
+            async def server_cb_event(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                                    
                 increment_result(own_source_id, peer_id, 'event', 'recv')
 
                 
-            async def server_cb_command(transport_json , data, binary):
+            async def server_cb_command(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                    
                 increment_result(own_source_id, peer_id, 'command', 'recv')
 

@@ -267,7 +267,7 @@ class ConnectorAPI:
         except Exception as exc:
             self.logger.exception('send_data')
             return False
-    
+
             
     async def recv_message(self, reader, writer):
         try:
@@ -297,7 +297,7 @@ class ConnectorAPI:
         while True:
             transport_json , data, binary = await self.recv_message(reader, writer)
             if transport_json:
-                await message_received_cb(transport_json , data, binary)
+                await message_received_cb(self.logger, transport_json , data, binary)
             else:
                 return
             if not self.uds_path_receive_preserve_socket:
@@ -323,7 +323,6 @@ class ConnectorAPI:
         except Exception as exc:
             self.logger.exception('start_waiting_for_messages')
             raise
-            
 
     def stop_waiting_for_messages(self, message_type=None):
         if message_type not in self.message_waiters:

@@ -174,7 +174,8 @@ def test_receive_messages(config_file_path, logger=None):
     loop = asyncio.get_event_loop()
     tasks_waiting_for_messages = []
     
-    async def message_received_cb(transport_json , data, binary):
+    async def message_received_cb(logger, transport_json , data, binary):
+        logger.info(f'RECEIVED MESSAGE {transport_json}')
         print(f'RECEIVED MESSAGE {transport_json}')
         if data:
             print(f'\tWith data {data.decode()}')
@@ -339,7 +340,7 @@ def chat(args, logger=None):
     task_manager = loop.create_task(connector_manager.start_connector())
     task_recv = task_console = task_send_file = None
     
-    async def message_received_cb(transport_json , data, binary):
+    async def message_received_cb(logger, transport_json , data, binary):
         #callback when a message is received from peer
         if transport_json.get('await_response'):
             #this response is necessary in args.upload mode, to know when to exit

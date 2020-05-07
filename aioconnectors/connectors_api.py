@@ -370,7 +370,7 @@ class ConnectorAPI(ConnectorBaseTool):
                 #    with open('/tmp/yomo', 'w') as fd:
                 #        fd.write(str(cc))
                     
-                await message_received_cb(transport_json , data, binary)
+                await message_received_cb(self.logger, transport_json , data, binary)
             else:
                 return
             if not self.uds_path_receive_preserve_socket:
