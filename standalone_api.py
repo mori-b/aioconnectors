@@ -186,6 +186,8 @@ class ConnectorAPI:
                     #In such a case, we wait for send_message_lock, and check again if reader_writer_uds_path_send exists.
                     try:
                         await asyncio.wait_for(self.send_message_lock.acquire(), self.ASYNC_TIMEOUT)                
+                    except asyncio.CancelledError:
+                        raise               
                     except asyncio.TimeoutError:
                         self.logger.warning('send_message could not acquire send_message_lock')
                         return False
@@ -231,6 +233,8 @@ class ConnectorAPI:
                                                    limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                 if self.uds_path_send_preserve_socket and not await_response:
                     self.reader_writer_uds_path_send = reader, writer
+            except asyncio.CancelledError:
+                raise                                            
             except Exception as exc: #ConnectionRefusedError: or TimeoutError
                 self.logger.warning(f'send_message could not connect to {self.uds_path_send_to_connector} : {exc}')
                 return False                        
@@ -245,6 +249,8 @@ class ConnectorAPI:
             writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])
             try:
                 await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)
+            except asyncio.CancelledError:
+                raise           
             except Exception:
                 self.logger.exception('send_message writer drain')
             #beware to not lock the await_response recv_message with send_message_lock
