@@ -274,6 +274,7 @@ if __name__ == '__main__':
                 loop.run_forever()
             except:
                 print('send2client stopped !')
+                connector_api.stop_waiting_for_messages(message_type='command')
                 #for task in tasks:
                 #    task.cancel()
                 
@@ -402,6 +403,8 @@ if __name__ == '__main__':
                 loop.run_forever()
             except:
                 print('send2server stopped !')
+                connector_api.stop_waiting_for_messages(message_type='event')
+                connector_api.stop_waiting_for_messages(message_type='command')
       
       #          for task in tasks:
       #              task.cancel()        

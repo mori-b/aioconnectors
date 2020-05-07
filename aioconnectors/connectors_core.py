@@ -335,6 +335,12 @@ class Connector:
                 self.queue_recv = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)                
                 self.tasks = {}    #key=task name            
                 self.reader_writer_uds_path_receive = {}
+                if self.debug_msg_counts:
+                    self.tasks['log_msg_counts'] = self.loop.create_task(self.log_msg_counts())
+                #these tasks are created once at start
+                #they should be unchanged during the eventual restarts with connector_socket_only
+                self.tasks['queue_recv_from_connector'] = self.loop.create_task(self.queue_recv_from_connector())
+                self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
             
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
@@ -345,28 +351,24 @@ class Connector:
                 self.sock.bind(self.server_sockaddr)
                 self.tasks['run_server'] = self.loop.create_task(self.run_server())
             else:
+                self.sock.setblocking(False)                
                 if self.client_bind_ip:
                     self.sock.bind((self.client_bind_ip,0))
-                self.sock.connect(self.server_sockaddr)   
-                self.sock.setblocking(False)                
+                await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)                                   
                 self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                  f'to peer {self.sock.getpeername()}')
                 
                 self.tasks['run_client'] = self.loop.create_task(self.run_client())    
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
                 
-            if not connector_socket_only:
-                if self.debug_msg_counts:
-                    self.tasks['log_msg_counts'] = self.loop.create_task(self.log_msg_counts())                
-                self.tasks['queue_recv_from_connector'] = self.loop.create_task(self.queue_recv_from_connector())
-                self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
-                
             return
-        except ConnectionRefusedError as exc:
+        except (ConnectionRefusedError, asyncio.TimeoutError) as exc:
             self.logger.warning(str(exc))
             if not self.is_server:
                 self.tasks['client_wait_for_reconnect'] = self.loop.create_task(self.client_wait_for_reconnect())    
             return                
+        except asyncio.CancelledError:
+            raise        
         except Exception:
             self.logger.exception('start')
             if not self.is_server:
@@ -529,10 +531,15 @@ class Connector:
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)                
-                self.sock.connect(self.server_sockaddr)            
-            except ConnectionRefusedError:
-                self.logger.error(f'{self.source_id} client_wait_for_reconnect failed connection attempt number {count}')
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)        
+                self.sock.setblocking(False)                
+                if self.client_bind_ip:
+                    self.sock.bind((self.client_bind_ip,0))
+                await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:    #(ConnectionRefusedError, asyncio.TimeoutError):
+                self.logger.error(f'{self.source_id} client_wait_for_reconnect failed connection attempt number {count} because {exc}')
                 count += 1
                 continue
             finally:
@@ -581,6 +588,8 @@ class Connector:
                 except Exception:
                     self.logger.exception('commander_cb writer drain')     
             writer.close()
+        except asyncio.CancelledError:
+            raise            
         except Exception:
             self.logger.exception('commander_cb')
 
@@ -724,7 +733,8 @@ class Connector:
                 os.remove(persistence_path)
             except Exception:
                 self.logger.exception(f'{self.source_id} load_messages_from_persistence delete persistence file')
-                            
+        except asyncio.CancelledError:
+            raise                            
         except Exception:
             self.logger.exception(f'{self.source_id} load_messages_from_persistence')        
         
@@ -1039,7 +1049,8 @@ class Connector:
                 os.remove(persistence_recv_path)
             except Exception:
                 self.logger.exception(f'{self.source_id} load_messages_from_persistence_recv delete persistence file')
-                            
+        except asyncio.CancelledError:
+            raise                            
         except Exception:
             self.logger.exception(f'{self.source_id} load_messages_from_persistence_recv')                    
             
@@ -1174,6 +1185,8 @@ class Connector:
                             self.reader_writer_uds_path_receive[uds_path_receive] = reader, writer = await \
                                                 asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                         limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                        except asyncio.CancelledError:
+                            raise                                                
                         except Exception as exc: #ConnectionRefusedError:
                             self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect '
                                                 f'to {uds_path_receive} : {exc}')
@@ -1195,6 +1208,8 @@ class Connector:
                     try:
                         reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                            limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                    except asyncio.CancelledError:
+                        raise                        
                     except Exception as exc: #ConnectionRefusedError:
                         self.logger.warning(f'{self.source_id} queue_recv_from_connector could not '
                                             f'connect to {uds_path_receive} : {exc}')
@@ -1370,7 +1385,9 @@ class FullDuplex:
                                                               data=data, binary=binary)
                         self.logger.info(f'Emptying queue_send, Storing message number {count} to persistence '
                                          f'to peername {self.peername}')
-                        self.connector.store_message_to_persistence(self.peername, message)                                              
+                        self.connector.store_message_to_persistence(self.peername, message)                    
+        except asyncio.CancelledError:
+            raise                          
         except Exception:
             self.logger.exception(f'{self.connector.source_id} stop_nowait_for_persistence')            
             

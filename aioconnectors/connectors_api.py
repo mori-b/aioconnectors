@@ -245,7 +245,9 @@ class ConnectorAPI(ConnectorBaseTool):
                     #locked by another send_message which is in the process of creating a reader_writer_uds_path_send. 
                     #In such a case, we wait for send_message_lock, and check again if reader_writer_uds_path_send exists.
                     try:
-                        await asyncio.wait_for(self.send_message_lock.acquire(), Connector.ASYNC_TIMEOUT)                
+                        await asyncio.wait_for(self.send_message_lock.acquire(), Connector.ASYNC_TIMEOUT)
+                    except asyncio.CancelledError:
+                        raise                        
                     except asyncio.TimeoutError:
                         self.logger.warning('send_message could not acquire send_message_lock')
                         return False
@@ -291,6 +293,8 @@ class ConnectorAPI(ConnectorBaseTool):
                                                    limit=Connector.MAX_SOCKET_BUFFER_SIZE), timeout=Connector.ASYNC_TIMEOUT)
                 if self.uds_path_send_preserve_socket and not await_response:
                     self.reader_writer_uds_path_send = reader, writer
+            except asyncio.CancelledError:
+                raise                                            
             except Exception as exc: #ConnectionRefusedError: or TimeoutError
                 self.logger.warning(f'send_message could not connect to {self.connector.uds_path_send_to_connector} : {exc}')
                 return False                        
@@ -305,6 +309,8 @@ class ConnectorAPI(ConnectorBaseTool):
             writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])
             try:
                 await asyncio.wait_for(writer.drain(), timeout=Connector.ASYNC_TIMEOUT)
+            except asyncio.CancelledError:
+                raise                        
             except Exception:
                 self.logger.exception('send_message writer drain')
             #beware to not lock the await_response recv_message with send_message_lock
