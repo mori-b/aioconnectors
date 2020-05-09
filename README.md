@@ -14,13 +14,13 @@ It provides a simple programmatic API, with functionalities like starting/stoppi
 ## HIGH LEVEL DESIGN
 
 The client and server are connected by one single tcp client/server socket.
-When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can chose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.
-The optional encryption uses TLS. The server certificate is predefined, as well as the default client certificate. So that a server and client without prior knowledge of these certificates cannot interfere. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
+When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can choose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.
+The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot interfere. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
 
 
 ## USE CASES
 
--The standard use case is running a server or a client on each station. Each client station can then initiate a connection to the server station.  
+-The standard use case is running server and client on separate stations. Each client station can then initiate a connection to the server station.  
 In order to have all clients/server connections authenticated and encrypted, the first step is to call
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
@@ -28,7 +28,7 @@ In order to have all clients/server connections authenticated and encrypted, the
 And then to share the created directories between server and clients as explained in 1-.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
-The following lines describe a possible approach to do that using aioconnectors. However, reading the rest of the documentation is necessary to understand them.  
+The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in aioconnectors\_core.py.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
