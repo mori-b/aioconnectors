@@ -4,6 +4,7 @@ See:
 https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 python3 setup.py bdist_wheel
+python3 setup.py sdist bdist_wheel
 
 package dependencies offline : dep.txt contains dependencies freeze
 python3 -m pip wheel --wheel-dir=<wheels_dir_path> -r dep.txt
@@ -68,7 +69,7 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    #url='https://github.com/pypa/sampleproject',  # Optional
+    url='https://github.com/mori-b/aioconnectors',  # Optional
 
     # This should be your name or the name of the organization which owns the
     # project.
@@ -76,7 +77,7 @@ setup(
 
     # This should be a valid email address corresponding to the author listed
     # above.
-#    author_email='pypa-dev@googlegroups.com',  # Optional
+    author_email='moribirom@gmail.com',  # Optional
 
     # Classifiers help users find your project by categorizing it.
     #
