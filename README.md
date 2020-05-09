@@ -71,7 +71,7 @@ Relevant for both server and client.
 
     python3 -m aioconnectors print_config_templates
 
--Then create you connector (both server and client)
+-Then create and start you connector (both server and client)
 
     python3 -m aioconnectors create_connector <config_json_path>
 
@@ -279,7 +279,7 @@ You can also additionaly unzip it by using instead \"\!zimport \<file name\>\".
 
     python3 -m aioconnectors chat bind_server_ip <server_ip>
     
--If you don't want your server to use the default port (10673) : 
+-If you don't want your server to use the default port (10673), use --port on both peers : 
 
     python3 -m aioconnectors chat --port <port> [--target <server_ip>]
 
@@ -302,7 +302,7 @@ First step is to run :
 
 If you are running your server and client on the same machine, you can directly run the following server and client code.  
 Otherwise, you should :  
--Modify server_sockaddr in both server and client code.  
+-Modify server_sockaddr value in both server and client code.  
 -In order not to enable the kwarg allow_ssl_all, you should copy /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
 You can run multiple clients, just set a different client_name for each client.  
 For both server and client, connector_manager is running the connector, and connector_api is sending/receiving messages.  
@@ -316,14 +316,16 @@ In this example, connector_manager and connector_api are running in the same pro
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
+
     connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                        connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath})
-                
-    connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
-                                                       send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
 
     loop.create_task(connector_manager.start_connector())
+
+
+    connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
+                                                       send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
 
     async def message_received_cb(logger, transport_json , data, binary):
         print('SERVER : message received', transport_json , data.decode())
@@ -356,15 +358,16 @@ In this example, connector_manager and connector_api are running in the same pro
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
     client_name = 'client1'
+
     connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                        connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath}, client_name=client_name)
 
+    loop.create_task(connector_manager.start_connector())
+
+
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath, client_name=client_name,
                                                        send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
-
-
-    loop.create_task(connector_manager.start_connector())
 
     async def message_received_cb(logger, transport_json , data, binary):
         print('CLIENT : message received', transport_json , data.decode())
