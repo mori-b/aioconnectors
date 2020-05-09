@@ -108,6 +108,7 @@ To send messages :
 
 This returns a status (True or False).
 If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet.
+More details in 5-.
 
 To register to receive messages of a specific type : 
 
@@ -216,6 +217,7 @@ In such a case, the remote peer has to answer with response\_id equal to the req
 This is shown in aioconnectors\_test.py.  
 -wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1000 messages per second.
 
+The send_message_await_response method is the same as send_message, but automatically sets await_response to True.
 
 ### 6.Other management command line tools
 
