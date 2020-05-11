@@ -124,13 +124,12 @@ if len(sys.argv) > 1:
         #usage
         #python3 -m aioconnectors chat
         #python3 -m aioconnectors chat --target 127.0.0.1 [--upload <path>]
-        #inside chat, prepend "!" to call a local shell command, !exit" to exit, "!upload <path>" to upload, 
-        #"!import" or "!zimport" to import an uploaded file to cwd.
+        #inside chat, prepend "!" to call a local shell command, !exit" to exit, "!upload <path>" to upload to cwd, 
+        #"!dezip" to unzip an uploaded file.
         print('\nWelcome to aioconnectors chat !')
         print('Usage :\n- Type messages, or !exit to exit, or any shell command preceded by a ! to execute locally\n'
-              '- !upload <file or dir path> to upload to peer\'s /tmp/aioconnectors\n'
-              '- !import <downloaded file name> to import a received file from /tmp/aioconnectors to cwd\n'
-              '- !zimport <downloaded file name> to import and unzip it\n')
+              '- !upload <file or dir path> to upload to peer\'s current working directory\n'
+              '- !dezip <downloaded file name> to unzip a file\n')
         parser = argparse.ArgumentParser()
         parser.add_argument('chat')
         parser.add_argument('--target', nargs='?', default=None, help="server ip, mandatory for client")

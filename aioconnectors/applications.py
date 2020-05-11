@@ -274,6 +274,7 @@ def chat(args, logger=None):
     delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
     is_server = not args.target
     loop = asyncio.get_event_loop()
+    cwd = os.getcwd()
     
         
     class AuthClient:
@@ -309,7 +310,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any':connector_files_dirpath},
+                                                           file_type2dirpath={'any':cwd},
                                                            hook_server_auth_client=AuthClient.authenticate_client)
                     
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
@@ -326,7 +327,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any':connector_files_dirpath},
+                                                           file_type2dirpath={'any':cwd},
                                                            client_name=chat_client_name, enable_client_try_reconnect=False)
 
         connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, 
@@ -402,7 +403,7 @@ def chat(args, logger=None):
                         upload_path = upload_path_zip
                         #if zip already exists, don't override it, just send it (even if it may not be the correct zip)
                     
-                    data = f'Receiving {os.path.join(CONNECTOR_FILES_DIRPATH,upload_path)}'
+                    data = f'Receiving {upload_path}'
                     with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 
                                'delete':False}                   
                     loop.create_task(send_file(data, destination_id, with_file, delete_after_upload))
@@ -413,15 +414,14 @@ def chat(args, logger=None):
                 print(custom_prompt,end='', flush=True)
                 return
             
-            if data.startswith('!import ') or data.startswith('!zimport '):
+            if data.startswith('!dezip '):
                 try:
-                    target = data.split('import ')[1]
+                    target = data.split('!dezip ')[1]
                     #copy target to cwd
-                    shutil.copy(os.path.join(CONNECTOR_FILES_DIRPATH, target), target)
-                    if data.startswith('!zimport '):
-                        target_dir = target.split('.zip')[0]
-                        with zipfile.ZipFile(target) as zf:
-                            zf.extractall(path=target_dir)
+                    #shutil.copy(os.path.join(CONNECTOR_FILES_DIRPATH, target), target)
+                    target_dir = target.split('.zip')[0]
+                    with zipfile.ZipFile(target) as zf:
+                        zf.extractall(path=target_dir)
                 except Exception as exc:
                     res = str(exc)
                     print(custom_prompt,end='', flush=True)
