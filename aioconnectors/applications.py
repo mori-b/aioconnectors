@@ -19,6 +19,10 @@ def create_connector(config_file_path, logger=None):
     #task = loop.create_task(connector_manager.delete_previous_persistence_remains())
     #loop.run_until_complete(task)
     task_manager = loop.create_task(connector_manager.start_connector())
+    #run_until_complete now, in order to exit in case of exception
+    #for example because of already existing socket
+    loop.run_until_complete(task_manager)
+    
     try:
         loop.run_forever()
     except:    
