@@ -150,7 +150,8 @@ class Connector:
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
-                 hook_server_auth_client=None, enable_client_try_reconnect=True):
+                 hook_server_auth_client=None, enable_client_try_reconnect=True,
+                 reuse_socket=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -180,6 +181,10 @@ class Connector:
             self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = use_ssl, ssl_allow_all, full_path(certificates_directory_path)
             self.server = self.send_to_connector_server = None
 
+            self.reuse_socket = reuse_socket
+            self.reuse_uds_path_send_to_connector = reuse_uds_path_send_to_connector
+            self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
+            
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
@@ -300,7 +305,9 @@ class Connector:
             self.logger.exception('init')
             raise
 
-    async def create_commander_server(self):            
+    async def create_commander_server(self):
+        if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
+            raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')           
         self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
             
                 
@@ -343,8 +350,9 @@ class Connector:
                 self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
             
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)
+            if self.reuse_socket:
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)
             
             if self.is_server:
                 self.sock.setblocking(False)
@@ -373,9 +381,13 @@ class Connector:
             self.logger.exception('start')
             if not self.is_server:
                 self.loop.create_task(self.restart(sleep_between=self.SLEEP_BETWEEN_START_FAILURES))
+            else:
+                await self.stop(shutdown=True, enable_delete_files=False)
+                raise
             return
         
-    async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False, shutdown=False):
+    async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False,
+                   shutdown=False, enable_delete_files=True):
             
         self.logger.info(f'{self.source_id} Connector stopping ...')    
         self.is_running = False
@@ -441,12 +453,13 @@ class Connector:
         #######        
         
         if not connector_socket_only and not client_wait_for_reconnect:
-            try:                
-                if os.path.exists(self.uds_path_send_to_connector):
-                    self.logger.info('Deleting file '+self.uds_path_send_to_connector)                    
-                    os.remove(self.uds_path_send_to_connector)
-            except Exception:
-                self.logger.exception('stop : remove uds_path_send_to_connector')
+            if enable_delete_files:
+                try:                
+                    if os.path.exists(self.uds_path_send_to_connector):
+                        self.logger.info('Deleting file '+self.uds_path_send_to_connector)                    
+                        os.remove(self.uds_path_send_to_connector)
+                except Exception:
+                    self.logger.exception('stop : remove uds_path_send_to_connector')
         
         if shutdown:
             try:
@@ -455,13 +468,14 @@ class Connector:
                     self.commander_server.close()
                     await self.commander_server.wait_closed()
                     self.commander_server_task.cancel()
-                    if os.path.exists(self.uds_path_commander):                
-                        self.logger.info('Deleting file '+self.uds_path_commander)                    
-                        os.remove(self.uds_path_commander)
+                    if enable_delete_files:
+                        if os.path.exists(self.uds_path_commander):                
+                            self.logger.info('Deleting file '+self.uds_path_commander)                    
+                            os.remove(self.uds_path_commander)
                     self.logger.info('Destroying ConnectorManager '+self.source_id)                    
             except Exception:
                 self.logger.exception('shutdown : remove uds_path_commander')
-        
+            #raise Exception('shutdown')
                 
     async def restart(self, sleep_between=0, connector_socket_only=False, hard=False):    
         if connector_socket_only:
@@ -817,6 +831,9 @@ class Connector:
     
     async def queue_send_to_connector(self):
         self.logger.info(f'{self.source_id} queue_send_to_connector task created')
+        if os.path.exists(self.uds_path_send_to_connector) and not self.reuse_uds_path_send_to_connector:
+            raise Exception(f'{self.uds_path_send_to_connector} already exists. Cannot queue_send_to_connector')
+
         server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, 
                                                 path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
         return server

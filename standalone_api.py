@@ -309,10 +309,12 @@ class ConnectorAPI:
             if not self.uds_path_receive_preserve_socket:
                 return
             
-    async def start_waiting_for_messages(self, message_type=None, message_received_cb=None):
+    async def start_waiting_for_messages(self, message_type=None, message_received_cb=None, reuse_uds_path=False):
         #message_received_cb must receive arguments transport_json , data, binary
         try:
             uds_path_receive_from_connector = self.uds_path_receive_from_connector.get(message_type)
+            if os.path.exists(uds_path_receive_from_connector) and not reuse_uds_path:
+                raise Exception(f'{uds_path_receive_from_connector} already in use. Cannot start_waiting_for_messages')
             self.logger.info('start_waiting_for_messages of type {} on socket {}'.format(message_type, 
                              uds_path_receive_from_connector))
             

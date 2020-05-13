@@ -339,6 +339,10 @@ def chat(args, logger=None):
         
         
     task_manager = loop.create_task(connector_manager.start_connector())
+    #run_until_complete now, in order to exit in case of exception
+    #for example because of already existing socket
+    loop.run_until_complete(task_manager)
+
     task_recv = task_console = task_send_file = None
     
     async def message_received_cb(logger, transport_json , data, binary):
@@ -354,7 +358,7 @@ def chat(args, logger=None):
             print(data.decode())
             print(custom_prompt,end='', flush=True)                
 
-    if not args.upload:        
+    if not args.upload:  
         task_recv = loop.create_task(connector_api.start_waiting_for_messages(message_type='any', 
                                                                               message_received_cb=message_received_cb))
         

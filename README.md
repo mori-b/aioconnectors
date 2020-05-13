@@ -110,12 +110,13 @@ This returns a status (True or False).
 If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet.
 More details in 5-.
 
-To register to receive messages of a specific type : 
+To register to receive messages of a specific message\_type : 
 
-    loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb))
+    loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
 message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (logger, transport\_json, data, binary).  
-transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.
+transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.  
+reuse_uds_path is False by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
@@ -197,6 +198,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -uds\_path\_send\_preserve\_socket should always be True for better performance.  
 -debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
 -enable_client_try_reconnect is a boolean always set to True. It lets the client try to reconnect automatically to the server every 5 seconds.  
+-reuse_socket, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
 -hook_server_auth_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.
 
 ### 5.More details about the send\_message arguments

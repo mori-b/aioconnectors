@@ -22,7 +22,8 @@ class ConnectorManager:
                  file_type2dirpath=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
-                 hook_server_auth_client=None, enable_client_try_reconnect=True):
+                 hook_server_auth_client=None, enable_client_try_reconnect=True,
+                 reuse_socket=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -51,7 +52,9 @@ class ConnectorManager:
         self.uds_path_receive_preserve_socket, self.uds_path_send_preserve_socket = \
                             uds_path_receive_preserve_socket, uds_path_send_preserve_socket
         self.hook_server_auth_client, self.enable_client_try_reconnect = hook_server_auth_client, enable_client_try_reconnect
-        
+        self.reuse_socket, self.reuse_uds_path_send_to_connector, self.reuse_uds_path_commander_server = \
+                            reuse_socket, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
+                            
         self.config_file_path = config_file_path
         if self.config_file_path:
             self.config_file_path = str(self.config_file_path)
@@ -100,7 +103,10 @@ class ConnectorManager:
                                    uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, 
                                    uds_path_send_preserve_socket=self.uds_path_send_preserve_socket,
                                    hook_server_auth_client=self.hook_server_auth_client, 
-                                   enable_client_try_reconnect=self.enable_client_try_reconnect)        
+                                   enable_client_try_reconnect=self.enable_client_try_reconnect,
+                                   reuse_socket=self.reuse_socket,
+                                   reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
+                                   reuse_uds_path_commander_server=self.reuse_uds_path_commander_server)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
@@ -110,12 +116,14 @@ class ConnectorManager:
         self.logger.info('start_connector : '+str(self.source_id))        
         await self.connector.start(connector_socket_only=connector_socket_only)
 
-    async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False):
+    async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False, 
+                             enable_delete_files=True):
         if delay:
             self.logger.info('Waiting {} seconds before stopping connector : {}'.format(delay, self.source_id))
             await asyncio.sleep(delay)        
         self.logger.info('stop_connector : '+str(self.source_id))
-        await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard, shutdown=True)        
+        await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard, shutdown=shutdown,
+                                  enable_delete_files=enable_delete_files)        
         
     async def restart_connector(self, delay=None, sleep_between=0, connector_socket_only=False, hard=False):    
         if delay:
@@ -382,10 +390,12 @@ class ConnectorAPI(ConnectorBaseTool):
             if not self.uds_path_receive_preserve_socket:
                 return
             
-    async def start_waiting_for_messages(self, message_type=None, message_received_cb=None):
+    async def start_waiting_for_messages(self, message_type=None, message_received_cb=None, reuse_uds_path=False):
         #message_received_cb must receive arguments transport_json , data, binary
         try:
             uds_path_receive_from_connector = self.connector.uds_path_receive_from_connector.get(message_type)
+            if os.path.exists(uds_path_receive_from_connector) and not reuse_uds_path:
+                raise Exception(f'{uds_path_receive_from_connector} already in use. Cannot start_waiting_for_messages')
             self.logger.info('start_waiting_for_messages of type {} on socket {}'.format(message_type, 
                              uds_path_receive_from_connector))
             
