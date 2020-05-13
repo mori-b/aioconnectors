@@ -114,9 +114,9 @@ To register to receive messages of a specific message\_type :
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
-message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (logger, transport\_json, data, binary).  
-transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.  
-reuse_uds_path is False by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
+-message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (logger, transport\_json, data, binary).  
+-transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.  
+-reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
