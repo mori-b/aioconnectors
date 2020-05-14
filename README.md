@@ -322,8 +322,8 @@ In this example, connector_manager and connector_api are running in the same pro
                                                        connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'], file_type2dirpath={'any':connector_files_dirpath})
 
-    loop.create_task(connector_manager.start_connector())
-
+    task_manager =  loop.create_task(connector_manager.start_connector())
+    loop.run_until_complete(task_manager)
 
     connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
