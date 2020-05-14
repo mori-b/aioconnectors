@@ -151,7 +151,7 @@ class Connector:
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
-                 reuse_socket=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
+                 reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -181,7 +181,7 @@ class Connector:
             self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = use_ssl, ssl_allow_all, full_path(certificates_directory_path)
             self.server = self.send_to_connector_server = None
 
-            self.reuse_socket = reuse_socket
+            self.reuse_server_sockaddr = reuse_server_sockaddr
             self.reuse_uds_path_send_to_connector = reuse_uds_path_send_to_connector
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
             
@@ -350,7 +350,7 @@ class Connector:
                 self.tasks['queue_send_to_connector'] = self.loop.create_task(self.queue_send_to_connector())                
             
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            if self.reuse_socket:
+            if self.reuse_server_sockaddr:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)
             
