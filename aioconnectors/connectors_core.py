@@ -30,6 +30,7 @@ import os
 import ssl
 import uuid
 from copy import deepcopy
+import pwd,grp
 
 from .ssl_helper import SSL_helper
 
@@ -57,7 +58,8 @@ class MessageFields:
     RESPONSE_ID = 'response_id'    #int
     WITH_BINARY = 'with_binary'    #boolean
     AWAIT_RESPONSE = 'await_response'    #boolean
-    WITH_FILE = 'with_file'    #dict {'src_path':<str>, 'dst_name':<str>, 'dst_type':<str>, 'binary_offset':<int>, 'delete':<boolean>}
+#dict {'src_path':<str>, 'dst_name':<str>, 'dst_type':<str>, 'binary_offset':<int>, 'delete':<boolean>, 'owner':<user>:<group>}    
+    WITH_FILE = 'with_file'    
     TRANSPORT_ID = 'transport_id'    #int
     WAIT_FOR_ACK = 'wait_for_ack'    #boolean
     
@@ -98,6 +100,10 @@ def full_path(the_path):
     if the_path is not None:
         return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
 
+def chown_file(filepath, username, groupname):
+    uid = pwd.getpwnam(username).pw_uid
+    gid = grp.getgrnam(groupname).gr_gid
+    os.chown(filepath, uid, gid, follow_symlinks = False)  
 
 class Connector:
     ############################################
@@ -1682,7 +1688,7 @@ class FullDuplex:
                 if put_msg_to_queue_recv:
                     #dump file if with_file before sending message_tuple to queue
                     with_file = transport_json.get(MessageFields.WITH_FILE)
-                    #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':}
+                    #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':, 'owner':'user:group'}
                     if with_file:
                         dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
                         dst_dirpath = dst_dirpath.format(**transport_json)
@@ -1702,13 +1708,34 @@ class FullDuplex:
                                 else:
                                     self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                      f'{self.peername} writing received file to {dst_fullpath}')
-                                    dir_dst_fullpath = os.path.dirname(dst_fullpath)
-                                    if not os.path.exists(dir_dst_fullpath):
+                                    file_owner = with_file.get('owner')
+                                    if file_owner:
+                                        file_owner = file_owner.split(':', maxsplit=1)
+                                        if len(file_owner) != 2:
+                                            self.logger.warning(f'{self.connector.source_id} from peer {self.peername} '
+                                                            f'Invalid file owner in {with_file}')
+                                            file_owner = None                                                
+                                    #before creating new file, create its dirnames if new
+                                    dir_to_test = os.path.dirname(dst_fullpath)
+                                    dirs_to_create = []
+                                    while not os.path.exists(dir_to_test):
+                                        dirs_to_create.append(dir_to_test)
+                                        dir_to_test = os.path.dirname(dir_to_test)
+                                    dirs_to_create = dirs_to_create[::-1]
+                                    for dir_to_create in dirs_to_create:
                                         self.logger.info(f'{self.connector.source_id} from peer {self.peername} '
-                                                            'creating directory {dir_dst_fullpath}')
-                                        os.makedirs(dir_dst_fullpath)
+                                                           f'creating directory {dir_to_create}')                                        
+                                        os.mkdir(dir_to_create)
+                                        if file_owner:
+                                            chown_file(dir_to_create, *file_owner)
+                                    #if not os.path.exists(dir_dst_fullpath):
+                                    #    self.logger.info(f'{self.connector.source_id} from peer {self.peername} '
+                                    #                        'fcreating directory {dir_dst_fullpath}')
+                                    #    os.makedirs(dir_dst_fullpath)
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
+                                    if file_owner:
+                                        chown_file(dst_fullpath, *file_owner)                                        
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
                                 binary = binary[:binary_offset]
                                 if len(binary) == 0:
