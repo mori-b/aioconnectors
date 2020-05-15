@@ -212,7 +212,7 @@ These arguments must be filled on the application layer by the user
 -destination\_id is mandatory for server : it is the remote client id.  
 -data is the payload of your message. Usually it is a json, but it can even be binary. However you probably prefer to use a binary payload together with some text information, so best practice would be to keep "data" as a json or string, and use the "binary" argument for binary payload.  
 -data\_is\_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
--with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_type2dirpath". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent.  
+-with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_type2dirpath". dst\_name is the name the file will be stored under. Note that dst\_name is formatted using the transport\_json fields : which means you can use a dst\_name value like "/my_destination_files/{message\_type}/{source\_id}". "delete" is a boolean telling if to delete the source file after it has been sent.  
 -request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer.  
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
@@ -333,6 +333,7 @@ In this example, connector_manager and connector_api are running in the same pro
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
 
     async def send_messages(destination):
+        await asyncio.sleep(2)
         index = 0
         while True:
             index += 1
@@ -375,6 +376,7 @@ In this example, connector_manager and connector_api are running in the same pro
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
 
     async def send_messages():
+        await asyncio.sleep(1)
         index = 0
         while True:
             index += 1

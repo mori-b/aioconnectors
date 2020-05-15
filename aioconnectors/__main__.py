@@ -1,5 +1,4 @@
 import sys
-import os
 import logging
 import json
 import argparse
@@ -11,8 +10,6 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 logger.addHandler(handler)
 
-def full_path(the_path):
-    return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))    
     
 HELP = '''
 aioconnectors supported commands :
@@ -38,7 +35,7 @@ if len(sys.argv) > 1:
                 print('create_certificates without argument will create client and server certificates directories '
                       'under cwd.\nYou can specify a target directory as an optional argument.')
                 sys.exit(0)
-            certificates_directory_path = full_path(sys.argv[2])
+            certificates_directory_path = aioconnectors.connectors_core.full_path(sys.argv[2])
         else:
             certificates_directory_path = None
         res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path)

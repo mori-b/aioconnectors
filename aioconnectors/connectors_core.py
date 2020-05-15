@@ -1685,12 +1685,16 @@ class FullDuplex:
                     #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':}
                     if with_file:
                         dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
+                        dst_dirpath = dst_dirpath.format(**transport_json)
+                        
                         if dst_dirpath:
                             try:
                                 if not binary:
                                     binary = b''
                                 binary_offset = with_file.get('binary_offset', 0)                            
-                                dst_fullpath = os.path.join(dst_dirpath, with_file.get('dst_name',''))
+                                dst_fullpath = full_path(os.path.join(dst_dirpath, with_file.get('dst_name','')))
+                                if not dst_fullpath.startswith(dst_dirpath):
+                                    raise Exception(f'Illegal traversal file path {dst_fullpath}')
                                 if os.path.exists(dst_fullpath):
                                     self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
                                                         f'peer {self.peername} trying to override existing file '
@@ -1698,6 +1702,11 @@ class FullDuplex:
                                 else:
                                     self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                      f'{self.peername} writing received file to {dst_fullpath}')
+                                    dir_dst_fullpath = os.path.dirname(dst_fullpath)
+                                    if not os.path.exists(dir_dst_fullpath):
+                                        self.logger.info(f'{self.connector.source_id} from peer {self.peername} '
+                                                            'creating directory {dir_dst_fullpath}')
+                                        os.makedirs(dir_dst_fullpath)
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
