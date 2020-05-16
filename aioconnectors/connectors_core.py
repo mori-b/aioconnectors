@@ -30,8 +30,8 @@ import os
 import ssl
 import uuid
 from copy import deepcopy
-import pwd,grp
 
+from .helpers import full_path, chown_file
 from .ssl_helper import SSL_helper
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -96,14 +96,6 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
     
     return logger
 
-def full_path(the_path):
-    if the_path is not None:
-        return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
-
-def chown_file(filepath, username, groupname):
-    uid = pwd.getpwnam(username).pw_uid
-    gid = grp.getgrnam(groupname).gr_gid
-    os.chown(filepath, uid, gid, follow_symlinks = False)  
 
 class Connector:
     ############################################
