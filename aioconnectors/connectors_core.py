@@ -129,7 +129,8 @@ class Connector:
     MAX_RETRIES_BEFORE_ACK = 3
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
-    FILE_TYPE2DIRPATH = {}    #example : {'documents':'/tmp/documents', 'executables':'/tmp/executables'}
+    #example : {'documents':'{'target_directory':'/tmp/documents'}, 'executables':'{'target_directory':'/tmp/executables'}}    
+    FILE_TYPE2DIRPATH = {}
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
     UDS_PATH_COMMANDER = 'uds_path_commander_{}'   
     
@@ -1682,8 +1683,9 @@ class FullDuplex:
                     with_file = transport_json.get(MessageFields.WITH_FILE)
                     #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':, 'owner':'user:group'}
                     if with_file:
-                        dst_dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
-                        dst_dirpath = dst_dirpath.format(**transport_json)
+                        file_type2dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
+                        dst_dirpath = file_type2dirpath['target_directory'].format(**transport_json)
+                        file_owner = file_type2dirpath.get('owner')
                         
                         if dst_dirpath:
                             try:
@@ -1700,7 +1702,12 @@ class FullDuplex:
                                 else:
                                     self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                      f'{self.peername} writing received file to {dst_fullpath}')
-                                    file_owner = with_file.get('owner')
+                                    file_owner_from_client = with_file.get('owner')
+                                    if file_owner_from_client:
+                                        #file_owner_from_client takes precedence over file_owner
+                                        self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                                     f'{self.peername} using file_owner_from_client {file_owner_from_client}')                                        
+                                        file_owner = file_owner_from_client
                                     if file_owner:
                                         file_owner = file_owner.split(':', maxsplit=1)
                                         if len(file_owner) != 2:

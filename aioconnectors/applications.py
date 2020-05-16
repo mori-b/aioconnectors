@@ -306,7 +306,7 @@ def chat(args, logger=None):
 
     
     if is_server:
-        server_sockaddr = (args.bind_server_ip or '0.0.0.0', args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+        server_sockaddr = (args.bind_server_ip or '0.0.0.0', int(args.port) or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
         aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 
@@ -314,7 +314,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any':cwd},
+                                                           file_type2dirpath={'any': {'target_directory':cwd}},
                                                            hook_server_auth_client=AuthClient.authenticate_client)
                     
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
@@ -331,7 +331,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any':cwd},
+                                                           file_type2dirpath={'any': {'target_directory':cwd}},
                                                            client_name=chat_client_name, enable_client_try_reconnect=False)
 
         connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, 
