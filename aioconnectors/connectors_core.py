@@ -298,6 +298,8 @@ class Connector:
                 self.ignore_peer_traffic = False
                 self.loop = asyncio.get_event_loop()
                 #commander_server lives besides start/stop
+                if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
+                    raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')         
                 self.commander_server_task = self.loop.create_task(self.create_commander_server())
                     
         except Exception:
@@ -306,7 +308,9 @@ class Connector:
 
     async def create_commander_server(self):
         if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
-            raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')           
+            self.logger.exception('create_commander_server!')
+            raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')  
+        self.logger.info('Calling create_commander_server')
         self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
             
                 
