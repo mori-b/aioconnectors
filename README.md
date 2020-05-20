@@ -234,6 +234,8 @@ to run several interesting commands like :
 -delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one.   
 -peek\_queues to show the internal queues sizes  
 -ignore\_peer\_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages.  
+-show\_log\_level to show the current log level.  
+-set\_log\_level to set the log level on the fly.
 
 
 ### 7.Testing command line tools

@@ -72,7 +72,8 @@ def cli(logger=None):
                                                 server_sockaddr=server_sockaddr, client_name=client_name, 
                                                 connector_files_dirpath=the_path)        
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
-                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate']
+                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate',
+                     'show_log_level', 'set_log_level']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
         display_json(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
@@ -163,7 +164,27 @@ def cli(logger=None):
                             task = loop.create_task(connector_remote_tool.delete_client_certificate())
                     loop.run_until_complete(task)
                     print(task.result().decode())
-                    
+                elif the_cmd == 'show_log_level':
+                    task = loop.create_task(connector_remote_tool.send_command(cmd='show_log_level__sync',
+                                                                               kwargs={}))
+                    loop.run_until_complete(task)
+                    print(task.result().decode())                                   
+                elif the_cmd == 'set_log_level':
+                    list_levels = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
+                    dict_levels = {str(index):level for index,level in enumerate(list_levels)}
+                    display_json(dict_levels)        
+                    res = input('\nPlease type the log level you would like to set, or q to quit\n')
+                    clearscreen()                    
+                    if res == 'q':
+                        break
+                    if res not in dict_levels:
+                        print('Invalid number : '+str(res))
+                        break
+                    new_level = dict_levels[res]
+                    task = loop.create_task(connector_remote_tool.send_command(cmd='set_log_level__sync',
+                                                                               kwargs={'level':new_level}))
+                    loop.run_until_complete(task)
+                    print(task.result().decode())       
                     
             display_json(dict_cmds, connector=server_sockaddr or client_name)                    
             res = input('\nPlease type the command number you would like to run, or q to quit\n')                    

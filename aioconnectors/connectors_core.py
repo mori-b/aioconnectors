@@ -89,7 +89,7 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
         formatter.converter = time.gmtime
         for fh in handlers:
             fh.setFormatter(formatter)
-            fh.setLevel(log_level)        
+            fh.setLevel(logging.DEBUG)        
             logger.addHandler(fh)
     else:
         logger.addHandler(logging.NullHandler())    
@@ -657,7 +657,14 @@ class Connector:
             self.logger.exception('delete_client_certificate_on_client')
             return json.dumps({'status':False, 'msg':str(exc)})
 
+    def show_log_level(self):
+        res = logging.getLevelName(self.logger.getEffectiveLevel())
+        return res
 
+    def set_log_level(self, level):
+        self.logger.setLevel(level)
+        return level
+    
     def delete_previous_persistence_remains(self):
         try:
             self.logger.info(f'{self.source_id} delete_previous_persistence_remains checking files')
