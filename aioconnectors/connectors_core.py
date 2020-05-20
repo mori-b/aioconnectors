@@ -7,8 +7,10 @@ network layer :
 4 bytes = length, rest is data 
 
 transport layer :
-2 bytes = length, the rest is a json descriptor like : {'message_type':['_ssl','command','event'(,'file')], 
-        'source_id':'src_id', 'destination_id':'dst_id', ['request_id', 'response_id']:<int>, 'with_binary':true}
+2 bytes = length, the rest is a json descriptor like : {'message_type':'any', 
+        'source_id':'', 'destination_id':'', 'request_id':<int>, 'response_id':<int>, 'with_binary':true,
+        'with_file':{'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':''},
+        'await_response':<bool>, 'wait_for_ack':<bool>}
 request_id and response_id are relevant for application layer
 
 application layer :
