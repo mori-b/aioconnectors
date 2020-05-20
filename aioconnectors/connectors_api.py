@@ -4,7 +4,8 @@ import json
 from functools import partial
 import uuid
 
-from .connectors_core import Connector, get_logger, Structures
+from .helpers import get_logger
+from .connectors_core import Connector, Structures
 
 DEFAULT_LOGGER_NAME = 'aioconnectors'
 LOGFILE_DEFAULT_NAME = 'aioconnectors.log'

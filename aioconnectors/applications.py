@@ -12,7 +12,7 @@ import aioconnectors
 
 def create_connector(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='create_connector', first_run=True)    
+        logger = aioconnectors.helpers.get_logger(logger_name='create_connector', first_run=True)    
     logger.info('Creating connector with config file '+config_file_path)
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
     loop = asyncio.get_event_loop()
@@ -42,7 +42,7 @@ def cli(logger=None):
         print('\n', json.dumps(the_json, indent=4, sort_keys=True),'')
     
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='cli', first_run=True)    
+        logger = aioconnectors.helpers.get_logger(logger_name='cli', first_run=True)    
     print('\nWelcome to aioconnectors CLI')
     Connector = aioconnectors.connectors_core.Connector   
     
@@ -192,7 +192,7 @@ def cli(logger=None):
         
 def test_receive_messages(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='test_receive_messages', first_run=True)    
+        logger = aioconnectors.helpers.get_logger(logger_name='test_receive_messages', first_run=True)    
     print('Warning : No other application should be receiving events from this connector')
     logger.info('Creating connector api with config file '+config_file_path)
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
@@ -223,7 +223,7 @@ def test_receive_messages(config_file_path, logger=None):
 
 def test_send_messages(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='test_send_messages', first_run=True)    
+        logger = aioconnectors.helpers.get_logger(logger_name='test_send_messages', first_run=True)    
     logger.info('Creating connector api with config file '+config_file_path)
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
     destination_id = None
@@ -255,7 +255,7 @@ def test_send_messages(config_file_path, logger=None):
 def ping(config_file_path, logger=None):
     #lets a connector ping a remote connector peer
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='ping', first_run=True)    
+        logger = aioconnectors.helpers.get_logger(logger_name='ping', first_run=True)    
     logger.info('Creating connector api with config file '+config_file_path)    
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
     destination_id = None
@@ -292,7 +292,7 @@ def ping(config_file_path, logger=None):
 def chat(args, logger=None):
     #chat supports sending messages and files/directories between 2 connectors
     if not logger:
-        logger = aioconnectors.connectors_core.get_logger(logger_name='chat', first_run=True)
+        logger = aioconnectors.helpers.get_logger(logger_name='chat', first_run=True)
     custom_prompt = 'aioconnectors>> '        
     chat_client_name = 'chat_client'
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'

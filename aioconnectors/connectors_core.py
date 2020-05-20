@@ -23,7 +23,6 @@ from struct import Struct
 import json
 import logging
 import sys
-import time
 import socket
 import weakref
 import os
@@ -42,13 +41,8 @@ if PYTHON_VERSION < (3,6):
     sys.exit(1)
 PYTHON_GREATER_37 = (PYTHON_VERSION >= (3,7))
     
-    
+
 DEBUG_SHOW_DATA = False
-DEFAULT_LOGGER_NAME = 'aioconnector'
-LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
-LOG_LEVEL = 'INFO'
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 
 class MessageFields:
     MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', <user-defined>, ...
@@ -67,34 +61,6 @@ class Structures:
     MSG_4_STRUCT = Struct('I')    #4
     MSG_2_STRUCT = Struct('H')    #2
 #MSG_LENGTH_STRUCT = Struct('Q')    #8
-
-def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
-               log_format=LOG_FORMAT, level=LOG_LEVEL):
-    logger = logging.getLogger(logger_name)
-    logger.handlers = []
-    if not first_run:
-        handlers = []
-        if logfile_path:    #could be '' if no config file provided
-            handlers.append(logging.FileHandler(logfile_path))
-        if not silent:
-            handlers.append(logging.StreamHandler(sys.stdout))
-        if not handlers:
-            logger.addHandler(logging.NullHandler())
-            return logger
-
-        log_level = getattr(logging, level, logging.INFO)
-        logger.setLevel(log_level)        
-        
-        formatter = logging.Formatter(log_format)
-        formatter.converter = time.gmtime
-        for fh in handlers:
-            fh.setFormatter(formatter)
-            fh.setLevel(logging.DEBUG)        
-            logger.addHandler(fh)
-    else:
-        logger.addHandler(logging.NullHandler())    
-    
-    return logger
 
 
 class Connector:
