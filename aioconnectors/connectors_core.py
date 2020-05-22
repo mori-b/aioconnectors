@@ -79,6 +79,7 @@ class Connector:
     DISK_PERSISTENCE_RECV = False
     PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
     MAX_SIZE_PERSISTENCE_PATH = 1000000000 #1gb
+    READ_CHUNK_SIZE = 1024
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
     SILENT=True    
@@ -699,26 +700,43 @@ class Connector:
             #if not os.path.exists(persistence_path):
             #    self.logger.info('The persistence path '+persistence_path+' does not exist')
             #    return
-            persistence_content = None
-            with open(persistence_path, mode='rb') as fd:
-                persistence_content = fd.read()
             persistent_count = 0
-            if persistence_content:
-                persistence_units = persistence_content.split(self.PERSISTENCE_SEPARATOR)[1:]
-                persistence_content = None
-                for message in persistence_units:
-                    self.logger.debug('Loading persistent message to queue : '+peername)                 
-                    message_tuple = self.unpack_message(message)
-                    if DEBUG_SHOW_DATA:
-                        self.logger.debug('With data : '+str(message_tuple[1][:10]))                                       
-                    await queue_send.put(message_tuple)
-                    persistent_count += 1
-                    #sleep(0) is important otherwise queue_send_to_connector_put may have losses under high loads
-                    #because of this cpu intensive loop
-                    await asyncio.sleep(0)#0.001)
-                    if self.debug_msg_counts:
-                        self.msg_counts['load_persistence_send']+=1                            
+            fd = open(persistence_path, mode='rb')             
+            try:
+                fd.read(len(self.PERSISTENCE_SEPARATOR))
+                last_element = b''
+                last_iteration = False
+                while True:
+                    #read file in chunks
+                    chunk = fd.read(self.READ_CHUNK_SIZE)
+                    if not chunk:
+                        last_iteration = True                    
+                    chunk = last_element + chunk
+                    #split chunks in message units to put to queue
+                    persistence_units = chunk.split(self.PERSISTENCE_SEPARATOR)
+                    if not last_iteration:
+                        #last_element may be a partial separator to be completed in next read chunk                        
+                        last_element = persistence_units[-1]
+                        persistence_units = persistence_units[:-1]
+                    for message in persistence_units:
+                        self.logger.debug('Loading persistent message to queue : '+peername)                 
+                        message_tuple = self.unpack_message(message)
+                        if DEBUG_SHOW_DATA:
+                            self.logger.debug('With data : '+str(message_tuple[1][:10]))                                       
+                        await queue_send.put(message_tuple)
+                        persistent_count += 1
+                        #sleep(0) is important otherwise queue_send_to_connector_put may have losses under high loads
+                        #because of this cpu intensive loop
+                        await asyncio.sleep(0)#0.001)
+                        if self.debug_msg_counts:
+                            self.msg_counts['load_persistence_send']+=1                            
 
+                    if last_iteration:
+                        break
+            except Exception:
+                self.logger.exception('open persistence')
+            finally:
+                fd.close()
             self.logger.info(f'{self.source_id} load_messages_from_persistence finished loading {persistent_count} '
                              f'messages to queue_send_transition_to_connect. Deleting persistence file {persistence_path}')
             try:
@@ -1018,25 +1036,43 @@ class Connector:
             #if not os.path.exists(persistence_recv_path):
             #    self.logger.info('The persistence path '+persistence_recv_path+' does not exist')
             #    return
-            persistence_content = None
-            with open(persistence_recv_path, mode='rb') as fd:
-                persistence_content = fd.read()
             persistent_count = 0
-            if persistence_content:
-                persistence_units = persistence_content.split(self.PERSISTENCE_SEPARATOR)[1:]
-                persistence_content = None
-                for message in persistence_units:
-                    self.logger.debug('Loading persistent_recv message to queue : '+msg_type)
-                    message_tuple = self.unpack_message(message)
-                    if DEBUG_SHOW_DATA:
-                        self.logger.debug('With data : '+str(message_tuple[1][:10]))
-                    await dst_queue.put(message_tuple)
-                    persistent_count += 1
-                    #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
-                    #because of this cpu intensive loop
-                    await asyncio.sleep(0)#0.001)
-                    if self.debug_msg_counts:
-                        self.msg_counts['load_persistence_recv']+=1                            
+            fd = open(persistence_recv_path, mode='rb')             
+            try:
+                fd.read(len(self.PERSISTENCE_SEPARATOR))
+                last_element = b''
+                last_iteration = False
+                while True:
+                    #read file in chunks
+                    chunk = fd.read(self.READ_CHUNK_SIZE)
+                    if not chunk:
+                        last_iteration = True                    
+                    chunk = last_element + chunk
+                    #split chunks in message units to put to queue
+                    persistence_units = chunk.split(self.PERSISTENCE_SEPARATOR)
+                    if not last_iteration:
+                        #last_element may be a partial separator to be completed in next read chunk                        
+                        last_element = persistence_units[-1]
+                        persistence_units = persistence_units[:-1]
+                    for message in persistence_units:
+                        self.logger.debug('Loading persistent_recv message to queue : '+msg_type)                 
+                        message_tuple = self.unpack_message(message)
+                        if DEBUG_SHOW_DATA:
+                            self.logger.debug('With data : '+str(message_tuple[1][:10]))                                       
+                        await dst_queue.put(message_tuple)
+                        persistent_count += 1
+                        #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
+                        #because of this cpu intensive loop
+                        await asyncio.sleep(0)#0.001)
+                        if self.debug_msg_counts:
+                            self.msg_counts['load_persistence_recv']+=1                            
+
+                    if last_iteration:
+                        break
+            except Exception:
+                self.logger.exception('open persistence_recv')
+            finally:
+                fd.close()            
 
             self.logger.info(f'{self.source_id} load_messages_from_persistence_recv finished loading {persistent_count}'
                              f' messages to transition_queue. Deleting persistence file {persistence_recv_path}')
