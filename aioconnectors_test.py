@@ -58,7 +58,7 @@ PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 PERSISTENCE_SERVER_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 CLIENT_NAMES = ['client1','client2'] if TEST_MULTIPLE_CLIENTS else ['client1']
 if TEST_UPLOAD_FILE or TEST_UPLOAD_FILE_WITH_PERSISTENCE:
-    FILE_TYPE2DIRPATH = {'pcap':'/tmp/pcap', 'binary':'/tmp/binary'}    #{}
+    FILE_TYPE2DIRPATH = {'pcap':{'target_directory':'/tmp/pcap'}, 'binary':{'target_directory':'/tmp/binary'}}    #{}
     FILE_SRC_PATH = '/tmp/file_src'    #''
     
     if FILE_TYPE2DIRPATH:

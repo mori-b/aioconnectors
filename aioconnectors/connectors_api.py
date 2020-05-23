@@ -24,7 +24,8 @@ class ConnectorManager:
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
-                 reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
+                 reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
+                 max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -47,6 +48,7 @@ class ConnectorManager:
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
         self.client_name, self.client_bind_ip = client_name, client_bind_ip
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+        self.max_size_file_upload = max_size_file_upload
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_type2dirpath, self.debug_msg_counts, self.silent = file_type2dirpath, debug_msg_counts, silent
@@ -107,7 +109,8 @@ class ConnectorManager:
                                    enable_client_try_reconnect=self.enable_client_try_reconnect,
                                    reuse_server_sockaddr=self.reuse_server_sockaddr,
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
-                                   reuse_uds_path_commander_server=self.reuse_uds_path_commander_server)        
+                                   reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
+                                   max_size_file_upload=self.max_size_file_upload)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        

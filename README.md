@@ -144,6 +144,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "enable_client_try_reconnect": true,
     "file_type2dirpath": {},
     "is_server": true,
+    "max_size_file_upload": 1000000000,
     "max_size_persistence_path": 1000000000,
     "recv_message_types": [
         "any"
@@ -195,6 +196,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
 -In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_type2dirpath, as shown in aioconnectors\_test.py. file\_type2dirpath = {"target\_directory":"", "owner":""}. target\_directory is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". "owner" is optional, it is the owner of the uploaded file. It must be of the form "user:group".  
+-You can choose the size limit of files you send with max\_size\_file\_upload. Default is 1GB.  
 -In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
 -In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
 -uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  

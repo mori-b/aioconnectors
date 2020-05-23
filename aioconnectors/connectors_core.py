@@ -79,6 +79,7 @@ class Connector:
     DISK_PERSISTENCE_RECV = False
     PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
     MAX_SIZE_PERSISTENCE_PATH = 1000000000 #1gb
+    MAX_SIZE_FILE_UPLOAD = 1000000000 #1gb
     READ_CHUNK_SIZE = 1024
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
@@ -100,7 +101,7 @@ class Connector:
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
     PERSISTENCE_SEPARATOR_REPLACEMENT = b'#@@PERSISTENCE_SEPARATOR@@#'    
     #example : {'documents':'{'target_directory':'/tmp/documents'}, 'executables':'{'target_directory':'/tmp/executables'}}    
-    FILE_TYPE2DIRPATH = {}
+    FILE_TYPE2DIRPATH = {}    #{'target_directory':'', 'owner':''}
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
     UDS_PATH_COMMANDER = 'uds_path_commander_{}'   
     
@@ -120,7 +121,8 @@ class Connector:
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
-                 reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False):
+                 reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
+                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -224,6 +226,7 @@ class Connector:
                 else:                        
                     self.logger.info('Connector will not use ssl')                                                               
                     
+                self.max_size_file_upload = max_size_file_upload
                 self.disk_persistence = disk_persistence_send
                 self.persistence_path = os.path.join(self.connector_files_dirpath,
                                             self.PERSISTENCE_SEND_FILE_NAME.format(self.alnum_source_id) + '_') #peer name will be appended
@@ -1869,6 +1872,8 @@ class FullDuplex:
                     try:
                         with open(file_src_path, 'rb') as fd:
                             binary_file = fd.read()
+                        if len(binary_file) > self.connector.max_size_file_upload:
+                            raise Exception(f'{self.connector.source_id} cannot send too large file of size {len(binary_file)}')
                     except Exception:
                         self.logger.exception('handle_outgoing_connection handling file : '+str(file_src_path))
                         del transport_json[MessageFields.WITH_FILE]
