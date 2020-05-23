@@ -98,6 +98,7 @@ class Connector:
     MAX_RETRIES_BEFORE_ACK = 3
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
+    PERSISTENCE_SEPARATOR_REPLACEMENT = b'#@@PERSISTENCE_SEPARATOR@@#'    
     #example : {'documents':'{'target_directory':'/tmp/documents'}, 'executables':'{'target_directory':'/tmp/executables'}}    
     FILE_TYPE2DIRPATH = {}
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
@@ -670,6 +671,9 @@ class Connector:
             self.logger.debug(f'{self.source_id} Storing message to persistence to peer {peername}')
             if DEBUG_SHOW_DATA:
                 self.logger.info('With data : '+str(message[200:210]))
+            if self.PERSISTENCE_SEPARATOR in message:
+                self.logger.warning(f'{self.source_id} message to persistence to peer {peername} must be altered')
+                message = message.replace(self.PERSISTENCE_SEPARATOR, self.PERSISTENCE_SEPARATOR_REPLACEMENT)
             with open(persistence_path, mode='ab') as fd:
                 fd.write(self.PERSISTENCE_SEPARATOR)
                 #fd.write(peername.encode()+b'\n')
@@ -1019,6 +1023,9 @@ class Connector:
             self.logger.debug(f'{self.source_id} Storing message to persistence_recv for msg_type {msg_type}')
             if DEBUG_SHOW_DATA:
                 self.logger.info('With data : '+str(message[200:210]))
+            if self.PERSISTENCE_SEPARATOR in message:
+                self.logger.warning(f'{self.source_id} message to persistence_recv for msg_type {msg_type} must be altered')
+                message = message.replace(self.PERSISTENCE_SEPARATOR, self.PERSISTENCE_SEPARATOR_REPLACEMENT)                
             with open(persistence_path, mode='ab') as fd:
                 fd.write(self.PERSISTENCE_SEPARATOR)
                 #fd.write(peername.encode()+b'\n')
