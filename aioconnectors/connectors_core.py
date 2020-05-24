@@ -666,8 +666,10 @@ class Connector:
     def store_message_to_persistence(self, peername, message, ignore_count=False):
         persistence_path = self.persistence_path + self.alnum_name(peername)
         try:
-            new_size = os.path.getsize(persistence_path) + len(message) + len(self.PERSISTENCE_SEPARATOR)
-            if os.path.exists(persistence_path) and new_size > self.max_size_persistence_path:
+            new_size = len(message) + len(self.PERSISTENCE_SEPARATOR)
+            if os.path.exists(persistence_path):
+                new_size += os.path.getsize(persistence_path)
+            if new_size > self.max_size_persistence_path:
                 self.logger.warning(f'{self.source_id} Cannot store message of size {len(message)} to persistence '
                                     f'for peer {peername} because {persistence_path} is too big')                
                 return
@@ -1018,8 +1020,10 @@ class Connector:
     def store_message_to_persistence_recv(self, msg_type, message, ignore_count=False):
         persistence_path = self.persistence_recv_path + msg_type
         try:
-            new_size = os.path.getsize(persistence_path) + len(message) + len(self.PERSISTENCE_SEPARATOR)            
-            if os.path.exists(persistence_path) and new_size > self.max_size_persistence_path:
+            new_size = len(message) + len(self.PERSISTENCE_SEPARATOR)
+            if os.path.exists(persistence_path):
+                new_size += os.path.getsize(persistence_path)
+            if new_size > self.max_size_persistence_path:
                 self.logger.warning(f'{self.source_id} Cannot store message of size {len(message)} to persistence_recv '
                                     f'for msg_type {msg_type} because {persistence_path} is too big')
                 return
