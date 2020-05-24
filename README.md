@@ -142,7 +142,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "disk_persistence_recv": false,
     "disk_persistence_send": false,
     "enable_client_try_reconnect": true,
-    "file_type2dirpath": {},
+    "file_recv_config": {},
     "is_server": true,
     "max_size_file_upload": 1000000000,
     "max_size_persistence_path": 1000000000,
@@ -195,7 +195,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
--In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_type2dirpath, as shown in aioconnectors\_test.py. file\_type2dirpath = {"target\_directory":"", "owner":""}. target\_directory is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". "owner" is optional, it is the owner of the uploaded file. It must be of the form "user:group".  
+-In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_recv\_config, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":""}. target\_directory is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". "owner" is optional, it is the owner of the uploaded file. It must be of the form "user:group".  
 -You can choose the size limit of files you send with max\_size\_file\_upload. Default is 1GB.  
 -In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
 -In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
@@ -217,7 +217,7 @@ These arguments must be filled on the application layer by the user
 -destination\_id is mandatory for server : it is the remote client id.  
 -data is the payload of your message. Usually it is a json, but it can even be binary. However you probably prefer to use a binary payload together with some text information, so best practice would be to keep "data" as a json or string, and use the "binary" argument for binary payload.  
 -data\_is\_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
--with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_type2dirpath". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent. "owner" is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_type2dirpath.  
+-with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent. "owner" is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config.  
 -request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer.  
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
@@ -329,7 +329,7 @@ In this example, connector_manager and connector_api are running in the same pro
     connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                        connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
-                                                       file_type2dirpath={'any': {'target_directory':connector_files_dirpath}})
+                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}})
 
     task_manager =  loop.create_task(connector_manager.start_connector())
     loop.run_until_complete(task_manager)
@@ -373,7 +373,7 @@ In this example, connector_manager and connector_api are running in the same pro
     connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=True, ssl_allow_all=True,
                                                        connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
-                                                       file_type2dirpath={'any': {'target_directory':connector_files_dirpath}}, client_name=client_name)
+                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}}, client_name=client_name)
 
     loop.create_task(connector_manager.start_connector())
 

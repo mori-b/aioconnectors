@@ -335,7 +335,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any': {'target_directory':cwd}},
+                                                           file_recv_config={'any': {'target_directory':cwd}},
                                                            hook_server_auth_client=AuthClient.authenticate_client)
                     
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
@@ -352,7 +352,7 @@ def chat(args, logger=None):
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           file_type2dirpath={'any': {'target_directory':cwd}},
+                                                           file_recv_config={'any': {'target_directory':cwd}},
                                                            client_name=chat_client_name, enable_client_try_reconnect=False)
 
         connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr, 

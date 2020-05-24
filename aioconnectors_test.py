@@ -58,20 +58,20 @@ PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 PERSISTENCE_SERVER_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 CLIENT_NAMES = ['client1','client2'] if TEST_MULTIPLE_CLIENTS else ['client1']
 if TEST_UPLOAD_FILE or TEST_UPLOAD_FILE_WITH_PERSISTENCE:
-    FILE_TYPE2DIRPATH = {'pcap':{'target_directory':'/tmp/pcap'}, 'binary':{'target_directory':'/tmp/binary'}}    #{}
+    FILE_RECV_CONFIG = {'pcap':{'target_directory':'/tmp/pcap'}, 'binary':{'target_directory':'/tmp/binary'}}    #{}
     FILE_SRC_PATH = '/tmp/file_src'    #''
     
-    if FILE_TYPE2DIRPATH:
-        for dir_path in FILE_TYPE2DIRPATH.values():
+    if FILE_RECV_CONFIG:
+        for dir_path in FILE_RECV_CONFIG.values():
             if not os.path.exists(dir_path):
-                print('Creating directory '+dir_path+' for FILE_TYPE2DIRPATH')
+                print('Creating directory '+dir_path+' for FILE_RECV_CONFIG')
                 os.makedirs(dir_path)
     if FILE_SRC_PATH:
         if not os.path.exists(FILE_SRC_PATH):
             with open(FILE_SRC_PATH, 'w') as fd:
                 fd.write('Test upload file')
 else:
-    FILE_TYPE2DIRPATH = None
+    FILE_RECV_CONFIG = None
                 
 ########################### END TEST ##############
 
@@ -111,7 +111,7 @@ if __name__ == '__main__':
                         
             connector_manager = aioconnectors.ConnectorManager(config_file_path=None, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=True, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH,
                                                     disk_persistence_send=PERSISTENCE_SERVER, disk_persistence_recv=PERSISTENCE_SERVER, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
-                                                    send_message_types=SERVER_MESSAGE_TYPES, recv_message_types=CLIENT_MESSAGE_TYPES, file_type2dirpath=FILE_TYPE2DIRPATH,
+                                                    send_message_types=SERVER_MESSAGE_TYPES, recv_message_types=CLIENT_MESSAGE_TYPES, file_recv_config=FILE_RECV_CONFIG,
                                                     uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
             loop = asyncio.get_event_loop()
             

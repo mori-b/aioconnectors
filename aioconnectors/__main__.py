@@ -56,13 +56,16 @@ if len(sys.argv) > 1:
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, 
                         disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, 
                         max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
-                        file_type2dirpath={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
+                        file_recv_config={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         enable_client_try_reconnect=True, max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD)
-        print('\nMANAGER TEMPLATE, used to create a connector')
+        print('\n- MANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
-                
+        file_recv_config = {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/','owner':'user:user'}}
+        print('\n- file_recv_config example, used inside MANAGER TEMPLATE')
+        print(json.dumps(file_recv_config, indent=4, sort_keys=True))                
+        
         api_config_template = dict(default_logger_log_level='INFO', 
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
@@ -71,7 +74,7 @@ if len(sys.argv) > 1:
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         recv_message_types=Connector.DEFAULT_MESSAGE_TYPES)                 
-        print('\nAPI TEMPLATE, used to send/receive messages')
+        print('\n- API TEMPLATE, used to send/receive messages')
         print(json.dumps(api_config_template, indent=4, sort_keys=True))
 
     elif sys.argv[1] == 'create_connector':

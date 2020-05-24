@@ -100,8 +100,8 @@ class Connector:
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
     PERSISTENCE_SEPARATOR_REPLACEMENT = b'#@@PERSISTENCE_SEPARATOR@@#'    
-    #example : {'documents':'{'target_directory':'/tmp/documents'}, 'executables':'{'target_directory':'/tmp/executables'}}    
-    FILE_TYPE2DIRPATH = {}    #{'target_directory':'', 'owner':''}
+    #example : {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/','owner':'user:user'}}
+    FILE_RECV_CONFIG = {}    
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
     UDS_PATH_COMMANDER = 'uds_path_commander_{}'   
     
@@ -116,7 +116,7 @@ class Connector:
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
                  validates_clients=SERVER_VALIDATES_CLIENTS, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
-                 send_message_types=None, recv_message_types=None, tool_only=False, file_type2dirpath=None,
+                 send_message_types=None, recv_message_types=None, tool_only=False, file_recv_config=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
@@ -263,10 +263,10 @@ class Connector:
                 for message_type in self.send_message_types:
                     self.messages_awaiting_response[message_type] = {}
                 
-                if file_type2dirpath is None:
-                    self.file_type2dirpath = self.FILE_TYPE2DIRPATH
+                if file_recv_config is None:
+                    self.file_recv_config = self.FILE_RECV_CONFIG
                 else:
-                    self.file_type2dirpath = file_type2dirpath
+                    self.file_recv_config = file_recv_config
                     
                 self.ignore_peer_traffic = False
                 self.loop = asyncio.get_event_loop()
@@ -1714,9 +1714,9 @@ class FullDuplex:
                     with_file = transport_json.get(MessageFields.WITH_FILE)
                     #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':, 'owner':'user:group'}
                     if with_file:
-                        file_type2dirpath = self.connector.file_type2dirpath.get(with_file.get('dst_type'))
-                        dst_dirpath = file_type2dirpath['target_directory'].format(**transport_json)
-                        file_owner = file_type2dirpath.get('owner')
+                        file_recv_config = self.connector.file_recv_config.get(with_file.get('dst_type'))
+                        dst_dirpath = file_recv_config['target_directory'].format(**transport_json)
+                        file_owner = file_recv_config.get('owner')
                         
                         if dst_dirpath:
                             try:
