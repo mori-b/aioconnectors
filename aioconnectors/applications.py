@@ -298,6 +298,7 @@ def chat(args, logger=None):
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
     delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
     is_server = not args.target
+    accept_all_clients = args.accept
     loop = asyncio.get_event_loop()
     cwd = os.getcwd()
     
@@ -336,7 +337,8 @@ def chat(args, logger=None):
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
                                                            file_recv_config={'any': {'target_directory':cwd}},
-                                                           hook_server_auth_client=AuthClient.authenticate_client)
+                                                           hook_server_auth_client=None if accept_all_clients else \
+                                                           AuthClient.authenticate_client)
                     
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
                                                    connector_files_dirpath=connector_files_dirpath,
@@ -399,7 +401,6 @@ def chat(args, logger=None):
         #hook user input : sends message to peer, and support special cases (!)
         def connection_made(self, *args, **kwargs):
             super().connection_made(*args, **kwargs)
-            self.perform_client_authentication = is_server
             print(custom_prompt,end='', flush=True)
             
         def data_received(self, data):

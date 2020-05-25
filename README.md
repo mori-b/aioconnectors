@@ -278,6 +278,9 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 
      python3 -m aioconnectors chat --target <server_ip> --upload <file or dir path>
 
+-On server side, you can accept client connections without prompting by specifying --accept :
+
+    python3 -m aioconnectors chat --accept
 
 -More info :
 
