@@ -63,6 +63,7 @@ if TEST_UPLOAD_FILE or TEST_UPLOAD_FILE_WITH_PERSISTENCE:
     
     if FILE_RECV_CONFIG:
         for dir_path in FILE_RECV_CONFIG.values():
+            dir_path = dir_path['target_directory']
             if not os.path.exists(dir_path):
                 print('Creating directory '+dir_path+' for FILE_RECV_CONFIG')
                 os.makedirs(dir_path)

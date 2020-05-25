@@ -1137,7 +1137,7 @@ class Connector:
         #unfortunately, transition queues are emptied one after the other, not keeping the order between different message types.
         #special case : if disconnection happens during the transition to connectivity, 
         #we move all content from transition queue to a new recreated file
-        
+        TIMEOUT_QUEUE = 5
         persistence_recv_enabled = []    #list of msg_types
         transition_queues = {}    #key=msg_type, value=Queue of message_bytes
         while True:
@@ -1175,15 +1175,25 @@ class Connector:
                 if transition_queues:
                     #read from transition_queues, emptying one after the other, before coming back to self.queue_recv
                     msg_type_key = list(transition_queues.keys())[0]
-                    transition_queue = transition_queues[msg_type_key]                    
-                    transport_json, data, binary = await transition_queue.get()
+                    transition_queue = transition_queues[msg_type_key]
+                    #transport_json, data, binary = await transition_queue.get()
+                    try:
+                        transport_json, data, binary = await asyncio.wait_for(transition_queue.get(), timeout=TIMEOUT_QUEUE)
+                    except asyncio.TimeoutError:
+                        #let opportunity to check connectivity (persistence_recv_enabled) even when no event in queue
+                        continue
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message with : '
                                       f'{transport_json}')
                     if transition_queue.empty():
                         self.logger.info(f'Finished reading from transition queue : {msg_type_key}')
                         del transition_queues[msg_type_key]
                 else:
-                    transport_json, data, binary = await self.queue_recv.get()
+                    #transport_json, data, binary = await self.queue_recv.get()
+                    try:
+                        transport_json, data, binary = await asyncio.wait_for(self.queue_recv.get(), timeout=TIMEOUT_QUEUE)
+                    except asyncio.TimeoutError:
+                        #let opportunity to check connectivity (persistence_recv_enabled) even when no event in queue                        
+                        continue   
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : '
                                       f'{transport_json}')
                     self.queue_recv.task_done()  #if someone uses 'join'
