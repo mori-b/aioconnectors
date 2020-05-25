@@ -9,7 +9,7 @@ network layer :
 transport layer :
 2 bytes = length, the rest is a json descriptor like : {'message_type':'any', 
         'source_id':'', 'destination_id':'', 'request_id':<int>, 'response_id':<int>, 'with_binary':true,
-        'with_file':{'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':''},
+        'with_file':{'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':'', 'file_error':''},
         'await_response':<bool>, 'wait_for_ack':<bool>}
 request_id and response_id are relevant for application layer
 
@@ -1730,6 +1730,8 @@ class FullDuplex:
                                 dst_fullpath = full_path(os.path.join(dst_dirpath, with_file.get('dst_name','')))
                                 if not dst_fullpath.startswith(dst_dirpath):
                                     raise Exception(f'Illegal traversal file path {dst_fullpath}')
+                                if with_file.get('file_error'):
+                                    raise Exception(f'File error : {with_file["file_error"]}')
                                 if os.path.exists(dst_fullpath):
                                     self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
                                                         f'peer {self.peername} trying to override existing file '
@@ -1878,9 +1880,11 @@ class FullDuplex:
                             binary_file = fd.read()
                         if len(binary_file) > self.connector.max_size_file_upload:
                             raise Exception(f'{self.connector.source_id} cannot send too large file of size {len(binary_file)}')
-                    except Exception:
+                    except Exception as exc:
                         self.logger.exception('handle_outgoing_connection handling file : '+str(file_src_path))
-                        del transport_json[MessageFields.WITH_FILE]
+                        #del transport_json[MessageFields.WITH_FILE]
+                        #send the error msg to peer application, without file
+                        transport_json[MessageFields.WITH_FILE]['file_error'] = str(exc)
                     else:
                         if binary_file:
                             #append the file byte content to "binary"
