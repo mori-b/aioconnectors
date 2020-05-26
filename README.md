@@ -13,7 +13,7 @@ It provides a simple programmatic API, with functionalities like starting/stoppi
 
 ## HIGH LEVEL DESIGN
 
-The client and server are connected by one single tcp client/server socket.
+The client and server are connected by one single tcp socket.
 When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can choose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.
 The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot interfere. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
 
@@ -132,7 +132,7 @@ You can use both kwargs and config_file_path : if there are shared items, the on
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
-    "certificates_directory_path": null,
+    "certificates_directory_path": "/tmp/aioconnectors",
     "client_bind_ip": null,
     "client_name": null,
     "connector_files_dirpath": "/tmp/aioconnectors",

@@ -29,15 +29,17 @@ aioconnectors supported commands :
 if len(sys.argv) > 1:
     if sys.argv[1] == 'create_certificates':
         
-        logger.info('Starting create_certificates')
         if len(sys.argv) == 3:
             if sys.argv[2] == '--help':
                 print('create_certificates without argument will create client and server certificates directories '
-                      'under cwd.\nYou can specify a target directory as an optional argument.')
+                      f'under {aioconnectors.connectors_core.Connector.CONNECTOR_FILES_DIRPATH}.\n'
+                      'You can specify a target directory as an optional argument.\n'
+                      '(Use "create_certificates ." to create your target directory in your current working directory.)')
                 sys.exit(0)
             certificates_directory_path = aioconnectors.connectors_core.full_path(sys.argv[2])
         else:
             certificates_directory_path = None
+        logger.info('Starting create_certificates')            
         res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path)
         if res is False:
             sys.exit(1)
@@ -50,7 +52,8 @@ if len(sys.argv) > 1:
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, 
                         use_ssl=Connector.USE_SSL, ssl_allow_all=False,
-                        certificates_directory_path=None, client_name=None, client_bind_ip=None, 
+                        certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
+                        client_name=None, client_bind_ip=None, 
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, 
@@ -133,6 +136,7 @@ if len(sys.argv) > 1:
         parser = argparse.ArgumentParser()
         parser.add_argument('chat')
         parser.add_argument('--target', nargs='?', default=None, help="server ip, mandatory for client")
+        parser.add_argument('--accept', action='store_true', help="accept all clients if specified, optional for server")        
         parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")
         parser.add_argument('--bind_server_ip', nargs='?', default=None, help="bind to ip, optional for server")        
         parser.add_argument('--upload', nargs='?', default=False, help="path of directory or file to upload")
