@@ -1141,6 +1141,7 @@ class Connector:
         TIMEOUT_QUEUE = 5
         persistence_recv_enabled = []    #list of msg_types
         transition_queues = {}    #key=msg_type, value=Queue of message_bytes
+        ignore_redundant_log = False
         while True:
             try:
                 if persistence_recv_enabled:
@@ -1154,7 +1155,8 @@ class Connector:
                             writer.close()
                             msg_types_ready_for_transition.append(msg_type)
                         except Exception as exc: #ConnectionRefusedError:
-                            self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to '
+                            if not ignore_redundant_log:
+                                self.logger.warning(f'{self.source_id} queue_recv_from_connector could not connect to '
                                                 f'{uds_path_receive} : {exc}')
                     for msg_type in msg_types_ready_for_transition:
                         transition_queues[msg_type] = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)
@@ -1170,8 +1172,9 @@ class Connector:
                     #    self.logger.info(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
                     #else:
                     #    self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
-                #else:
-                #    self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')      
+                else:
+                    if not ignore_redundant_log:
+                        self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')      
                 
                 if transition_queues:
                     #read from transition_queues, emptying one after the other, before coming back to self.queue_recv
@@ -1180,8 +1183,10 @@ class Connector:
                     #transport_json, data, binary = await transition_queue.get()
                     try:
                         transport_json, data, binary = await asyncio.wait_for(transition_queue.get(), timeout=TIMEOUT_QUEUE)
+                        ignore_redundant_log = False
                     except asyncio.TimeoutError:
                         #let opportunity to check connectivity (persistence_recv_enabled) even when no event in queue
+                        ignore_redundant_log = True
                         continue
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector Received transition message with : '
                                       f'{transport_json}')
@@ -1192,8 +1197,10 @@ class Connector:
                     #transport_json, data, binary = await self.queue_recv.get()
                     try:
                         transport_json, data, binary = await asyncio.wait_for(self.queue_recv.get(), timeout=TIMEOUT_QUEUE)
+                        ignore_redundant_log = False
                     except asyncio.TimeoutError:
                         #let opportunity to check connectivity (persistence_recv_enabled) even when no event in queue                        
+                        ignore_redundant_log = True
                         continue   
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector Received message with : '
                                       f'{transport_json}')
