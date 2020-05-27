@@ -529,7 +529,8 @@ class Connector:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:    #(ConnectionRefusedError, asyncio.TimeoutError):
-                self.logger.error(f'{self.source_id} client_wait_for_reconnect failed connection attempt number {count} because {exc}')
+                self.logger.error(f'{self.source_id} client_wait_for_reconnect failed connection attempt number {count} '
+                                  f'because {str(exc) or type(exc)}')
                 count += 1
                 continue
             finally:
