@@ -1170,8 +1170,8 @@ class Connector:
                     #    self.logger.info(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
                     #else:
                     #    self.logger.debug(f'{self.source_id} queue_recv_from_connector waiting with queue_recv size : {queue_recv_size}')
-                else:
-                    self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')      
+                #else:
+                #    self.logger.debug(f'{self.source_id} queue_recv_from_connector wait for data')      
                 
                 if transition_queues:
                     #read from transition_queues, emptying one after the other, before coming back to self.queue_recv
