@@ -3,6 +3,7 @@ import pwd,grp
 import time
 import logging
 import sys
+import stat
 
 DEFAULT_LOGGER_NAME = 'aioconnector'
 LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
@@ -48,3 +49,10 @@ def chown_file(filepath, username, groupname):
     uid = pwd.getpwnam(username).pw_uid
     gid = grp.getgrnam(groupname).gr_gid
     os.chown(filepath, uid, gid, follow_symlinks = False)  
+
+def chown_nobody_permissions(directory_path):
+    UID_NOBODY = pwd.getpwnam("nobody").pw_uid
+    GID_NOGROUP = grp.getgrnam("nogroup").gr_gid
+    os.chown(directory_path, UID_NOBODY, GID_NOGROUP, follow_symlinks = False)
+    os.chmod(directory_path, stat.S_IRWXU | stat.S_IRWXG)# | stat.S_IRWXO)
+    

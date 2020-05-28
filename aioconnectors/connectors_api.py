@@ -4,7 +4,7 @@ import json
 from functools import partial
 import uuid
 
-from .helpers import get_logger
+from .helpers import get_logger, chown_nobody_permissions
 from .connectors_core import Connector, Structures
 
 DEFAULT_LOGGER_NAME = 'aioconnectors'
@@ -409,6 +409,7 @@ class ConnectorAPI(ConnectorBaseTool):
             client_connected_cb = partial(self.client_connected_cb, message_received_cb)
             server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, 
                                                      limit=Connector.MAX_SOCKET_BUFFER_SIZE)
+            chown_nobody_permissions(uds_path_receive_from_connector)
             self.message_waiters[message_type] = server
             return server
         except asyncio.CancelledError:

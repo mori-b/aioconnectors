@@ -32,7 +32,7 @@ import ssl
 import uuid
 from copy import deepcopy
 
-from .helpers import full_path, chown_file
+from .helpers import full_path, chown_file, chown_nobody_permissions
 from .ssl_helper import SSL_helper
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -285,7 +285,7 @@ class Connector:
             raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')  
         self.logger.info('Calling create_commander_server')
         self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
-            
+        #chown_nobody_permissions(self.uds_path_commander)   
                 
     async def log_msg_counts(self):
         while True:
@@ -845,6 +845,7 @@ class Connector:
 
         server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, 
                                                 path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
+        chown_nobody_permissions(self.uds_path_send_to_connector)
         return server
 
     async def queue_send_to_connector_put(self, reader, writer):
