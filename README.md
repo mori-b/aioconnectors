@@ -20,11 +20,11 @@ The optional encryption uses TLS. The server certificate and the default client 
 ## USE CASES
 
 -The standard use case is running server and client on separate stations. Each client station can then initiate a connection to the server station.  
-In order to have all clients/server connections authenticated and encrypted, the first step is to call
+In order to have all clients/server connections authenticated and encrypted, you just have to call
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
-And then to share the created directories between server and clients as explained in 1-.  
+And then share the created directories between server and clients as explained in 1-.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
