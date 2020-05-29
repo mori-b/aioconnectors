@@ -72,7 +72,6 @@ class Connector:
     SERVER_ADDR =  ('127.0.0.1',10673)
     USE_SSL = True
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
-    SERVER_VALIDATES_CLIENTS = True    
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
     #however the code still exists partially, in case of future change
@@ -115,7 +114,7 @@ class Connector:
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
-                 validates_clients=SERVER_VALIDATES_CLIENTS, disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, tool_only=False, file_recv_config=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
@@ -203,7 +202,6 @@ class Connector:
             if not tool_only:
                 
                 if self.is_server:
-                    self.validates_clients = validates_clients
                     self.full_duplex_connections = []                
                 else:
                     self.client_certificate_name = None     
@@ -642,6 +640,9 @@ class Connector:
     async def delete_client_certificate_on_client(self):
         try:
             response = await self.ssl_helper.remove_client_cert_on_client(self.source_id)
+            self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
+            self.logger.info('Client will use again the default certificate : '+self.client_certificate_name)
+            await self.restart()            
             return response
         except Exception as exc:
             self.logger.exception('delete_client_certificate_on_client')
@@ -1671,11 +1672,7 @@ class FullDuplex:
                             await self.handle_ssl_messages_server(data, transport_json)
                             #don't send ssl messages to queues
                             return
-                            valid_client = self.server_validates_client(transport_json)
-                            if self.connector.validates_clients:
-                                if not valid_client:
-                                    self.stop_task()
-                                    return
+
                         elif message_type == '_handshake_ssl':
                             #server waits for _handshake_ssl from client                        
                             await self.handle_ssl_messages_server(data, transport_json)  
@@ -1694,6 +1691,13 @@ class FullDuplex:
                     self.logger.info('handle_incoming_connection received data from peer : ' + str(data))
                     if binary:
                         self.logger.info('handle_incoming_connection received binary from peer : ' + str(binary))                    
+                
+                if self.connector.is_server:                
+                    valid_client = self.server_validates_client(transport_json)
+                    if not valid_client:
+                        continue
+                        #self.stop_task()
+                        #return                
                 
                 if message_type == '_ack':     
                     #if ACK is received, update accordingly the ack_dict
