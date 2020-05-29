@@ -32,7 +32,7 @@ import ssl
 import uuid
 from copy import deepcopy
 
-from .helpers import full_path, chown_file, chown_nobody_permissions
+from .helpers import full_path, chown_file, chown_nobody_permissions, iface_to_ip
 from .ssl_helper import SSL_helper
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -285,7 +285,7 @@ class Connector:
             raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')  
         self.logger.info('Calling create_commander_server')
         self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
-        #chown_nobody_permissions(self.uds_path_commander)   
+        #chown_nobody_permissions(self.uds_path_commander, self.logger)   
                 
     async def log_msg_counts(self):
         while True:
@@ -332,12 +332,22 @@ class Connector:
             
             if self.is_server:
                 self.sock.setblocking(False)
-                self.sock.bind(self.server_sockaddr)
+                sock_bind = self.server_sockaddr
+                if not '.' in sock_bind:
+                    self.logger.info(f'Trying to bind {self.server_sockaddr} with a correct ip')
+                    sock_bind = (iface_to_ip(sock_bind[0]), sock_bind[1])
+                    self.logger.info(f'Binding {self.server_sockaddr} using {sock_bind}')                    
+                self.sock.bind(sock_bind)
                 self.tasks['run_server'] = self.loop.create_task(self.run_server())
             else:
                 self.sock.setblocking(False)                
                 if self.client_bind_ip:
-                    self.sock.bind((self.client_bind_ip,0))
+                    sock_bind = self.client_bind_ip
+                    if not '.' in sock_bind:
+                        self.logger.info(f'Trying to bind {self.client_bind_ip} with a correct ip')
+                        sock_bind = iface_to_ip(sock_bind)
+                        self.logger.info(f'Binding {self.client_bind_ip} using {sock_bind}')                         
+                    self.sock.bind((sock_bind,0))
                 await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)                                   
                 self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                  f'to peer {self.sock.getpeername()}')
@@ -448,7 +458,7 @@ class Connector:
                         if os.path.exists(self.uds_path_commander):                
                             self.logger.info('Deleting file '+self.uds_path_commander)                    
                             os.remove(self.uds_path_commander)
-                    self.logger.info('Destroying ConnectorManager '+self.source_id)                    
+                    self.logger.info('Destroying ConnectorManager '+self.source_id)
             except Exception:
                 self.logger.exception('shutdown : remove uds_path_commander')
             #raise Exception('shutdown')
@@ -524,7 +534,12 @@ class Connector:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)        
                 self.sock.setblocking(False)                
                 if self.client_bind_ip:
-                    self.sock.bind((self.client_bind_ip,0))
+                    sock_bind = self.client_bind_ip
+                    if not '.' in sock_bind:
+                        self.logger.info(f'Trying to bind {self.client_bind_ip} with a correct ip')
+                        sock_bind = iface_to_ip(sock_bind)
+                        self.logger.info(f'Binding {self.client_bind_ip} using {sock_bind}')                         
+                    self.sock.bind((sock_bind,0))
                 await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)
             except asyncio.CancelledError:
                 raise
@@ -845,7 +860,7 @@ class Connector:
 
         server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, 
                                                 path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
-        chown_nobody_permissions(self.uds_path_send_to_connector)
+        chown_nobody_permissions(self.uds_path_send_to_connector, self.logger)
         return server
 
     async def queue_send_to_connector_put(self, reader, writer):
@@ -1782,7 +1797,7 @@ class FullDuplex:
                                                            f'creating directory {dir_to_create}')                                        
                                         os.mkdir(dir_to_create)
                                         if file_owner:
-                                            chown_file(dir_to_create, *file_owner)
+                                            chown_file(dir_to_create, *file_owner, self.logger)
                                     #if not os.path.exists(dir_dst_fullpath):
                                     #    self.logger.info(f'{self.connector.source_id} from peer {self.peername} '
                                     #                        'fcreating directory {dir_dst_fullpath}')
@@ -1790,7 +1805,7 @@ class FullDuplex:
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
                                     if file_owner:
-                                        chown_file(dst_fullpath, *file_owner)                                        
+                                        chown_file(dst_fullpath, *file_owner, self.logger)                                        
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
                                 binary = binary[:binary_offset]
                                 if len(binary) == 0:

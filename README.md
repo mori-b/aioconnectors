@@ -187,9 +187,9 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     }
 
 -is\_server (boolean) is important to differentiate between server and client  
--server\_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides.  
+-server\_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. On server side, you can use an interface name instead of its ip, for example ("eth0", 10673).  
 -client\_name is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
--client_bind_ip is optional, specifies the interface to bind your client.  
+-client_bind_ip is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
 -use\_ssl and ssl_allow_all are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
 -certificates\_directory\_path is where your certificates are located, if use\_ssl is True.  
 -connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
@@ -302,7 +302,8 @@ To port aioconnectors to Windows, these steps should be taken, and probably more
 Since the implementation relies on unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
 -Port the usage of openssl in ssl_helper.py  
 -Convert paths format  
--Ignore the file uploaded ownership feature
+-Ignore the file uploaded ownership feature  
+-Convert the interface to ipaddress function using ipconfig (used for sockaddr and client\_bind\_ip)
 
 
 ## BASIC EXAMPLE

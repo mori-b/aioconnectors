@@ -409,8 +409,8 @@ class ConnectorAPI(ConnectorBaseTool):
             client_connected_cb = partial(self.client_connected_cb, message_received_cb)
             server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, 
                                                      limit=Connector.MAX_SOCKET_BUFFER_SIZE)
-            chown_nobody_permissions(uds_path_receive_from_connector)
             self.message_waiters[message_type] = server
+            chown_nobody_permissions(uds_path_receive_from_connector, self.logger)            
             return server
         except asyncio.CancelledError:
             raise        

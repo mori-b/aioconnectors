@@ -4,6 +4,8 @@ import time
 import logging
 import sys
 import stat
+import subprocess
+import re
 
 DEFAULT_LOGGER_NAME = 'aioconnector'
 LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
@@ -11,6 +13,7 @@ LOG_LEVEL = 'INFO'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 
+IPADDR_REGEX = re.compile('inet (?P<ipaddr>\S+)')
 
 def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
                log_format=LOG_FORMAT, level=LOG_LEVEL):
@@ -45,14 +48,31 @@ def full_path(the_path):
     if the_path is not None:
         return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
 
-def chown_file(filepath, username, groupname):
-    uid = pwd.getpwnam(username).pw_uid
-    gid = grp.getgrnam(groupname).gr_gid
-    os.chown(filepath, uid, gid, follow_symlinks = False)  
+def chown_file(filepath, username, groupname, logger=None):
+    try:
+        uid = pwd.getpwnam(username).pw_uid
+        gid = grp.getgrnam(groupname).gr_gid
+        os.chown(filepath, uid, gid, follow_symlinks = False)
+    except Exception:
+        if logger:
+            logger.exception('chown_file')        
 
-def chown_nobody_permissions(directory_path):
-    UID_NOBODY = pwd.getpwnam("nobody").pw_uid
-    GID_NOGROUP = grp.getgrnam("nogroup").gr_gid
-    os.chown(directory_path, UID_NOBODY, GID_NOGROUP, follow_symlinks = False)
-    os.chmod(directory_path, stat.S_IRWXU | stat.S_IRWXG)# | stat.S_IRWXO)
+def chown_nobody_permissions(directory_path, logger=None):
+    try:
+        UID_NOBODY = pwd.getpwnam("nobody").pw_uid
+        GID_NOGROUP = grp.getgrnam("nogroup").gr_gid
+        os.chown(directory_path, UID_NOBODY, GID_NOGROUP, follow_symlinks = False)
+        os.chmod(directory_path, stat.S_IRWXU | stat.S_IRWXG)# | stat.S_IRWXO)
+    except Exception:
+        if logger:
+            logger.exception('chown_nobody_permissions')       
     
+def iface_to_ip(iface, logger=None):
+    #requires ifconfig
+    try:
+        ifconfig_output = subprocess.check_output(['ifconfig', iface], encoding='utf8', timeout=5)
+        return IPADDR_REGEX.search(ifconfig_output).group('ipaddr')
+    except Exception:
+        if logger:
+            logger.exception('iface_to_ip')
+        return iface
