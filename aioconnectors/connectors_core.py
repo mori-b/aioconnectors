@@ -31,6 +31,7 @@ import os
 import ssl
 import uuid
 from copy import deepcopy
+import stat
 
 from .helpers import full_path, chown_file, chown_nobody_permissions, iface_to_ip
 from .ssl_helper import SSL_helper
@@ -2191,8 +2192,11 @@ class FullDuplex:
                         crt, key = data_json.get('crt'), data_json.get('key')
                         with open(self.connector.ssl_helper.CLIENT_PEM_PATH.format(self.connector.source_id), 'w') as fd:
                             fd.write(crt)
-                        with open(self.connector.ssl_helper.CLIENT_KEY_PATH.format(self.connector.source_id), 'w') as fd:
+                        key_path = self.connector.ssl_helper.CLIENT_KEY_PATH.format(self.connector.source_id)
+                        with open(key_path, 'w') as fd:
                             fd.write(key)
+                        os.chmod(key_path, stat.S_IRUSR | stat.S_IWUSR)
+
                         #close this connection, and open new connection with newly received certificate
                         self.connector.client_certificate_name = self.connector.source_id
                         #self.stop_task()
