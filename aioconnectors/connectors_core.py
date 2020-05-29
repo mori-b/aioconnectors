@@ -333,7 +333,7 @@ class Connector:
                 self.sock.setblocking(False)
                 sock_bind = self.server_sockaddr
                 if not '.' in sock_bind:
-                    self.logger.info(f'Trying to bind {self.server_sockaddr} with a correct ip')
+                    self.logger.info(f'Trying to bind {self.server_sockaddr} with the correct ip')
                     sock_bind = (iface_to_ip(sock_bind[0]), sock_bind[1])
                     self.logger.info(f'Binding {self.server_sockaddr} using {sock_bind}')                    
                 self.sock.bind(sock_bind)
