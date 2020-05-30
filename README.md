@@ -108,9 +108,10 @@ Then you can send and receive messages by calling the following coroutines in yo
 
 This returns a status (True or False).
 "data" is your message, "binary" is an optional additional binary message in case you want your "data" to be a json for example.
-If your "data" is already a binary, then the "binary" field isn't necessary.
-kwargs contain all the transport instructions for this message, as explained in 5-.
-If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet. The received transport\_json field contains all the kwargs sent by the peer.
+If your "data" is already a binary, then the "binary" field isn't necessary.  
+kwargs contain all the transport instructions for this message, as explained in 5-.  
+If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet.  
+The received transport\_json field contains all the kwargs sent by the peer.
 More details in 5-.  
 
 3.4.To register to receive messages of a specific message\_type : 
