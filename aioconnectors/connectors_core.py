@@ -1627,16 +1627,6 @@ class FullDuplex:
                 self.stop_nowait_for_persistence()
             await self.stop()            
             
-    def server_validates_client(self, transport_json):
-        #called only if self.connector.use_ssl:
-        #check if client_certificate_serial in peer client certificate is the serial of the certificate created by server for the requested source_id
-        if (not self.connector.ssl_allow_all) and ( self.client_certificate_serial != \
-           self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]) ):
-            self.logger.warning('Client {} tried to impersonate client {}'.format(\
-                                self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(\
-                                            self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
-            return False
-        return True
         
     async def handle_incoming_connection(self):
         self.logger.info(f'{self.connector.source_id} Starting handle_incoming_connection with peer {self.peername}')
@@ -1684,7 +1674,8 @@ class FullDuplex:
                             #server waits for handshake_no_ssl from client                        
                             await self.handle_handshake_no_ssl_server(data, transport_json)  
                             #don't send handshake_no_ssl messages to queues
-                            continue                        
+                            continue
+                        
                 self.logger.debug(f'{self.connector.source_id} handle_incoming_connection received from peer : '
                                   f'{json.dumps(transport_json)}')
                 if DEBUG_SHOW_DATA:
@@ -1692,12 +1683,18 @@ class FullDuplex:
                     if binary:
                         self.logger.info('handle_incoming_connection received binary from peer : ' + str(binary))                    
                 
-                if self.connector.is_server:                
-                    valid_client = self.server_validates_client(transport_json)
-                    if not valid_client:
-                        continue
-                        #self.stop_task()
-                        #return                
+                if self.connector.is_server:
+                    if self.connector.use_ssl and not self.connector.ssl_allow_all: 
+                        #check if client_certificate_serial in peer client certificate is the serial of the certificate
+                        #created by server for the requested source_id
+                        if self.client_certificate_serial != \
+                       self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]):
+                           self.logger.warning('Client {} tried to impersonate client {}'.format(\
+                                            self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(\
+                                                        self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
+                           continue
+                           #self.stop_task()
+                           #return                
                 
                 if message_type == '_ack':     
                     #if ACK is received, update accordingly the ack_dict
