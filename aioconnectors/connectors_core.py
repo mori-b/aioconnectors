@@ -1024,9 +1024,9 @@ class Connector:
                     return
         except asyncio.CancelledError:
             raise
-        except asyncio.IncompleteReadError:
+        except asyncio.IncompleteReadError as exc:
             if not await_response:
-                self.logger.warning(f'{self.source_id} queue_send_to_connector_put IncompleteReadError')
+                self.logger.warning(f'{self.source_id} queue_send_to_connector_put connector api disconnected : {exc}')
         except ConnectionResetError:
             self.logger.warning(f'{self.source_id} queue_send_to_connector_put ConnectionResetError')            
         except Exception:
