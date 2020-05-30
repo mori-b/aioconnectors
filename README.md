@@ -65,8 +65,8 @@ By unsetting use_ssl, you can disable encryption at all.
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.
 
 2.1.Command line tool  
--To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json.
-Relevant for both server and client.
+-To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json, and configure it according to your needs.
+Relevant for both server and client. A Manager template json can be obtained by calling : 
 
     python3 -m aioconnectors print_config_templates
 
@@ -88,12 +88,12 @@ To shutdown a connector :
 
     await connector_manager.stop_connector(shutdown=True)
 
-You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in aioconnectors\_test.py
+You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in the basic example later on, and in aioconnectors\_test.py.
 
 ### 3.send/receive messages with the API
 
 3.1.To configure the Connector API, create a <config\_json\_path> file based on the API template json.
-Relevant for both server and client. This connector_api config file is a subset of the connector_manager config file. If you already have a relevant connector_manager config file on your machine, you can reuse it for connector_api, and you don't need to create a different connector_api config file.
+Relevant for both server and client. This connector_api config file is a subset of the connector_manager config file. So if you already have a relevant connector_manager config file on your machine, you can reuse it for connector_api, and you don't need to create a different connector_api config file.
 
     python3 -m aioconnectors print_config_templates
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
@@ -104,18 +104,22 @@ Then you can send and receive messages by calling the following coroutines in yo
 
 3.3.To send messages : 
 
-    await connector_api.send_message(**kwargs)
+    await connector_api.send_message(data=None, binary=None, **kwargs)
 
 This returns a status (True or False).
-If you set the await\_response kwarg to True, this returns the response : a (transport\_json , data, binary) triplet.
+"data" is your message, "binary" is an optional additional binary message in case you want your "data" to be a json for example.
+If your "data" is already a binary, then the "binary" field isn't necessary.
+kwargs contain all the transport instructions for this message, as explained in 5-.
+If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet. The received transport\_json field contains all the kwargs sent by the peer.
 More details in 5-.  
 
 3.4.To register to receive messages of a specific message\_type : 
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
--message\_received\_cb is a coroutine that you must provide, receiving and processing the message triplet (logger, transport\_json, data, binary).  
--transport\_json is a json with keys related to the "transport layer" of our message protocol : source\_id, destination\_id, request\_id, response\_id, etc.  
+-message\_received\_cb is a coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
+-transport\_json is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5-. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
+Your application can read these transport arguments to obtain information about peer (source\_id, request\_id if provided, etc), and in order to create a proper response (with correct destination\_id, and response\_id for example if needed, etc).  
 -data is the message data bytes  
 -binary is an optional binary file content (or None).  
 -reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
@@ -125,7 +129,7 @@ More details in 5-.
 
     logger=None, use_default_logger=True, default_logger_log_level='INFO', config_file_path=<path>
 
-config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in aioconnectors\_test.py  
+config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in the basic example later on and in aioconnectors\_test.py  
 You can use both kwargs and config_file_path : if there are shared items, the ones from config_file_path will override the kwargs.  
 
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
