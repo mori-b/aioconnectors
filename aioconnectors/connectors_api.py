@@ -239,7 +239,7 @@ class ConnectorAPI(ConnectorBaseTool):
         try:  
             
             if data_is_json:
-                data = json.dumps(data, ensure_ascii=False)
+                data = json.dumps(data) #, ensure_ascii=False)
             if not self.is_server and not destination_id:
                 destination_id = str(self.server_sockaddr)
             self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, request_id {request_id}')
