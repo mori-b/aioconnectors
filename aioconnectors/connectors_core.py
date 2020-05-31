@@ -787,13 +787,13 @@ class Connector:
             self.logger.debug('pack_message with params : '+str(message_type)+', '+str(data)+', '+str(transport_json))
         if transport_json is None:
             transport_json = {MessageFields.MESSAGE_TYPE : message_type or self.send_message_types[0]}
-            if source_id:
+            if source_id is not None:
                 transport_json[MessageFields.SOURCE_ID] = source_id
-            if destination_id:
+            if destination_id is not None:
                 transport_json[MessageFields.DESTINATION_ID] = destination_id           
-            if request_id:
+            if request_id is not None:
                 transport_json[MessageFields.REQUEST_ID] = request_id
-            if response_id:
+            if response_id is not None:
                 transport_json[MessageFields.RESPONSE_ID] = response_id            
             if binary:
                 transport_json[MessageFields.WITH_BINARY] = True
@@ -941,7 +941,7 @@ class Connector:
                     send_to_queue = False                    
                 elif transport_json.get(MessageFields.AWAIT_RESPONSE):
                     request_id = transport_json.get(MessageFields.REQUEST_ID)
-                    if not request_id:
+                    if request_id is None:
                         self.logger.warning(f'{self.source_id} sending message with AWAIT_RESPONSE enabled, but '
                                             'without request_id')
                         #if no application level request_id has been set, we create a dummy unique request_id to be able to detect response
@@ -1823,7 +1823,7 @@ class FullDuplex:
                     
                     #check if this message is a response to an awaiting request, and update put_msg_to_queue_recv
                     response_id = transport_json.get(MessageFields.RESPONSE_ID)                                
-                    if response_id:
+                    if response_id is not None:
                         if response_id not in self.connector.messages_awaiting_response[message_type].get(self.peername, {}):
                             self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                 f'{self.peername} got response_id {response_id} not existing in '
