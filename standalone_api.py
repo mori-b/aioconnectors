@@ -167,10 +167,11 @@ class ConnectorAPI:
         try:  
             
             if data_is_json:
-                data = json.dumps(data)
+                data = json.dumps(data) #, ensure_ascii=False)
             if not self.is_server and not destination_id:
                 destination_id = str(self.server_sockaddr)
-            self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, request_id {request_id}')
+            self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, '
+                              f'request_id {request_id}, response_id {response_id}')
                 
             message_bytes = self.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, binary=binary,
