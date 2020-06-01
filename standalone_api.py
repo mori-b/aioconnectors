@@ -34,7 +34,7 @@ class ConnectorAPI:
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
 
     def __init__(self, config_file_path=None, connector_files_dirpath='/tmp/aioconnectors', 
-                 is_server=False, server_sockaddr=('127.0.0.1',12345), client_name=None, 
+                 is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
                  send_message_types=("event","command"), recv_message_types=("event","command"),
                  uds_path_receive_preserve_socket=True, uds_path_send_preserve_socket=True):
 
@@ -103,13 +103,13 @@ class ConnectorAPI:
                      with_file=None, data=None, wait_for_ack=False):
         if transport_json is None:
             transport_json = {MessageFields.MESSAGE_TYPE : message_type or self.send_message_types[0]}
-            if source_id:
+            if source_id is not None:
                 transport_json[MessageFields.SOURCE_ID] = source_id
-            if destination_id:
+            if destination_id is not None:
                 transport_json[MessageFields.DESTINATION_ID] = destination_id           
-            if request_id:
+            if request_id is not None:
                 transport_json[MessageFields.REQUEST_ID] = request_id
-            if response_id:
+            if response_id is not None:
                 transport_json[MessageFields.RESPONSE_ID] = response_id            
             if binary:
                 transport_json[MessageFields.WITH_BINARY] = True
@@ -167,7 +167,7 @@ class ConnectorAPI:
         try:  
             
             if data_is_json:
-                data = json.dumps(data, ensure_ascii=False)
+                data = json.dumps(data)
             if not self.is_server and not destination_id:
                 destination_id = str(self.server_sockaddr)
             self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, request_id {request_id}')

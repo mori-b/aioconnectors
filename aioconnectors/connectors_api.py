@@ -144,7 +144,8 @@ class ConnectorBaseTool:
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                  is_server=False, server_sockaddr=None, client_name=None, 
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
-                 send_message_types=None, recv_message_types=None, uds_path_send_preserve_socket=True):
+                 uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
+                 send_message_types=None, recv_message_types=None):
 
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
