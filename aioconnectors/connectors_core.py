@@ -1562,6 +1562,7 @@ class FullDuplex:
                             if not peername:
                                 self.logger.error(f'Authorized client with certificate '
                                                   f'{self.client_certificate_serial} has no source_id ! Aborting')
+                                self.peername = str(self.writer.get_extra_info('peername'))
                                 raise Exception('Unknown client')
                             peer_identification_finished = True                    
                         else:
@@ -1601,7 +1602,7 @@ class FullDuplex:
 
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}'
-                                 f'from {str(self.writer.get_extra_info("peername"))}')
+                                 f' from {str(self.writer.get_extra_info("peername"))}')
             else:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer identification not finished yet '
                                  f'for {self.peername}')
