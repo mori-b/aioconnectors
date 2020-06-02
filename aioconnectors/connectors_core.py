@@ -988,7 +988,7 @@ class Connector:
                             self.msg_counts['send_no_persist']+=1
                         queue_send.put_nowait(message_tuple)
                     except Exception:
-                        self.logger.exception('queue_send_put')
+                        self.logger.exception('queue_send.put_nowait')
                         
                 if await_response:
                     try:
@@ -1600,7 +1600,8 @@ class FullDuplex:
                     return
 
             if peer_identification_finished:
-                self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}')
+                self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}'
+                                 f'from {str(self.writer.get_extra_info("peername"))}')
             else:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer identification not finished yet '
                                  f'for {self.peername}')
@@ -1842,8 +1843,11 @@ class FullDuplex:
                 if put_msg_to_queue_recv:                   
                     # send the message to queue
                     self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from '
-                                      f'peer {self.peername} putting message to queue_recv')                    
-                    self.connector.queue_recv.put_nowait((transport_json, data, binary))
+                                      f'peer {self.peername} putting message to queue_recv')
+                    try:
+                        self.connector.queue_recv.put_nowait((transport_json, data, binary))
+                    except Exception:
+                        self.logger.exception('queue_recv.put_nowait')
 
                 transport_json, data, binary = None, None, None
             except asyncio.CancelledError:
