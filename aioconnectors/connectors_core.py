@@ -300,7 +300,7 @@ class Connector:
                 self.logger.info('peek_queues : '+json.dumps(queues_stats, indent=4, sort_keys=True))
                 
     def alnum_name(self, name):
-        return ''.join([letter for letter in name if letter.isalnum()])
+        return ''.join([str(letter) for letter in name if str(letter).isalnum()])
                 
     
     async def start(self, connector_socket_only=False):
@@ -883,11 +883,11 @@ class Connector:
                 peername = transport_json.get(MessageFields.DESTINATION_ID)
                 if not self.is_server:
                     if not peername:
-                        transport_json[MessageFields.DESTINATION_ID] = peername = self.server_sockaddr 
+                        transport_json[MessageFields.DESTINATION_ID] = peername = str(self.server_sockaddr)
                     elif peername != str(self.server_sockaddr):
                         self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid '
                                             f'destination id {peername} instead of {self.server_sockaddr}')
-                        transport_json[MessageFields.DESTINATION_ID] = peername = self.server_sockaddr
+                        transport_json[MessageFields.DESTINATION_ID] = peername = str(self.server_sockaddr)
                 
                 if self.ignore_peer_traffic:
                     ignore_traffic = False
