@@ -238,7 +238,7 @@ The send\_message\_await\_response method is the same as send_message, but autom
 to run several interesting commands like :   
 -start/stop/restart your connectors  
 -show currently connected peers  
--delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one  
+-delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, and then delete it on client side : the client will then reconnect automatically and obtain a new certificate.  
 -peek\_queues to show the internal queues sizes  
 -ignore\_peer\_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages  
 -show\_log\_level to show the current log level  
