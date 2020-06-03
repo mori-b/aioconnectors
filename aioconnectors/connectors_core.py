@@ -78,8 +78,8 @@ class Connector:
     PERSISTENCE_SEND_FILE_NAME = 'connector_disk_persistence_send_from_{}_to_peer'
     DISK_PERSISTENCE_RECV = False
     PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
-    MAX_SIZE_PERSISTENCE_PATH = 1000000000 #1gb
-    MAX_SIZE_FILE_UPLOAD = 1000000000 #1gb
+    MAX_SIZE_PERSISTENCE_PATH = 1_000_000_000 #1gb
+    MAX_SIZE_FILE_UPLOAD = 1_000_000_000 #1gb
     READ_CHUNK_SIZE = 1024
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
@@ -91,11 +91,11 @@ class Connector:
     #default values of internals (not configurable at __init__)
     SLEEP_BETWEEN_START_FAILURES = 5 #10
     ASYNC_TIMEOUT = 10
-    MAX_QUEUE_SIZE = 10_000_000 #10_000_000 #8192
+    MAX_QUEUE_SIZE = 300_000 #1_000_000 #8192
     AWAIT_RESPONSE_TIMEOUT = 3600 #1 hour
     MAX_NUMBER_OF_AWAITING_REQUESTS = 1000
     MAX_SOCKET_BUFFER_SIZE = 2 ** 16    #2 ** 16 is asyncio default
-    MAX_TRANSPORT_ID = 100000
+    MAX_TRANSPORT_ID = 100_000
     MAX_RETRIES_BEFORE_ACK = 3
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
