@@ -236,13 +236,13 @@ The send\_message\_await\_response method is the same as send_message, but autom
     python3 -m aioconnectors cli
 
 to run several interesting commands like :   
--start/stop/restart your connectors  
--show currently connected peers  
+-start/stop/restart your connectors.  
+-show currently connected peers.  
 -delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, and then delete it on client side : the client will then reconnect automatically and obtain a new certificate.  
--peek\_queues to show the internal queues sizes  
--ignore\_peer\_traffic to drop incoming and outgoing traffic in order to let the queues evacuate their accumulated messages  
--show\_log\_level to show the current log level  
--set\_log\_level to set the log level on the fly
+-peek\_queues to show the internal queues sizes.  
+-ignore\_peer\_traffic can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
+-show\_log\_level to show the current log level.  
+-set\_log\_level to set the log level on the fly.
 
 
 ### 7.Testing command line tools
