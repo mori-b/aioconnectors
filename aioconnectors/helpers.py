@@ -63,9 +63,9 @@ def chown_nobody_permissions(directory_path, logger=None):
         GID_NOGROUP = grp.getgrnam("nogroup").gr_gid
         os.chown(directory_path, UID_NOBODY, GID_NOGROUP, follow_symlinks = False)
         os.chmod(directory_path, stat.S_IRWXU | stat.S_IRWXG)# | stat.S_IRWXO)
-    except Exception:
+    except Exception as exc:
         if logger:
-            logger.exception('chown_nobody_permissions')       
+            logger.warning('chown_nobody_permissions : '+str(exc))  
     
 def iface_to_ip(iface, logger=None):
     #requires ifconfig
