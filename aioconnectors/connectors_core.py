@@ -103,6 +103,7 @@ class Connector:
     #example : {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/','owner':'user:user'}}
     FILE_RECV_CONFIG = {}    
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
+    EVERYBODY_CAN_SEND_MESSAGES = True
     UDS_PATH_COMMANDER = 'uds_path_commander_{}'   
     
     UDS_PATH_SEND_TO_CONNECTOR_SERVER = 'uds_path_send_to_connector_server_{}'    
@@ -122,7 +123,7 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD):
+                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -237,8 +238,9 @@ class Connector:
                             self.logger.info('Client will use the default certificate : '+self.client_certificate_name)
                             
                 else:                        
-                    self.logger.info('Connector will not use ssl')                                                               
+                    self.logger.info('Connector will not use ssl')
                     
+                self.everybody_can_send_messages = everybody_can_send_messages
                 self.max_size_file_upload = max_size_file_upload
                 self.disk_persistence = disk_persistence_send
                 self.persistence_path = os.path.join(self.connector_files_dirpath,
@@ -876,7 +878,8 @@ class Connector:
 
         server = self.send_to_connector_server = await asyncio.start_unix_server(self.queue_send_to_connector_put, 
                                                 path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
-        chown_nobody_permissions(self.uds_path_send_to_connector, self.logger)
+        if self.everybody_can_send_messages:
+            chown_nobody_permissions(self.uds_path_send_to_connector, self.logger)
         return server
 
     async def queue_send_to_connector_put(self, reader, writer):

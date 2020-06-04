@@ -33,11 +33,13 @@ class ConnectorAPI:
     UDS_PATH_SEND_TO_CONNECTOR_SERVER = 'uds_path_send_to_connector_server_{}'    
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
     MAX_LENGTH_UDS_PATH = 104
+    RECEIVE_FROM_ANY_CONNECTOR_OWNER = True
     
     def __init__(self, config_file_path=None, connector_files_dirpath='/tmp/aioconnectors', 
                  is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
                  send_message_types=("event","command"), recv_message_types=("event","command"),
-                 uds_path_receive_preserve_socket=True, uds_path_send_preserve_socket=True):
+                 uds_path_receive_preserve_socket=True, uds_path_send_preserve_socket=True,
+                 receive_from_any_connector_owner=RECEIVE_FROM_ANY_CONNECTOR_OWNER):
 
         self.connector_files_dirpath = connector_files_dirpath
         if not os.path.isdir(self.connector_files_dirpath):
@@ -48,6 +50,7 @@ class ConnectorAPI:
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.uds_path_send_preserve_socket = uds_path_send_preserve_socket
         self.uds_path_receive_preserve_socket = uds_path_receive_preserve_socket
+        self.receive_from_any_connector_owner = receive_from_any_connector_owner        
 
         if config_file_path:
             self.config_file_path = str(config_file_path)
@@ -333,7 +336,8 @@ class ConnectorAPI:
             server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, 
                                                      limit=self.MAX_SOCKET_BUFFER_SIZE)
             self.message_waiters[message_type] = server
-            chown_nobody_permissions(uds_path_receive_from_connector)   #must be implemented, for example call linux chown
+            if self.receive_from_any_connector_owner:            
+                chown_nobody_permissions(uds_path_receive_from_connector)   #must be implemented, for example call linux chown
             return server
         except asyncio.CancelledError:
             raise        

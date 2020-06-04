@@ -25,7 +25,8 @@ class ConnectorManager:
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD):
+                 max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
+                 everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -49,6 +50,7 @@ class ConnectorManager:
         self.client_name, self.client_bind_ip = client_name, client_bind_ip
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.max_size_file_upload = max_size_file_upload
+        self.everybody_can_send_messages = everybody_can_send_messages
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_recv_config, self.debug_msg_counts, self.silent = file_recv_config, debug_msg_counts, silent
@@ -110,7 +112,8 @@ class ConnectorManager:
                                    reuse_server_sockaddr=self.reuse_server_sockaddr,
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
                                    reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
-                                   max_size_file_upload=self.max_size_file_upload)        
+                                   max_size_file_upload=self.max_size_file_upload,
+                                   everybody_can_send_messages=self.everybody_can_send_messages)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
@@ -220,10 +223,12 @@ class ConnectorAPI(ConnectorBaseTool):
     Hence all the initialization arguments received by Connector are also not necessary in another language, as long as
     uds_path_send_to_connector and uds_path_receive_from_connector are hard coded.
     '''
-        
-    def __init__(self, *args, **kwargs):
+    RECEIVE_FROM_ANY_CONNECTOR_OWNER = True
+    
+    def __init__(self, *args, receive_from_any_connector_owner = RECEIVE_FROM_ANY_CONNECTOR_OWNER, **kwargs):
         super().__init__(*args, **kwargs)
         self.send_message_lock = asyncio.Lock()
+        self.receive_from_any_connector_owner = receive_from_any_connector_owner
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
@@ -412,7 +417,8 @@ class ConnectorAPI(ConnectorBaseTool):
             server = await asyncio.start_unix_server(client_connected_cb, path=uds_path_receive_from_connector, 
                                                      limit=Connector.MAX_SOCKET_BUFFER_SIZE)
             self.message_waiters[message_type] = server
-            chown_nobody_permissions(uds_path_receive_from_connector, self.logger)            
+            if self.receive_from_any_connector_owner:
+                chown_nobody_permissions(uds_path_receive_from_connector, self.logger)            
             return server
         except asyncio.CancelledError:
             raise        

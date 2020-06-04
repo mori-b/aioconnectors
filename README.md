@@ -147,6 +147,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "disk_persistence_recv": false,
     "disk_persistence_send": false,
     "enable_client_try_reconnect": true,
+    "everybody_can_send_messages": true,
     "file_recv_config": {},
     "is_server": true,
     "max_size_file_upload": 1000000000,
@@ -177,10 +178,11 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     "default_logger_dirpath": "/tmp/aioconnectors",
     "default_logger_log_level": "INFO",
     "is_server": true,
-    "send_message_types": [
+    "receive_from_any_connector_owner": true,
+    "recv_message_types": [
         "any"
     ],
-    "recv_message_types": [
+    "send_message_types": [
         "any"
     ],
     "server_sockaddr": [
@@ -209,7 +211,9 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
 -enable\_client\_try\_reconnect is a boolean always set to True. It lets the client try to reconnect automatically to the server every 5 seconds.  
 -reuse\_server\_sockaddr, reuse\_uds\_path\_send\_to\_connector, reuse\_uds\_path\_commander\_server : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
--hook\_server\_auth\_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.
+-everybody\_can\_send\_messages if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector.  
+-receive\_from\_any\_connector\_owner if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api.  
+-hook\_server\_auth\_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.  
 
 ### 5.More details about the send\_message arguments
 
@@ -227,7 +231,7 @@ These arguments must be filled on the application layer by the user
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
 This is shown in aioconnectors\_test.py.  
--wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1000 messages per second.
+-wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of 1000 messages per second.  
 
 The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
 
