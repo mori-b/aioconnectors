@@ -32,7 +32,8 @@ class ConnectorAPI:
     UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT = 'uds_path_receive_from_connector_client_{}_{}'    
     UDS_PATH_SEND_TO_CONNECTOR_SERVER = 'uds_path_send_to_connector_server_{}'    
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
-
+    MAX_LENGTH_UDS_PATH = 104
+    
     def __init__(self, config_file_path=None, connector_files_dirpath='/tmp/aioconnectors', 
                  is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
                  send_message_types=("event","command"), recv_message_types=("event","command"),
@@ -89,6 +90,9 @@ class ConnectorAPI:
             for recv_message_type in self.recv_message_types:
                 self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
                                 self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
+                if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
+                    raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
+                                       f'than {self.MAX_LENGTH_UDS_PATH}')                
         else:
             self.alnum_source_id = self.alnum_name(self.source_id)                                        
             self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, 
@@ -96,6 +100,9 @@ class ConnectorAPI:
             for recv_message_type in self.recv_message_types:
                 self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
                             self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
+                    raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
+                                       f'than {self.MAX_LENGTH_UDS_PATH}')                
             
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,

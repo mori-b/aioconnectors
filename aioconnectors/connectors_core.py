@@ -110,7 +110,7 @@ class Connector:
 
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
     UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT = 'uds_path_receive_from_connector_client_{}_{}'    
-    
+    MAX_LENGTH_UDS_PATH = 104
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
@@ -170,11 +170,17 @@ class Connector:
                 
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
                                                                self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))
+                if len(self.uds_path_send_to_connector) > self.MAX_LENGTH_UDS_PATH:
+                    raise Exception(f'{self.uds_path_send_to_connector} is longer than {self.MAX_LENGTH_UDS_PATH}')
+                    
                 self.uds_path_receive_from_connector = {}
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
                         self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
-                
+                    if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
+                        raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
+                                           f'than {self.MAX_LENGTH_UDS_PATH}')
+                        
             else:
                 self.client_bind_ip = client_bind_ip
                 self.source_id = client_name
@@ -190,14 +196,22 @@ class Connector:
                 
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
                                                     self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))
+                if len(self.uds_path_send_to_connector) > self.MAX_LENGTH_UDS_PATH:
+                    raise Exception(f'{self.uds_path_send_to_connector} is longer than {self.MAX_LENGTH_UDS_PATH}')
+                
                 self.uds_path_receive_from_connector = {}           
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
                             self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                    if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
+                        raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
+                                           f'than {self.MAX_LENGTH_UDS_PATH}')
             
             self.commander_server = self.commander_server_task = None
             self.uds_path_commander = os.path.join(self.connector_files_dirpath,
                                                    self.UDS_PATH_COMMANDER.format(self.alnum_source_id))
+            if len(self.uds_path_commander) > self.MAX_LENGTH_UDS_PATH:
+                raise Exception(f'{self.uds_path_commander} is longer than {self.MAX_LENGTH_UDS_PATH}')
                     
             if not tool_only:
                 
