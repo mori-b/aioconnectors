@@ -872,14 +872,15 @@ class Connector:
             while True:
                 if self.debug_msg_counts:
                     self.msg_counts['msg_recvd_uds'] += 1            
-                self.logger.debug(f'{self.source_id} Receiving data from unix clients to queue_send_to_connector')
+                self.logger.debug(f'{self.source_id} Expecting data from unix clients to queue_send_to_connector')
                 next_length_bytes = await reader.readexactly(Structures.MSG_4_STRUCT.size)
                 next_length = Structures.MSG_4_STRUCT.unpack(next_length_bytes)[0]
                 #payload = 2|json|4|data|4|binary
                 payload = await asyncio.wait_for(reader.readexactly(next_length), timeout=self.ASYNC_TIMEOUT)
                 message = next_length_bytes + payload
                 message_tuple = transport_json , data, binary = self.unpack_message(message)
-                
+                self.logger.debug(f'{self.source_id} queue_send_to_connector_put Received message with : '
+                                  f'{transport_json}')                
                 peername = transport_json.get(MessageFields.DESTINATION_ID)
                 if not self.is_server:
                     if not peername:
