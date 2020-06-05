@@ -28,8 +28,9 @@ And then share the created directories between server and clients as explained i
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
-Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server.  
+Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in aioconnectors\_core.py.  
+Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
 
 ## USAGE
@@ -242,7 +243,8 @@ The send\_message\_await\_response method is the same as send_message, but autom
 to run several interesting commands like :   
 -start/stop/restart your connectors.  
 -show currently connected peers.  
--delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, and then delete it on client side : the client will then reconnect automatically and obtain a new certificate.  
+-delete\_client\_certificate enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate.  
+-disconnect_client enables your server to disconnect a specific client.  
 -peek\_queues to show the internal queues sizes.  
 -ignore\_peer\_traffic can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
 -show\_log\_level to show the current log level.  

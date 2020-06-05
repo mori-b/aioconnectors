@@ -36,10 +36,12 @@ def create_connector(config_file_path, logger=None):
 def cli(logger=None):
     def clearscreen():
         subprocess.call('clear', shell=True)        
-    def display_json(the_json, connector=None):
+    def display_dict(the_json, connector=None):
         if connector:
             print('\n', 'Connector : '+str(connector))
-        print('\n', json.dumps(the_json, indent=4, sort_keys=True),'')
+        #print('\n', json.dumps(the_json, indent=4, sort_keys=True),'')
+        for the_key, value in sorted(the_json.items(), key=lambda x:int(x[0])):
+            print(str(the_key)+')    '+str(value))
     
     if not logger:
         logger = aioconnectors.helpers.get_logger(logger_name='cli', first_run=True)    
@@ -70,14 +72,23 @@ def cli(logger=None):
         is_server = (server_sockaddr is not None)
         connector_remote_tool = aioconnectors.ConnectorRemoteTool(use_default_logger=False, is_server=is_server, 
                                                 server_sockaddr=server_sockaddr, client_name=client_name, 
-                                                connector_files_dirpath=the_path)        
+                                                connector_files_dirpath=the_path)
+        if not os.path.exists(connector_remote_tool.connector.uds_path_commander):
+            clearscreen()
+            print(f'The connector {name} does not exist')
+            continue
+        clearscreen()
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
                      'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'disconnect_client',
                      'show_log_level', 'set_log_level']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
-        display_json(dict_cmds, connector=server_sockaddr or client_name)        
+        display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
-        
+        def show_connected_peers():
+            task = loop.create_task(connector_remote_tool.send_command(cmd='show_connected_peers__sync',
+                                                                       kwargs={}))
+            loop.run_until_complete(task)
+            print(f'\nConnected peers : {task.result().decode()}')            
         while True:
             clearscreen()
             if res == 'q':
@@ -110,10 +121,7 @@ def cli(logger=None):
                     loop.run_until_complete(task)
                     print(task.result().decode())
                 elif the_cmd == 'show_connected_peers':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='show_connected_peers__sync',
-                                                                               kwargs={}))
-                    loop.run_until_complete(task)
-                    print(task.result().decode())                        
+                    show_connected_peers()                     
                 elif the_cmd == 'ignore_peer_traffic':
                     while True:
                         task = loop.create_task(connector_remote_tool.send_command(cmd='manage_ignore_peer_traffic__sync', 
@@ -122,6 +130,7 @@ def cli(logger=None):
                         status = task.result().decode()
                         print('\nignore_peer_traffic current status : ', status)
                         if status == 'False':
+                            show_connected_peers()
                             res = input('\nType "y" to ignore peer traffic, or <peer name> to ignore a unique peer '
                                         'traffic, or Enter to quit\n')
                             if res == 'y':
@@ -152,20 +161,27 @@ def cli(logger=None):
                     print(json.dumps(json.loads(task.result().decode()), indent=4, sort_keys=True))
                 elif the_cmd == 'delete_client_certificate':
                     if is_server:
+                        show_connected_peers()
                         client_name = input('\nPlease type the client name whose certificate you would '
                                             'like to delete, or q to quit\n')
                         res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
                         if res =='y':
                             task = loop.create_task(connector_remote_tool.delete_client_certificate(client_id=client_name, 
-                                                                                            remove_only_symlink=False))                            
+                                                                                            remove_only_symlink=False))
+                            loop.run_until_complete(task)
+                            print(task.result().decode())                            
+                            task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
+                            loop.run_until_complete(task)
+                            print(task.result().decode())                            
                     else:
                         res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
                         if res =='y':                            
                             task = loop.create_task(connector_remote_tool.delete_client_certificate())
-                    loop.run_until_complete(task)
-                    print(task.result().decode())
+                            loop.run_until_complete(task)
+                            print(task.result().decode())
                 elif the_cmd == 'disconnect_client':
                     if is_server:
+                        show_connected_peers()
                         client_name = input('\nPlease type the client name you would '
                                             'like to disconnect, or q to quit\n')
                         res = input('\nAre you sure you want to disconnect '+client_name+' ? y/n\n')
@@ -183,7 +199,7 @@ def cli(logger=None):
                 elif the_cmd == 'set_log_level':
                     list_levels = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
                     dict_levels = {str(index):level for index,level in enumerate(list_levels)}
-                    display_json(dict_levels)        
+                    display_dict(dict_levels)        
                     res = input('\nPlease type the log level you would like to set, or q to quit\n')
                     clearscreen()                    
                     if res == 'q':
@@ -197,7 +213,7 @@ def cli(logger=None):
                     loop.run_until_complete(task)
                     print(task.result().decode())       
                     
-            display_json(dict_cmds, connector=server_sockaddr or client_name)                    
+            display_dict(dict_cmds, connector=server_sockaddr or client_name)                    
             res = input('\nPlease type the command number you would like to run, or q to quit\n')                    
         
         

@@ -215,13 +215,9 @@ class Connector:
                 raise Exception(f'{self.uds_path_commander} is longer than {self.MAX_LENGTH_UDS_PATH}')
                     
             if not tool_only:
-                
-                if self.is_server:
-                    self.full_duplex_connections = {}              
-                else:
-                    self.client_certificate_name = None     
-                    self.full_duplex = None
-                    
+                self.full_duplex_connections = {}
+                if not self.is_server:
+                    self.client_certificate_name = None                         
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path)
@@ -420,8 +416,8 @@ class Connector:
                     self.logger.exception('stop server')
             else:
                 if not client_wait_for_reconnect:
-                    if self.full_duplex:
-                        await self.full_duplex.stop(hard=hard)
+                    for full_duplex in self.full_duplex_connections.values():
+                        await full_duplex.stop(hard=hard)
 
             task_excludes = ['client_wait_for_reconnect'] if client_wait_for_reconnect else None                    
             if not connector_socket_only:
@@ -576,18 +572,6 @@ class Connector:
             self.logger.info(f'{self.source_id} client_wait_for_reconnect client entering back Connected mode')                        
             return
         
-    async def disconnect_client(self, client_id):
-        if not self.is_server:
-            msg = f'{self.source_id} client cannot disconnect a client {client_id}'
-            self.logger.warning(msg)
-            return
-        self.logger.info(f'{self.source_id} disconnecting client {client_id}')
-        full_duplex = self.full_duplex_connections.get(client_id)
-        if not full_duplex:
-            self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
-        await full_duplex.stop()
-        return        
-        
     async def commander_cb(self, reader, writer):
         try:
             next_length_bytes = await reader.readexactly(Structures.MSG_4_STRUCT.size)
@@ -638,8 +622,11 @@ class Connector:
 
     def show_connected_peers(self, dump_result=True):
         res = []
-        if self.queue_send:
-            res = list(sorted(self.queue_send.keys()))
+        res = list(sorted(self.full_duplex_connections.keys()))
+        #if self.is_server:
+        #    res = list(sorted(self.full_duplex_connections.keys()))
+        #elif self.queue_send:
+        #    res = list(sorted(self.queue_send.keys()))            
         if dump_result:
             return str(res)
         return res
@@ -657,6 +644,19 @@ class Connector:
             self.ignore_peer_traffic = [unique_peer]
             return str(self.ignore_peer_traffic)
 
+    async def disconnect_client(self, client_id):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot disconnect a client {client_id}'
+            self.logger.warning(msg)
+            return
+        self.logger.info(f'{self.source_id} disconnecting client {client_id}')
+        full_duplex = self.full_duplex_connections.pop(client_id, None)
+        if not full_duplex:
+            self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
+            return f'Non existing client {client_id}'
+        await full_duplex.stop()
+        return        
+    
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):
         try:
             self.logger.info(f'{self.source_id} deleting client certificate {client_id}')
@@ -1404,10 +1404,9 @@ class Connector:
         if self.is_server:
             self.logger.info(f'{self.source_id} manage_full_duplex received new connection from '
                              f'client {writer.get_extra_info("peername")}')            
-            self.full_duplex_connections[str(writer.get_extra_info("peername"))] = full_duplex
         else:
             self.logger.info(f'{self.source_id} manage_full_duplex Starting connection')            
-            self.full_duplex = full_duplex
+        self.full_duplex_connections[str(writer.get_extra_info("peername"))] = full_duplex
         await full_duplex.start()
 
     def build_server_ssl_context(self):    #, client_socket=False):
@@ -1477,6 +1476,7 @@ class FullDuplex:
         try:
             self.logger.info(f'{self.connector.source_id} stop_nowait_for_persistence')
             #remove queue (for queue_send_to_connector_put) and send remainings (if exist) of queue_send to persistence file
+            self.connector.full_duplex_connections.pop(self.peername, None)            
             queue_send = self.connector.queue_send.pop(self.peername, None)
             if queue_send:
                 self.logger.info(f'stop_nowait_for_persistence queue_send size {queue_send.qsize()}')
@@ -1529,6 +1529,7 @@ class FullDuplex:
             if not self.connector.disk_persistence:            
                 #this has been done already in stop_nowait_for_persistence if disk_persistence
                 self.logger.info(f'{self.connector.source_id} stop, now deleting queue_send of peer {self.peername}')
+                self.connector.full_duplex_connections.pop(self.peername, None)                
                 queue_send = self.connector.queue_send.pop(self.peername, None)
                 if queue_send:
                     if hard:
@@ -2032,7 +2033,8 @@ class FullDuplex:
             except Exception:
                 self.logger.exception(self.connector.source_id+' handle_outgoing_connection')
                 if not self.is_stopping:                
-                    if self.connector.disk_persistence:       
+                    if self.connector.disk_persistence:
+                        self.connector.full_duplex_connections.pop(self.peername, None)                        
                         if queue_send != self.connector.queue_send.pop(self.peername, None):
                             self.logger.info(f'Special case : disconnection happens during transition. '
                                              f'Transferring {queue_send.qsize()} messages')
