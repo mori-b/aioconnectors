@@ -141,6 +141,10 @@ class ConnectorManager:
         
     def delete_previous_persistence_remains(self):
         self.connector.delete_previous_persistence_remains()
+        
+    async def disconnect_client(self, client_id):
+        self.logger.info(f'{self.source_id} disconnecting client {client_id}') 
+        await self.connector.disconnect_client(client_id)
 
 class ConnectorBaseTool:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL,
@@ -478,6 +482,13 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             response = await self.send_command(cmd='delete_client_certificate_on_client', kwargs={})
             return response
+        
+    async def disconnect_client(self, client_id=None):
+        if self.is_server:
+            response = await self.send_command(cmd='disconnect_client', kwargs={'client_id':client_id})
+            return response
+        else:
+            return False
         
     '''                
     async def peek_queues(self):

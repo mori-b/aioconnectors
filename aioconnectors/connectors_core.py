@@ -217,7 +217,7 @@ class Connector:
             if not tool_only:
                 
                 if self.is_server:
-                    self.full_duplex_connections = []                
+                    self.full_duplex_connections = {}              
                 else:
                     self.client_certificate_name = None     
                     self.full_duplex = None
@@ -409,9 +409,9 @@ class Connector:
                         self.logger.exception('stop send_to_connector_server')
             
             if self.is_server:
-                for full_duplex in self.full_duplex_connections:
+                for full_duplex in self.full_duplex_connections.values():
                     await full_duplex.stop(hard=hard)
-                self.full_duplex_connections = []
+                self.full_duplex_connections = {}
                 try:
                     if self.server:
                         self.server.close()
@@ -576,6 +576,18 @@ class Connector:
             self.logger.info(f'{self.source_id} client_wait_for_reconnect client entering back Connected mode')                        
             return
         
+    async def disconnect_client(self, client_id):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot disconnect a client {client_id}'
+            self.logger.warning(msg)
+            return
+        self.logger.info(f'{self.source_id} disconnecting client {client_id}')
+        full_duplex = self.full_duplex_connections.get(client_id)
+        if not full_duplex:
+            self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
+        await full_duplex.stop()
+        return        
+        
     async def commander_cb(self, reader, writer):
         try:
             next_length_bytes = await reader.readexactly(Structures.MSG_4_STRUCT.size)
@@ -647,7 +659,9 @@ class Connector:
 
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):
         try:
+            self.logger.info(f'{self.source_id} deleting client certificate {client_id}')
             response = await self.ssl_helper.remove_client_cert_on_server(client_id, remove_only_symlink=remove_only_symlink)
+            await self.disconnect_client(client_id)
             return response
         except Exception as exc:
             self.logger.exception('delete_client_certificate_on_server')
@@ -655,6 +669,7 @@ class Connector:
 
     async def delete_client_certificate_on_client(self):
         try:
+            self.logger.info(f'{self.source_id} deleting own certificate')            
             response = await self.ssl_helper.remove_client_cert_on_client(self.source_id)
             self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
             self.logger.info('Client will use again the default certificate : '+self.client_certificate_name)
@@ -1389,7 +1404,7 @@ class Connector:
         if self.is_server:
             self.logger.info(f'{self.source_id} manage_full_duplex received new connection from '
                              f'client {writer.get_extra_info("peername")}')            
-            self.full_duplex_connections.append(full_duplex)
+            self.full_duplex_connections[str(writer.get_extra_info("peername"))] = full_duplex
         else:
             self.logger.info(f'{self.source_id} manage_full_duplex Starting connection')            
             self.full_duplex = full_duplex
@@ -1582,7 +1597,11 @@ class FullDuplex:
                                                   f'{self.client_certificate_serial} has no source_id ! Aborting')
                                 self.peername = str(self.writer.get_extra_info('peername'))
                                 raise Exception('Unknown client')
-                            peer_identification_finished = True                    
+                            peer_identification_finished = True     
+                            old_peername = str(self.writer.get_extra_info('peername'))                                                        
+                            self.logger.info(f'Replacing peername {old_peername} in full_duplex_connections with {peername}')
+                            self.connector.full_duplex_connections[peername] = self.connector.full_duplex_connections.pop(old_peername)
+
                         else:
                             #we could use the default_client_serial, but prefer to have a unique peername per client
                             #for rare case where 2 clients are connecting simultaneously and have same default_client_serial
@@ -2187,6 +2206,9 @@ class FullDuplex:
                 self.peername = new_peername                
                 self.connector.queue_send[new_peername] = self.connector.queue_send.pop(old_peername)
                 self.connector.tasks[self.peername+'_incoming'] = self.connector.tasks.pop(old_peername+'_incoming')
+
+                self.connector.full_duplex_connections[new_peername] = self.connector.full_duplex_connections.pop(old_peername)
+                
                 task_outgoing_connection = self.loop.create_task(self.handle_outgoing_connection())
                 self.connector.tasks[self.peername+'_outgoing'] = task_outgoing_connection
                     
@@ -2267,6 +2289,8 @@ class FullDuplex:
             self.connector.tasks[self.peername+'_incoming'] = self.connector.tasks.pop(old_peername+'_incoming')
             #if old_peername in self.connector.queue_send_transition_to_connect:
             #    self.connector.queue_send_transition_to_connect[new_peername] = self.connector.queue_send_transition_to_connect.pop(old_peername)
+            
+            self.connector.full_duplex_connections[new_peername] = self.connector.full_duplex_connections.pop(old_peername)
             
             #now we can create handle_outgoing_connection, where queue_send_transition_to_connect will be updated with new_peername
             task_outgoing_connection = self.loop.create_task(self.handle_outgoing_connection())

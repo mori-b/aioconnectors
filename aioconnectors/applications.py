@@ -72,7 +72,7 @@ def cli(logger=None):
                                                 server_sockaddr=server_sockaddr, client_name=client_name, 
                                                 connector_files_dirpath=the_path)        
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
-                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate',
+                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'disconnect_client',
                      'show_log_level', 'set_log_level']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
         display_json(dict_cmds, connector=server_sockaddr or client_name)        
@@ -164,6 +164,17 @@ def cli(logger=None):
                             task = loop.create_task(connector_remote_tool.delete_client_certificate())
                     loop.run_until_complete(task)
                     print(task.result().decode())
+                elif the_cmd == 'disconnect_client':
+                    if is_server:
+                        client_name = input('\nPlease type the client name you would '
+                                            'like to disconnect, or q to quit\n')
+                        res = input('\nAre you sure you want to disconnect '+client_name+' ? y/n\n')
+                        if res =='y':
+                            task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
+                            loop.run_until_complete(task)
+                            print(task.result().decode())                          
+                    else:
+                        print('A client cannot use this functionality')                        
                 elif the_cmd == 'show_log_level':
                     task = loop.create_task(connector_remote_tool.send_command(cmd='show_log_level__sync',
                                                                                kwargs={}))
