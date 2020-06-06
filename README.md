@@ -40,6 +40,7 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
 
     python3 -m aioconnectors --help
 
+
 ### 1.Encryption
 
 -If you choose to use encryption, you should call
@@ -91,6 +92,7 @@ To shutdown a connector :
     await connector_manager.stop_connector(shutdown=True)
 
 You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in the basic example later on, and in aioconnectors\_test.py.
+
 
 ### 3.send/receive messages with the API
 
@@ -217,6 +219,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -receive\_from\_any\_connector\_owner if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api.  
 -hook\_server\_auth\_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.  
 
+
 ### 5.More details about the send\_message arguments
 
     send_message(message_type=None, destination_id=None, request_id=None, response_id=None,
@@ -237,18 +240,20 @@ This is shown in aioconnectors\_test.py.
 
 The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
 
+
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in 7.  
--start\_connector, stop\_connector, restart\_connector
--delete\_client\_certificate, disconnect\_client
--show\_connected\_peers
--delete\_previous\_persistence\_remains
--ignore\_peer\_traffic\_show, ignore\_peer\_traffic\_enable\_unique, ignore\_peer\_traffic\_disable
+-start\_connector, stop\_connector, restart\_connector  
+-delete\_client\_certificate, disconnect\_client  
+-show\_connected\_peers  
+-delete\_previous\_persistence\_remains  
+-ignore\_peer\_traffic\_show, ignore\_peer\_traffic\_enable\_unique, ignore\_peer\_traffic\_disable  
 -show\_log\_level, set\_log\_level  
-The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)
+The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)  
     connector_remote_tool = aioconnectors.ConnectorRemoteTool(config_file_path=config_file_path)
 An example of ConnectorRemoteTool is available in applications.py in the cli implementation.
+
 
 ### 7.Other management command line tools
 
