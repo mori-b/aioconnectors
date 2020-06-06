@@ -362,3 +362,122 @@ class ConnectorAPI:
             self.logger.exception('stop_waiting_for_messages')
             raise
 
+class ConnectorRemoteTool(ConnectorAPI):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    async def send_command(self, cmd=None, kwargs=None):
+        try:
+            if kwargs is None:
+                kwargs = {}      
+            self.logger.info(f'send_command {cmd} with kwargs {kwargs}')
+            message = json.dumps({'cmd':cmd, 'kwargs':kwargs}).encode()
+            message = Structures.MSG_4_STRUCT.pack(len(message)) + message
+            reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.connector.uds_path_commander), 
+                                                    timeout=self.ASYNC_TIMEOUT)
+            writer.write(message)  
+            try:
+                await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)
+            except Exception:
+                self.logger.exception('send_command writer drain')
+            next_length_bytes = await reader.readexactly(Structures.MSG_4_STRUCT.size)
+            next_length = Structures.MSG_4_STRUCT.unpack(next_length_bytes)[0]
+            response = await asyncio.wait_for(reader.readexactly(next_length), timeout=self.ASYNC_TIMEOUT)
+            writer.close()
+            self.logger.info(f'send_command got response {response}')
+        except Exception as exc:
+            self.logger.exception('send_command')
+            response = str(exc).encode()
+        return response
+            
+    
+    async def start_connector(self, delay=None):        
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before starting connector : {self.source_id}')
+            await asyncio.sleep(delay)                
+        self.logger.info('start_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='start', kwargs={})
+        return response        
+
+    async def stop_connector(self, delay=None, hard=False, shutdown=False, enable_delete_files=True,
+                             client_wait_for_reconnect=False):
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before stopping connector : {self.source_id}')
+            await asyncio.sleep(delay)        
+        self.logger.info('stop_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='stop', kwargs={'hard':hard, 'shutdown':shutdown,
+                                                                'enable_delete_files':enable_delete_files,
+                                                                'client_wait_for_reconnect':client_wait_for_reconnect})
+        return response               
+        
+    async def restart_connector(self, delay=None, sleep_between=0, connector_socket_only=False, hard=False):    
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before restarting connector : {self.source_id}')
+            await asyncio.sleep(delay)  
+        self.logger.info('restart_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='restart', kwargs={'hard':hard, 'sleep_between':sleep_between})
+        return response
+                
+    async def delete_client_certificate(self, client_id=None, remove_only_symlink=False):
+        self.logger.info(f'{self.source_id} delete_client_certificate {client_id}')                 
+        if self.is_server:
+            response = await self.send_command(cmd='delete_client_certificate_on_server', 
+                                               kwargs={'client_id':client_id, 'remove_only_symlink':remove_only_symlink})
+            return response
+        else:
+            response = await self.send_command(cmd='delete_client_certificate_on_client', kwargs={})
+            return response
+        
+    async def disconnect_client(self, client_id=None):
+        self.logger.info(f'{self.source_id} disconnect_client {client_id}')                         
+        if self.is_server:
+            response = await self.send_command(cmd='disconnect_client', kwargs={'client_id':client_id})
+            return response
+        else:
+            return False
+        
+    async def delete_previous_persistence_remains(self):
+        self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
+        response = await self.send_command(cmd='delete_previous_persistence_remains__sync', kwargs={})        
+        return response
+    
+    async def show_connected_peers(self):
+        self.logger.info(f'{self.source_id} show_connected_peers')         
+        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={})        
+        return response
+
+    async def peek_queues(self):
+        self.logger.info(f'{self.source_id} peek_queues')         
+        response = await self.send_command(cmd='peek_queues__sync', kwargs={'dump_result':True})        
+        return response
+    
+    async def ignore_peer_traffic_show(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_show')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'show':True})        
+        return response
+
+    async def ignore_peer_traffic_enable(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'enable':True})        
+        return response
+    
+    async def ignore_peer_traffic_enable_unique(self, peername):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'unique_peer':peername})        
+        return response
+
+    async def ignore_peer_traffic_disable(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_disable')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'disable':True})        
+        return response    
+
+    async def show_log_level(self):
+        self.logger.info(f'{self.source_id} show_log_level')         
+        response = await self.send_command(cmd='show_log_level__sync', kwargs={})        
+        return response
+
+    async def set_log_level(self, level):
+        self.logger.info(f'{self.source_id} set_log_level {level}')         
+        response = await self.send_command(cmd='set_log_level__sync', kwargs={'level':level})        
+        return response
+    

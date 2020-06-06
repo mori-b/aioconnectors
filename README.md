@@ -7,7 +7,7 @@ aioconnectors is an easy to set up broker that works on Unix like systems. Requi
 It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.  
 It is built on the client/server model but both peers can push messages. It is asynchronous, and provides the option to wait asynchronously for a response.  
 A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages. To support other languages, the file standalone\_api.py only should be translated.
+A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages, the file standalone\_api.py only should be translated.
 
 
 ## HIGH LEVEL DESIGN
@@ -237,7 +237,20 @@ This is shown in aioconnectors\_test.py.
 
 The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
 
-### 6.Other management command line tools
+### 6.Management programmatic tools
+
+The class ConnectorManager has several methods to manage your connector. These methods are explained in 7.  
+-start\_connector, stop\_connector, restart\_connector
+-delete\_client\_certificate, disconnect\_client
+-show\_connected\_peers
+-delete\_previous\_persistence\_remains
+-ignore\_peer\_traffic\_show, ignore\_peer\_traffic\_enable\_unique, ignore\_peer\_traffic\_disable
+-show\_log\_level, set\_log\_level  
+The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)
+    connector_remote_tool = aioconnectors.ConnectorRemoteTool(config_file_path=config_file_path)
+An example of ConnectorRemoteTool is available in applications.py in the cli implementation.
+
+### 7.Other management command line tools
 
     python3 -m aioconnectors cli
 
@@ -252,7 +265,7 @@ to run several interesting commands like :
 -set\_log\_level to set the log level on the fly.
 
 
-### 7.Testing command line tools
+### 8.Testing command line tools
 
 -To let your connector send pings to a remote connector, and print its replies. 
 
@@ -267,7 +280,7 @@ to run several interesting commands like :
     python3 -m aioconnectors test_send_messages <config_json_path>
 
 
-### 8.Funny embedded chat
+### 9.Funny embedded chat
 
 A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux stations.  
 It is encrypted, and supports authentication by prompting to accept connections.  

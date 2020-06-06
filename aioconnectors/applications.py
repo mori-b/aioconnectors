@@ -85,10 +85,10 @@ def cli(logger=None):
         display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
         def show_connected_peers():
-            task = loop.create_task(connector_remote_tool.send_command(cmd='show_connected_peers__sync',
-                                                                       kwargs={}))
+            task = loop.create_task(connector_remote_tool.show_connected_peers())
             loop.run_until_complete(task)
-            print(f'\nConnected peers : {task.result().decode()}')            
+            print(f'\nConnected peers : {task.result().decode()}')
+            
         while True:
             clearscreen()
             if res == 'q':
@@ -98,34 +98,26 @@ def cli(logger=None):
             else:
                 the_cmd = dict_cmds[res]
                 if the_cmd == 'start':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='start', 
-                                                            kwargs={'connector_socket_only':False}))
+                    task = loop.create_task(connector_remote_tool.start_connector())
                     loop.run_until_complete(task)
                     print(task.result().decode())                        
                 elif the_cmd == 'stop gracefully':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='stop', 
-                                                            kwargs={'connector_socket_only':False, 
-                                                                    'client_wait_for_reconnect':False, 'hard':False}))
+                    task = loop.create_task(connector_remote_tool.stop_connector(client_wait_for_reconnect=False, hard=False))
                     loop.run_until_complete(task)
                     print(task.result().decode())
                 elif the_cmd == 'stop hard':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='stop', 
-                                                            kwargs={'connector_socket_only':False, 
-                                                                    'client_wait_for_reconnect':False, 'hard':True}))
+                    task = loop.create_task(connector_remote_tool.stop_connector(client_wait_for_reconnect=False, hard=True))
                     loop.run_until_complete(task)
                     print(task.result().decode())                    
                 elif the_cmd == 'restart':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='restart', 
-                                                            kwargs={'sleep_between':2, 'connector_socket_only':False, 
-                                                                    'hard':False}))
+                    task = loop.create_task(connector_remote_tool.restart_connector(sleep_between=2, hard=False))
                     loop.run_until_complete(task)
                     print(task.result().decode())
                 elif the_cmd == 'show_connected_peers':
                     show_connected_peers()                     
                 elif the_cmd == 'ignore_peer_traffic':
                     while True:
-                        task = loop.create_task(connector_remote_tool.send_command(cmd='manage_ignore_peer_traffic__sync', 
-                                                                                   kwargs={'show':True}))
+                        task = loop.create_task(connector_remote_tool.ignore_peer_traffic_show())
                         loop.run_until_complete(task)
                         status = task.result().decode()
                         print('\nignore_peer_traffic current status : ', status)
@@ -134,29 +126,25 @@ def cli(logger=None):
                             res = input('\nType "y" to ignore peer traffic, or <peer name> to ignore a unique peer '
                                         'traffic, or Enter to quit\n')
                             if res == 'y':
-                                task = loop.create_task(connector_remote_tool.send_command(cmd='manage_ignore_peer_traffic__sync',
-                                                                                           kwargs={'enable':True}))
+                                task = loop.create_task(connector_remote_tool.ignore_peer_traffic_enable())
                                 loop.run_until_complete(task)
                                 continue
                             elif res == '':
                                 break
                             else:
-                                task = loop.create_task(connector_remote_tool.send_command(cmd='manage_ignore_peer_traffic__sync', 
-                                                                                           kwargs={'unique_peer':res}))
+                                task = loop.create_task(connector_remote_tool.ignore_peer_traffic_enable_unique(res))
                                 loop.run_until_complete(task)
                                 continue                                    
                         else:
                             res = input('\nType "y" to stop ignoring peer traffic, or Enter to quit\n')
                             if res == 'y':
-                                task = loop.create_task(connector_remote_tool.send_command(cmd='manage_ignore_peer_traffic__sync', 
-                                                                                           kwargs={'disable':True}))
+                                task = loop.create_task(connector_remote_tool.ignore_peer_traffic_disable())
                                 loop.run_until_complete(task)
                                 continue
                             else:
                                 break                                
                 elif the_cmd == 'peek_queues':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='peek_queues__sync', 
-                                                                               kwargs={'dump_result':True}))
+                    task = loop.create_task(connector_remote_tool.peek_queues())
                     loop.run_until_complete(task)
                     print(json.dumps(json.loads(task.result().decode()), indent=4, sort_keys=True))
                 elif the_cmd == 'delete_client_certificate':
@@ -192,8 +180,7 @@ def cli(logger=None):
                     else:
                         print('A client cannot use this functionality')                        
                 elif the_cmd == 'show_log_level':
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='show_log_level__sync',
-                                                                               kwargs={}))
+                    task = loop.create_task(connector_remote_tool.show_log_level())
                     loop.run_until_complete(task)
                     print(task.result().decode())                                   
                 elif the_cmd == 'set_log_level':
@@ -208,8 +195,7 @@ def cli(logger=None):
                         print('Invalid number : '+str(res))
                         break
                     new_level = dict_levels[res]
-                    task = loop.create_task(connector_remote_tool.send_command(cmd='set_log_level__sync',
-                                                                               kwargs={'level':new_level}))
+                    task = loop.create_task(connector_remote_tool.set_log_level(new_level))
                     loop.run_until_complete(task)
                     print(task.result().decode())       
                     

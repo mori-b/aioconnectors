@@ -118,7 +118,7 @@ class ConnectorManager:
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
         if delay:
-            self.logger.info('Waiting {} seconds before starting connector : {}'.format(delay, self.source_id))
+            self.logger.info(f'Waiting {delay} seconds before starting connector : {self.source_id}')
             await asyncio.sleep(delay)                
         self.logger.info('start_connector : '+str(self.source_id))        
         await self.connector.start(connector_socket_only=connector_socket_only)
@@ -126,7 +126,7 @@ class ConnectorManager:
     async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False, 
                              enable_delete_files=True):
         if delay:
-            self.logger.info('Waiting {} seconds before stopping connector : {}'.format(delay, self.source_id))
+            self.logger.info(f'Waiting {delay} seconds before stopping connector : {self.source_id}')
             await asyncio.sleep(delay)        
         self.logger.info('stop_connector : '+str(self.source_id))
         await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard, shutdown=shutdown,
@@ -134,17 +134,56 @@ class ConnectorManager:
         
     async def restart_connector(self, delay=None, sleep_between=0, connector_socket_only=False, hard=False):    
         if delay:
-            self.logger.info('Waiting {} seconds before restarting connector : {}'.format(delay, self.source_id))
+            self.logger.info(f'Waiting {delay} seconds before restarting connector : {self.source_id}')
             await asyncio.sleep(delay)  
         self.logger.info('restart_connector : '+str(self.source_id))            
         await self.connector.restart(sleep_between=sleep_between, connector_socket_only=connector_socket_only, hard=hard)        
         
     def delete_previous_persistence_remains(self):
-        self.connector.delete_previous_persistence_remains()
-        
+        self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
+        res = self.connector.delete_previous_persistence_remains()
+        return res
+    
     async def disconnect_client(self, client_id):
-        self.logger.info(f'{self.source_id} disconnecting client {client_id}') 
-        await self.connector.disconnect_client(client_id)
+        self.logger.info(f'{self.source_id} disconnect_client {client_id}')
+        if self.connector.is_server:
+            res = await self.connector.disconnect_client(client_id)
+        else:
+            res = False
+        return res
+    
+    async def delete_client_certificate(self, client_id, remove_only_symlink=False):
+        self.logger.info(f'{self.source_id} delete_client_certificate {client_id} with'
+                         f' remove_only_symlink={remove_only_symlink}') 
+        if self.connector.is_server:
+            res = await self.connector.delete_client_certificate_on_server(client_id, remove_only_symlink)
+        else:
+            res = await self.connector.delete_client_certificate_on_client()
+        return res     
+        
+    def show_connected_peers(self,):
+        self.logger.info(f'{self.source_id} show_connected_peers') 
+        return self.connector.show_connected_peers()
+
+    def ignore_peer_traffic_show(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_show') 
+        return self.connector.manage_ignore_peer_traffic(show=True)
+
+    def ignore_peer_traffic_enable_unique(self, peername):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique {peername}') 
+        return self.connector.manage_ignore_peer_traffic(unique_peer=peername)
+
+    def ignore_peer_traffic_disable(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_disable') 
+        return self.connector.manage_ignore_peer_traffic(disable=True)
+    
+    def show_log_level(self):
+        self.logger.info(f'{self.source_id} show_log_level') 
+        return self.connector.show_log_level()
+
+    def set_log_level(self, level):
+        self.logger.info(f'{self.source_id} set_log_level') 
+        return self.connector.set_log_level(level)       
 
 class ConnectorBaseTool:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL,
@@ -449,7 +488,9 @@ class ConnectorAPI(ConnectorBaseTool):
 
 
 class ConnectorRemoteTool(ConnectorBaseTool):
-    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
     async def send_command(self, cmd=None, kwargs=None):
         try:
             if kwargs is None:
@@ -474,7 +515,36 @@ class ConnectorRemoteTool(ConnectorBaseTool):
             response = str(exc).encode()
         return response
             
+    
+    async def start_connector(self, delay=None):        
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before starting connector : {self.source_id}')
+            await asyncio.sleep(delay)                
+        self.logger.info('start_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='start', kwargs={})
+        return response        
+
+    async def stop_connector(self, delay=None, hard=False, shutdown=False, enable_delete_files=True,
+                             client_wait_for_reconnect=False):
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before stopping connector : {self.source_id}')
+            await asyncio.sleep(delay)        
+        self.logger.info('stop_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='stop', kwargs={'hard':hard, 'shutdown':shutdown,
+                                                                'enable_delete_files':enable_delete_files,
+                                                                'client_wait_for_reconnect':client_wait_for_reconnect})
+        return response               
+        
+    async def restart_connector(self, delay=None, sleep_between=0, connector_socket_only=False, hard=False):    
+        if delay:
+            self.logger.info(f'Waiting {delay} seconds before restarting connector : {self.source_id}')
+            await asyncio.sleep(delay)  
+        self.logger.info('restart_connector : '+str(self.source_id))
+        response = await self.send_command(cmd='restart', kwargs={'hard':hard, 'sleep_between':sleep_between})
+        return response
+                
     async def delete_client_certificate(self, client_id=None, remove_only_symlink=False):
+        self.logger.info(f'{self.source_id} delete_client_certificate {client_id}')                 
         if self.is_server:
             response = await self.send_command(cmd='delete_client_certificate_on_server', 
                                                kwargs={'client_id':client_id, 'remove_only_symlink':remove_only_symlink})
@@ -484,19 +554,60 @@ class ConnectorRemoteTool(ConnectorBaseTool):
             return response
         
     async def disconnect_client(self, client_id=None):
+        self.logger.info(f'{self.source_id} disconnect_client {client_id}')                         
         if self.is_server:
             response = await self.send_command(cmd='disconnect_client', kwargs={'client_id':client_id})
             return response
         else:
             return False
         
-    '''                
+    async def delete_previous_persistence_remains(self):
+        self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
+        response = await self.send_command(cmd='delete_previous_persistence_remains__sync', kwargs={})        
+        return response
+    
+    async def show_connected_peers(self):
+        self.logger.info(f'{self.source_id} show_connected_peers')         
+        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={})        
+        return response
+
     async def peek_queues(self):
-        response = await self.send_command(cmd='peek_queues', kwargs={})
-        return json.dumps(response, indent=4, sort_keys=True)      
-    '''
-            
-            
+        self.logger.info(f'{self.source_id} peek_queues')         
+        response = await self.send_command(cmd='peek_queues__sync', kwargs={'dump_result':True})        
+        return response
+    
+    async def ignore_peer_traffic_show(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_show')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'show':True})        
+        return response
+
+    async def ignore_peer_traffic_enable(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'enable':True})        
+        return response
+    
+    async def ignore_peer_traffic_enable_unique(self, peername):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'unique_peer':peername})        
+        return response
+
+    async def ignore_peer_traffic_disable(self):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_disable')         
+        response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'disable':True})        
+        return response    
+
+    async def show_log_level(self):
+        self.logger.info(f'{self.source_id} show_log_level')         
+        response = await self.send_command(cmd='show_log_level__sync', kwargs={})        
+        return response
+
+    async def set_log_level(self, level):
+        self.logger.info(f'{self.source_id} set_log_level {level}')         
+        response = await self.send_command(cmd='set_log_level__sync', kwargs={'level':level})        
+        return response
+    
+      
+
             
             
             

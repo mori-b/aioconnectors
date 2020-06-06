@@ -648,14 +648,14 @@ class Connector:
         if not self.is_server:
             msg = f'{self.source_id} client cannot disconnect a client {client_id}'
             self.logger.warning(msg)
-            return
+            return False
         self.logger.info(f'{self.source_id} disconnecting client {client_id}')
         full_duplex = self.full_duplex_connections.pop(client_id, None)
         if not full_duplex:
             self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
             return f'Non existing client {client_id}'
         await full_duplex.stop()
-        return        
+        return True     
     
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):
         try:
