@@ -251,7 +251,9 @@ The class ConnectorManager has several methods to manage your connector. These m
 -ignore\_peer\_traffic\_show, ignore\_peer\_traffic\_enable\_unique, ignore\_peer\_traffic\_disable  
 -show\_log\_level, set\_log\_level  
 The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)  
+
     connector_remote_tool = aioconnectors.ConnectorRemoteTool(config_file_path=config_file_path)
+
 An example of ConnectorRemoteTool is available in applications.py in the cli implementation.
 
 
