@@ -6,9 +6,10 @@ from copy import deepcopy
 
 import aioconnectors
 
-#This file contains only test examples
+'''
+BEWARE : This file contains only non official test examples that require tweaks to run correctly.
 
-'''usage :
+usage :
 First you can create your certificates with the command :
 python3 -m aioconnectors create_certificates <optional dir path>
     
@@ -52,7 +53,7 @@ SILENT=False
 TEST_DEBUG_MSG_COUNTS = True
 CLIENT_MESSAGE_TYPES = ['type2', 'type1']
 SERVER_MESSAGE_TYPES = ['type1','type2']
-PERSISTENCE_CLIENT = ['type1'] if (TEST_PERSISTENCE_CLIENT or TEST_UPLOAD_FILE_WITH_PERSISTENCE or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY) else False    #True means persistence for both 'type1' and 'type2'
+PERSISTENCE_CLIENT = ['type1','type2'] if (TEST_PERSISTENCE_CLIENT or TEST_UPLOAD_FILE_WITH_PERSISTENCE or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY) else False    #True means persistence for both 'type1' and 'type2'
 PERSISTENCE_SERVER = True if TEST_PERSISTENCE_SERVER else False
 PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 PERSISTENCE_SERVER_DELETE_PREVIOUS_PERSISTENCE_FILE = True
@@ -143,7 +144,7 @@ if __name__ == '__main__':
                 disk_persistence = ['type1']
             connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=False, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
                                                     client_name=local_name, disk_persistence_send=PERSISTENCE_CLIENT, disk_persistence_recv=PERSISTENCE_CLIENT, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
-                                                    send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES,
+                                                    send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES, file_recv_config=FILE_RECV_CONFIG, 
                                                     uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
             loop = asyncio.get_event_loop()
 
