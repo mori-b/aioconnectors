@@ -405,9 +405,11 @@ class Connector:
                         self.logger.exception('stop send_to_connector_server')
             
             if self.is_server:
-                for full_duplex in self.full_duplex_connections.values():
+                full_duplex_connections = list(self.full_duplex_connections.values())
+                for full_duplex in full_duplex_connections:
                     await full_duplex.stop(hard=hard)
-                self.full_duplex_connections = {}
+                full_duplex_connections = None
+                #self.full_duplex_connections = {}
                 try:
                     if self.server:
                         self.server.close()
@@ -416,8 +418,11 @@ class Connector:
                     self.logger.exception('stop server')
             else:
                 if not client_wait_for_reconnect:
-                    for full_duplex in self.full_duplex_connections.values():
+                    full_duplex_connections = list(self.full_duplex_connections.values())                    
+                    for full_duplex in full_duplex_connections:
                         await full_duplex.stop(hard=hard)
+                    full_duplex_connections = None
+                    #self.full_duplex_connections = {}
 
             task_excludes = ['client_wait_for_reconnect'] if client_wait_for_reconnect else None                    
             if not connector_socket_only:
