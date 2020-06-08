@@ -232,7 +232,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
 -uds\_path\_send\_preserve\_socket should always be True for better performance.  
 -debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
--enable\_client\_try\_reconnect is a boolean always set to True. It lets the client try to reconnect automatically to the server every 5 seconds.  
+-enable\_client\_try\_reconnect is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  
 -reuse\_server\_sockaddr, reuse\_uds\_path\_send\_to\_connector, reuse\_uds\_path\_commander\_server : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
 -everybody\_can\_send\_messages if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector.  
 -receive\_from\_any\_connector\_owner if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api.  
