@@ -1,22 +1,22 @@
 # aioconnectors
-Simple secure asynchronous persistent message broker
+**Simple secure asynchronous persistent message broker**
 
-Features  
-High Level Design  
-Use Cases  
-Usage  
-1.Encryption  
-2.Run a connector  
-3.Send/receive messages  
-4.ConnectorManager and ConnectorAPI  
-5.send_message  
-6.Programmatic management tools  
-7.Command line interface management tools  
-8.Testing tools  
-9.Embedded chat  
-Windows  
-Server example  
-Client example  
+*Features*  
+*High Level Design*  
+*Use Cases*  
+*Usage*  
+*1.Encryption*  
+*2.Run a connector*  
+*3.Send/receive messages*  
+*4.ConnectorManager and ConnectorAPI*  
+*5.send_message*  
+*6.Programmatic management tools*  
+*7.Command line interface management tools*  
+*8.Testing tools*  
+*9.Embedded chat*  
+*Windows*  
+*Server example*  
+*Client example*  
 
 ## FEATURES
 
