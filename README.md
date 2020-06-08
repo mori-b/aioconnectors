@@ -24,7 +24,7 @@ aioconnectors is an easy to set up broker that works on Unix like systems. Requi
 It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.  
 It is built on the client/server model but both peers can push messages. It is asynchronous, and provides the option to wait asynchronously for a response.  
 A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages, the file standalone\_api.py only should be translated.
+A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
 
 
 ## HIGH LEVEL DESIGN
