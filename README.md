@@ -162,6 +162,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "send_message_types": [
         "any"
     ],
+    "send_message_types_priorities": null,
     "server_sockaddr": [
         "127.0.0.1",
         10673
@@ -206,6 +207,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
+-send\_message\_types\_priorities : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it. This might starve the lowest priority messages.  
 -In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_recv\_config, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":""}. target\_directory is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". "owner" is optional, it is the owner of the uploaded file. It must be of the form "user:group".  
 -You can choose the size limit of files you send with max\_size\_file\_upload. Default is 1GB.  
 -In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
@@ -236,7 +238,7 @@ These arguments must be filled on the application layer by the user
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
 This is shown in aioconnectors\_test.py.  
--wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than 1000 messages per second.  
+-wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of thousands messages per second.  
 
 The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
 

@@ -26,7 +26,8 @@ class ConnectorManager:
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
-                 everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES):
+                 everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES,
+                 send_message_types_priorities=None):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -51,6 +52,7 @@ class ConnectorManager:
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.max_size_file_upload = max_size_file_upload
         self.everybody_can_send_messages = everybody_can_send_messages
+        self.send_message_types_priorities = send_message_types_priorities
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_recv_config, self.debug_msg_counts, self.silent = file_recv_config, debug_msg_counts, silent
@@ -113,7 +115,8 @@ class ConnectorManager:
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
                                    reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
                                    max_size_file_upload=self.max_size_file_upload,
-                                   everybody_can_send_messages=self.everybody_can_send_messages)        
+                                   everybody_can_send_messages=self.everybody_can_send_messages,
+                                   send_message_types_priorities=self.send_message_types_priorities)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
@@ -340,6 +343,10 @@ class ConnectorAPI(ConnectorBaseTool):
                         #now we need to create a new connection
                         self.reader_writer_uds_path_send = None                        
                         self.logger.exception('send_message uds_path_send_preserve_socket')
+                        try:
+                            writer.close()
+                        except Exception:
+                            pass
                                           
                         
             self.logger.debug('send_message creating new connection')

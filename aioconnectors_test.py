@@ -141,11 +141,12 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'client':
             print('Started client')
             if TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY:
-                disk_persistence = ['type1']
+                disk_persistence = ['type1','type2']
             connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=False, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
                                                     client_name=local_name, disk_persistence_send=PERSISTENCE_CLIENT, disk_persistence_recv=PERSISTENCE_CLIENT, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
                                                     send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES, file_recv_config=FILE_RECV_CONFIG, 
-                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
+                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL,
+                                                    send_message_types_priorities={'type1':1,'type2':2})
             loop = asyncio.get_event_loop()
 
             if PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE:
@@ -181,12 +182,12 @@ if __name__ == '__main__':
             if TEST_COMMANDER_CLIENT:
                 loop.create_task(connector_api.delete_client_certificate())
             
-            async def client_cb_event(logger, transport_json , data, binary):
+            async def client_cb_type1(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                                    
                 increment_result(own_source_id, peer_id, 'type1', 'recv')
 
                 
-            async def client_cb_command(logger, transport_json , data, binary):
+            async def client_cb_type2(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']   
                 increment_result(own_source_id, peer_id, 'type2', 'recv')
 
@@ -194,8 +195,8 @@ if __name__ == '__main__':
             loop.create_task(print_results())
             #wait for messages from server (call once only)   
             if True: #TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_SERVER or TEST_SERVER_AWAITS_REPLY or TEST_CLIENT_AWAITS_REPLY or TEST_UPLOAD_FILE:
-                loop.create_task(connector_api.start_waiting_for_messages(message_type='type2', message_received_cb=client_cb_command))
-                #loop.create_task(connector_api.start_waiting_for_messages(message_type='type1', message_received_cb=client_cb_command))
+                loop.create_task(connector_api.start_waiting_for_messages(message_type='type2', message_received_cb=client_cb_type2))
+                loop.create_task(connector_api.start_waiting_for_messages(message_type='type1', message_received_cb=client_cb_type1))
                 
             async def send_stress(message_type, peer_id, delay):
                 await asyncio.sleep(delay)    
@@ -222,8 +223,8 @@ if __name__ == '__main__':
                     messages_per_second = 1
                     with_file_template={'src_path':FILE_SRC_PATH,'dst_type':'file1', 'dst_name':os.path.basename(FILE_SRC_PATH)+'_from_client_'+own_source_id+'_index_{}', 'delete':False} #default is delete=True
                 elif TEST_TRAFFIC_CLIENT:
-                    duration_test = 10 #seconds
-                    messages_per_second = 1000
+                    duration_test = 5 #seconds
+                    messages_per_second = 1000  #10000
                     if TEST_WITH_ACK:
                         messages_per_second = 10
                 elif TEST_PERSISTENCE_CLIENT_AWAIT_REPLY:
@@ -263,6 +264,7 @@ if __name__ == '__main__':
                     
             if TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY:                                        
                 loop.create_task(send_stress(message_type='type1', peer_id=str(SERVER_SOCKADDR), delay=2))
+                loop.create_task(send_stress(message_type='type2', peer_id=str(SERVER_SOCKADDR), delay=2))                
             elif TEST_SERVER_AWAITS_REPLY:    
                 loop.create_task(send_stress(message_type='type2', peer_id=str(SERVER_SOCKADDR), delay=7))
             elif TEST_CLIENT_AWAITS_REPLY:
@@ -271,12 +273,14 @@ if __name__ == '__main__':
                 loop.create_task(send_stress(message_type='type1', peer_id=str(SERVER_SOCKADDR), delay=3))
             elif TEST_TRAFFIC_CLIENT:
                 loop.create_task(send_stress(message_type='type1', peer_id=str(SERVER_SOCKADDR), delay=2))
+                loop.create_task(send_stress(message_type='type2', peer_id=str(SERVER_SOCKADDR), delay=2))
                 
             try:
                 loop.run_forever()
             except:
                 print('send2client stopped !')
                 connector_api.stop_waiting_for_messages(message_type='type2')
+                connector_api.stop_waiting_for_messages(message_type='type1')                
                 #for task in tasks:
                 #    task.cancel()
                 
@@ -305,12 +309,12 @@ if __name__ == '__main__':
             loop.create_task(print_queues(3))
             '''
                 
-            async def server_cb_event(logger, transport_json , data, binary):
+            async def server_cb_type1(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                                    
                 increment_result(own_source_id, peer_id, 'type1', 'recv')
 
                 
-            async def server_cb_command(logger, transport_json , data, binary):
+            async def server_cb_type2(logger, transport_json , data, binary):
                 peer_id = transport_json['source_id']                    
                 increment_result(own_source_id, peer_id, 'type2', 'recv')
 
@@ -318,8 +322,8 @@ if __name__ == '__main__':
             loop.create_task(print_results())
             #wait for messages from client (call once only)     
             if True: #TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_SERVER or TEST_CLIENT_AWAITS_REPLY or TEST_UPLOAD_FILE:                   
-                loop.create_task(connector_api.start_waiting_for_messages(message_type='type1', message_received_cb=server_cb_event))
-                loop.create_task(connector_api.start_waiting_for_messages(message_type='type2', message_received_cb=server_cb_command))
+                loop.create_task(connector_api.start_waiting_for_messages(message_type='type1', message_received_cb=server_cb_type1))
+                loop.create_task(connector_api.start_waiting_for_messages(message_type='type2', message_received_cb=server_cb_type2))
                         
             async def send_stress(message_type, peer_id, delay=0):
                 index = 0        

@@ -32,6 +32,7 @@ import ssl
 import uuid
 from copy import deepcopy
 import stat
+from time import time
 
 from .helpers import full_path, chown_file, chown_nobody_permissions, iface_to_ip
 from .ssl_helper import SSL_helper
@@ -112,6 +113,7 @@ class Connector:
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
     UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT = 'uds_path_receive_from_connector_client_{}_{}'    
     MAX_LENGTH_UDS_PATH = 104
+    SUPPORT_PRIORITIES = True
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
@@ -123,7 +125,8 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES):
+                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
+                 send_message_types_priorities=None):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -237,6 +240,9 @@ class Connector:
                     self.logger.info('Connector will not use ssl')
                     
                 self.everybody_can_send_messages = everybody_can_send_messages
+                self.send_message_types_priorities = send_message_types_priorities
+                if not self.send_message_types_priorities:
+                    self.send_message_types_priorities = {}
                 self.max_size_file_upload = max_size_file_upload
                 self.disk_persistence = disk_persistence_send
                 self.persistence_path = os.path.join(self.connector_files_dirpath,
@@ -788,8 +794,12 @@ class Connector:
                             self.logger.debug('Loading persistent message to queue : '+peername)                 
                             message_tuple = self.unpack_message(message)
                             if DEBUG_SHOW_DATA:
-                                self.logger.debug('With data : '+str(message_tuple[1][:10]))                                       
-                            await queue_send.put(message_tuple)
+                                self.logger.debug('With data : '+str(message_tuple[1][:10]))
+                            if self.SUPPORT_PRIORITIES:
+                                #insert 2 priority null fields, expected by queue_send get
+                                await queue_send.put((None, None, message_tuple))
+                            else:
+                                await queue_send.put(message_tuple)
                             persistent_count += 1
                             #sleep(0) is important otherwise queue_send_to_connector_put may have losses under high loads
                             #because of this cpu intensive loop
@@ -904,7 +914,7 @@ class Connector:
 
     async def queue_send_to_connector_put(self, reader, writer):
         # receives from uds socket, writes to queue_send
-        #4|2|json|4|data|4|binary        
+        #4|2|json|4|data|4|binary    
         try:
             while True:
                 if self.debug_msg_counts:
@@ -1024,7 +1034,10 @@ class Connector:
                     try:
                         if self.debug_msg_counts:
                             self.msg_counts['send_no_persist']+=1
-                        queue_send.put_nowait(message_tuple)
+                        if self.SUPPORT_PRIORITIES:
+                            queue_send.put_nowait((self.send_message_types_priorities.get(message_type, 0), time(), message_tuple))
+                        else:
+                            queue_send.put_nowait(message_tuple)
                     except Exception:
                         self.logger.exception('queue_send.put_nowait')
                         
@@ -1499,7 +1512,10 @@ class FullDuplex:
                 
                 count = 0
                 while not queue_send.empty():
-                    transport_json, data, binary = queue_send.get_nowait()
+                    if self.connector.SUPPORT_PRIORITIES:
+                        priority, the_time, (transport_json, data, binary) = queue_send.get_nowait()
+                    else:
+                        transport_json, data, binary = queue_send.get_nowait()
                     disk_persistence = True
                     if disk_persistence_is_list:
                         #disk_persistence can be a list of message types
@@ -1652,7 +1668,10 @@ class FullDuplex:
                                         
             if self.peername not in self.connector.queue_send:
                 self.logger.info(self.connector.source_id+' Creating queue_send for peername : '+str(self.peername))
-                self.connector.queue_send[self.peername] = asyncio.Queue(maxsize=self.connector.MAX_QUEUE_SIZE)            
+                if self.connector.SUPPORT_PRIORITIES:
+                    self.connector.queue_send[self.peername] = asyncio.PriorityQueue(maxsize=self.connector.MAX_QUEUE_SIZE)  
+                else:
+                    self.connector.queue_send[self.peername] = asyncio.Queue(maxsize=self.connector.MAX_QUEUE_SIZE)                     
                 
             #self.lock_connection = asyncio.Lock()    #to not mix send and recv internal steps
             task_incoming_connection = self.loop.create_task(self.handle_incoming_connection())
@@ -1945,8 +1964,12 @@ class FullDuplex:
     async def handle_outgoing_connection_queue(self, queue_send, condition): 
         while condition():
             try:
-                self.logger.debug(self.connector.source_id+' handle_outgoing_connection wait for queue_send')        
-                transport_json, data, binary = message_tuple = await queue_send.get()
+                self.logger.debug(self.connector.source_id+' handle_outgoing_connection wait for queue_send')     
+                if self.connector.SUPPORT_PRIORITIES:
+                    priority, the_time, (transport_json, data, binary) = message_tuple = await queue_send.get()
+                    message_tuple = message_tuple[2]
+                else:
+                    transport_json, data, binary = message_tuple = await queue_send.get()
                 #self.connector.msg_counts['queue_sent']+=1
                 self.logger.debug(self.connector.source_id+' Received message from queue_send : ' + str(transport_json))
                 if DEBUG_SHOW_DATA:
@@ -2047,7 +2070,10 @@ class FullDuplex:
                             count = 0
                             disk_persistence_is_list = isinstance(self.connector.disk_persistence, list)
                             while not queue_send.empty():
-                                transport_json, data, binary = queue_send.get_nowait()
+                                if self.connector.SUPPORT_PRIORITIES:
+                                    priority, the_time, (transport_json, data, binary) = queue_send.get_nowait()
+                                else:
+                                    transport_json, data, binary = queue_send.get_nowait()
                                 disk_persistence = True                                
                                 if disk_persistence_is_list:
                                     #disk_persistence can be a list of message types
