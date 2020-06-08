@@ -229,7 +229,10 @@ class ConnectorAPI:
                         #now we need to create a new connection
                         self.reader_writer_uds_path_send = None                        
                         self.logger.exception('send_message uds_path_send_preserve_socket')
-                                          
+                        try:
+                            writer.close()
+                        except Exception:
+                            pass                                          
                         
             self.logger.debug('send_message creating new connection')
             try:

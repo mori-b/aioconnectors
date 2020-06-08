@@ -162,7 +162,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
     "send_message_types": [
         "any"
     ],
-    "send_message_types_priorities": null,
+    "send_message_types_priorities": {},
     "server_sockaddr": [
         "127.0.0.1",
         10673
