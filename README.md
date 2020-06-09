@@ -101,7 +101,10 @@ This works as described in 2., if you run server and client on the same machine.
     except:
         print('Connector stopped !')
 
+    #stop receiving messages
     connector_api.stop_waiting_for_messages(message_type='any')
+
+    #stop connector
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
 
@@ -147,7 +150,10 @@ This works as described in 2., if you run server and client on the same machine.
     except:
         print('Connector stopped !')
 
+    #stop receiving messages
     connector_api.stop_waiting_for_messages(message_type='any')
+
+    #stop connector
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
 
