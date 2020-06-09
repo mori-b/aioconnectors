@@ -34,7 +34,8 @@ You can run a connector with a single shell command
 
     python3 -m aioconnectors create_connector <config_json_path>
 
-This is covered in 2., but this example shows the programmatic way to run connectors. This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to applications.py or aioconnectors\_test.py.  
+This is covered in 2., but this example shows the programmatic way to run connectors.  
+This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to applications.py or aioconnectors\_test.py.  
 For both server and client, connector\_manager is running the connector, and connector\_api is sending/receiving messages.  
 In this example, connector\_manager and connector\_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.  
 In this example we are running server and client on the same machine since server_sockaddr is set to "127.0.0.1".  
@@ -42,7 +43,7 @@ To run server and client on different machines, you should modify server_sockadd
 You can run multiple clients, just set a different client\_name for each client.  
 
 1.No encryption  
-You can run this example code directly, the encryption is disabled.  
+You can run the following example code directly, the encryption is disabled.  
 
 2.Encryption without authentication  
 In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
@@ -54,7 +55,7 @@ If you run server and client on different machines, this command should be run o
 
 3.Encryption with authentication  
 In this example, the kwarg allow\_ssl\_all is enabled, meaning the communication between server and client if encrypted is not authenticated. In case you want to run this example with authentication too, you should set use\_ssl to True and allow\_ssl\_all to False in both server and client ConnectorManager instantiations.  
-This works as described in 2. if you run server and client on the same machine. In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
+This works as described in 2., if you run server and client on the same machine. In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated /tmp/aioconnectors/certificates/server to your server and /tmp/aioconnectors/certificates/client to your client.  
 
 
 ### Server example
@@ -148,6 +149,7 @@ This works as described in 2. if you run server and client on the same machine. 
     connector_api.stop_waiting_for_messages(message_type='any')
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
+
 
 
 ## HIGH LEVEL DESIGN
