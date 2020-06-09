@@ -295,7 +295,8 @@ Your application can read these transport arguments to obtain information about 
 transport\_json will contain a with\_file key if a file has been received, more details in 5-.  
 -data is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
 -binary is an optional binary message (or None).  
--reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
+-reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.  
+-if you send a message using send\_message(await\_response=True), the response value is the expected response message : so in that case the response message is not received by the start\_waiting\_for\_messages task.
 
 
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
