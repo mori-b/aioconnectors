@@ -62,49 +62,55 @@ This works as described in 2., if you run server and client on the same machine.
 ### Server example
 
     import asyncio
+    import os
     import aioconnectors
-
+    
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
-
+    
     #create connector
-    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False, ssl_allow_all=True,
-                                                       connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
+    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
+                                                       ssl_allow_all=True, connector_files_dirpath=connector_files_dirpath,
+                                                       certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
                                                        file_recv_config={'any': {'target_directory':connector_files_dirpath}},
                                                        reuse_server_sockaddr=True)
-
+    
     task_manager =  loop.create_task(connector_manager.start_connector())
     loop.run_until_complete(task_manager)
-
+    
     #start sending and receiving messages
-    connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, connector_files_dirpath=connector_files_dirpath,
-                                                       send_message_types=['any'], recv_message_types=['any'], default_logger_log_level='INFO')
-
+    connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr,
+                                               connector_files_dirpath=connector_files_dirpath,
+                                               send_message_types=['any'], recv_message_types=['any'],
+                                               default_logger_log_level='INFO')
+    
     async def message_received_cb(logger, transport_json , data, binary):
         print('SERVER : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
-
+    
     async def send_messages(destination):
         await asyncio.sleep(2)
         index = 0
         while True:
             index += 1
-            await connector_api.send_message(data={'application message': f'SERVER MESSAGE {index}'}, message_type='any', destination_id=destination)
+            await connector_api.send_message(data={'application message': f'SERVER MESSAGE {index}'},
+                                             message_type='any', destination_id=destination)
             await asyncio.sleep(1)
                                                     
     loop.create_task(send_messages(destination='client1'))
-
+    
     try:
-        print(f"Connector is running, check log at {os.path.join(connector_files_dirpath,'aioconnectors.log')}, type Ctrl+C to stop")
+        print(f'Connector is running, check log at {connector_files_dirpath+"/aioconnectors.log"}'
+              f', type Ctrl+C to stop')
         loop.run_forever()
     except:
         print('Connector stopped !')
-
+    
     #stop receiving messages
     connector_api.stop_waiting_for_messages(message_type='any')
-
+    
     #stop connector
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
@@ -113,29 +119,33 @@ This works as described in 2., if you run server and client on the same machine.
 
     import asyncio
     import aioconnectors
-
+    
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
     connector_files_dirpath = '/tmp/aioconnectors'
     client_name = 'client1'
-
+    
     #create connector
-    connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, use_ssl=False, ssl_allow_all=True,
-                                                       connector_files_dirpath=connector_files_dirpath, certificates_directory_path=connector_files_dirpath,
+    connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
+                                                       use_ssl=False, ssl_allow_all=True,
+                                                       connector_files_dirpath=connector_files_dirpath,
+                                                       certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
-                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}}, client_name=client_name)
-
+                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}},
+                                                       client_name=client_name)
+    
     loop.create_task(connector_manager.start_connector())
-
+    
     #start sending and receiving messages
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
-                                               connector_files_dirpath=connector_files_dirpath, client_name=client_name, send_message_types=['any'],
-                                               recv_message_types=['any'], default_logger_log_level='INFO')
-
+                                               connector_files_dirpath=connector_files_dirpath, client_name=client_name,
+                                               send_message_types=['any'], recv_message_types=['any'],
+                                               default_logger_log_level='INFO')
+    
     async def message_received_cb(logger, transport_json , data, binary):
         print('CLIENT : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
-
+    
     async def send_messages():
         await asyncio.sleep(1)
         index = 0
@@ -145,16 +155,17 @@ This works as described in 2., if you run server and client on the same machine.
             await asyncio.sleep(1)
                                            
     loop.create_task(send_messages())
-
+    
     try:
-        print(f"Connector is running, check log at {os.path.join(connector_files_dirpath,'aioconnectors.log')}, type Ctrl+C to stop")
+        print(f'Connector is running, check log at {connector_files_dirpath+"/aioconnectors.log"}'
+              f', type Ctrl+C to stop')
         loop.run_forever()
     except:
         print('Connector stopped !')
-
+    
     #stop receiving messages
     connector_api.stop_waiting_for_messages(message_type='any')
-
+    
     #stop connector
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
