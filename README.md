@@ -293,7 +293,7 @@ More details in 5-.
 -transport\_json is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5-. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
 Your application can read these transport arguments to obtain information about peer (source\_id, request\_id if provided, etc), and in order to create a proper response (with correct destination\_id, and response\_id for example if needed, etc).  
 transport\_json will contain a with\_file key if a file has been received, more details in 5-.  
--data is the message data bytes  
+-data is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
 -binary is an optional binary message (or None).  
 -reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.
 
