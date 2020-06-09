@@ -385,7 +385,7 @@ These arguments must be filled on the application layer by the user
 -await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id.
 This is shown in aioconnectors\_test.py.  
--wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of thousands messages per second.  
+-wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
 
 The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
 
