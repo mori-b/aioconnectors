@@ -97,6 +97,7 @@ This works as described in 2., if you run server and client on the same machine.
     loop.create_task(send_messages(destination='client1'))
 
     try:
+        print(f"Connector is running, check log at {os.path.join(connector_files_dirpath,'aioconnectors.log')}, type Ctrl+C to stop")
         loop.run_forever()
     except:
         print('Connector stopped !')
@@ -146,6 +147,7 @@ This works as described in 2., if you run server and client on the same machine.
     loop.create_task(send_messages())
 
     try:
+        print(f"Connector is running, check log at {os.path.join(connector_files_dirpath,'aioconnectors.log')}, type Ctrl+C to stop")
         loop.run_forever()
     except:
         print('Connector stopped !')
