@@ -115,6 +115,7 @@ This works as described in 2., if you run server and client on the same machine.
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
 
+
 ### Client example
 
     import asyncio
