@@ -65,7 +65,7 @@ def chown_nobody_permissions(directory_path, logger=None):
         os.chmod(directory_path, stat.S_IRWXU | stat.S_IRWXG)# | stat.S_IRWXO)
     except Exception as exc:
         if logger:
-            logger.warning('chown_nobody_permissions : '+str(exc))  
+            logger.info('chown_nobody_permissions : '+str(exc))  
     
 def iface_to_ip(iface, logger=None):
     #requires ifconfig
