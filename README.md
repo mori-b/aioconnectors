@@ -44,6 +44,7 @@ You can run multiple clients, just set a different client\_name for each client.
 
 1.No encryption  
 You can run the following example code directly, the encryption is disabled.  
+In case you want to use this example with encryption, you should read 2. and 3., otherwise you can skip to the example.  
 
 2.Encryption without authentication  
 In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
