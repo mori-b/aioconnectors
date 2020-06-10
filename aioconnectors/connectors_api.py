@@ -164,9 +164,9 @@ class ConnectorManager:
             res = await self.connector.delete_client_certificate_on_client()
         return res     
         
-    def show_connected_peers(self,):
+    def show_connected_peers(self, dump_result=False):
         self.logger.info(f'{self.source_id} show_connected_peers') 
-        return self.connector.show_connected_peers()
+        return self.connector.show_connected_peers(dump_result=dump_result)
 
     def ignore_peer_traffic_show(self):
         self.logger.info(f'{self.source_id} ignore_peer_traffic_show') 
