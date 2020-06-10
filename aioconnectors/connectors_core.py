@@ -374,7 +374,7 @@ class Connector:
                 
             return
         except (ConnectionRefusedError, asyncio.TimeoutError) as exc:
-            self.logger.warning(str(exc))
+            self.logger.warning(f'{str(exc) or type(exc)}')
             if not self.is_server:
                 self.tasks['client_wait_for_reconnect'] = self.loop.create_task(self.client_wait_for_reconnect())    
             return                
