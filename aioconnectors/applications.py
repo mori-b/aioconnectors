@@ -381,8 +381,8 @@ def chat(args, logger=None):
     task_manager = loop.create_task(connector_manager.start_connector())
     #run_until_complete now, in order to exit in case of exception
     #for example because of already existing socket
-    loop.run_until_complete(task_manager)
-
+    loop.run_until_complete(task_manager)  
+    
     task_recv = task_console = task_send_file = None
     
     async def message_received_cb(logger, transport_json , data, binary):
@@ -412,6 +412,7 @@ def chat(args, logger=None):
         
     class InputProtocolFactory(asyncio.Protocol):
         #hook user input : sends message to peer, and support special cases (!)
+
         def connection_made(self, *args, **kwargs):
             super().connection_made(*args, **kwargs)
             print(custom_prompt,end='', flush=True)
@@ -489,8 +490,17 @@ def chat(args, logger=None):
                                                         message_type='any'))                   
             print(custom_prompt,end='', flush=True)
         
-    async def connect_pipe_to_stdin(loop):
-        #hook user input
+    async def connect_pipe_to_stdin(loop, connector_manager):
+        #hook user input       
+        if not is_server:
+            print('Connector waiting to connect ... (Ctrl+C to quit)')
+
+            while True:
+                await asyncio.sleep(1)                
+                if connector_manager.show_connected_peers():
+                    print('Connected !')
+                    break                  
+        
         transport, protocol = await loop.connect_read_pipe(InputProtocolFactory, sys.stdin)        
     
     async def upload_file(args, destination_id):
@@ -511,7 +521,7 @@ def chat(args, logger=None):
             
     if not args.upload:
         #chat mode, hook stdin
-        task_console = loop.create_task(connect_pipe_to_stdin(loop))
+        task_console = loop.create_task(connect_pipe_to_stdin(loop, connector_manager))
     else:
         #upload mode, upload and exit
         task_send_file = loop.create_task(upload_file(args, destination_id))
