@@ -111,10 +111,16 @@ if __name__ == '__main__':
         if sys.argv[1] == 'server':
             print('Started server')
                         
-            connector_manager = aioconnectors.ConnectorManager(config_file_path=None, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=True, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH,
-                                                    disk_persistence_send=PERSISTENCE_SERVER, disk_persistence_recv=PERSISTENCE_SERVER, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
-                                                    send_message_types=SERVER_MESSAGE_TYPES, recv_message_types=CLIENT_MESSAGE_TYPES, file_recv_config=FILE_RECV_CONFIG, reuse_server_sockaddr=True,
-                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
+            connector_manager = aioconnectors.ConnectorManager(config_file_path=None, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, 
+                                                   is_server=True, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, 
+                                                   certificates_directory_path=CERTIFICATES_DIRECTORY_PATH,
+                                                   disk_persistence_send=PERSISTENCE_SERVER, disk_persistence_recv=PERSISTENCE_SERVER, 
+                                                   debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
+                                                   send_message_types=SERVER_MESSAGE_TYPES, recv_message_types=CLIENT_MESSAGE_TYPES, 
+                                                   file_recv_config=FILE_RECV_CONFIG, reuse_server_sockaddr=True,
+                                                   uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
+                                                   uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, 
+                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
             loop = asyncio.get_event_loop()
             
             if PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE:
@@ -142,11 +148,17 @@ if __name__ == '__main__':
             print('Started client')
             if TEST_PERSISTENCE_CLIENT or TEST_PERSISTENCE_CLIENT_AWAIT_REPLY:
                 disk_persistence = ['type1','type2']
-            connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, is_server=False, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
-                                                    client_name=local_name, disk_persistence_send=PERSISTENCE_CLIENT, disk_persistence_recv=PERSISTENCE_CLIENT, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, silent=SILENT, #use_ack=TEST_WITH_ACK,
-                                                    send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES, file_recv_config=FILE_RECV_CONFIG, 
-                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL,
-                                                    send_message_types_priorities={'type1':1,'type2':2})
+            connector_manager = aioconnectors.ConnectorManager(default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, 
+                                                   is_server=False, server_sockaddr=SERVER_SOCKADDR, use_ssl=TEST_WITH_SSL, 
+                                                   certificates_directory_path=CERTIFICATES_DIRECTORY_PATH, 
+                                                   client_name=local_name, disk_persistence_send=PERSISTENCE_CLIENT, 
+                                                   disk_persistence_recv=PERSISTENCE_CLIENT, debug_msg_counts=TEST_DEBUG_MSG_COUNTS, 
+                                                   file_recv_config=FILE_RECV_CONFIG, silent=SILENT, #use_ack=TEST_WITH_ACK,
+                                                   send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES,                                                     
+                                                   uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
+                                                   uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, 
+                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL,
+                                                   send_message_types_priorities={'type1':1,'type2':2})
             loop = asyncio.get_event_loop()
 
             if PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE:
