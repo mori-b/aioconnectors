@@ -107,6 +107,9 @@ class ConnectorAPI:
                     raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                        f'than {self.MAX_LENGTH_UDS_PATH}')                
             
+    def alnum_name(self, name):
+        return ''.join([str(letter) for letter in name if str(letter).isalnum()])
+            
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,
                      request_id=None, response_id=None, binary=None, await_response=False,
@@ -357,10 +360,10 @@ class ConnectorAPI:
         server = self.message_waiters.pop(message_type)
         server.close()
         try:
-            for the_path in self.uds_path_receive_from_connector.values():
-                if os.path.exists(the_path):
-                    self.logger.info('Deleting file '+ the_path)
-                    os.remove(the_path)
+            uds_path_receive_from_connector = self.uds_path_receive_from_connector.get(message_type, '')            
+            if os.path.exists(uds_path_receive_from_connector):
+                self.logger.info('Deleting file '+ uds_path_receive_from_connector)
+                os.remove(uds_path_receive_from_connector)
         except Exception:
             self.logger.exception('stop_waiting_for_messages')
             raise

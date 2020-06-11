@@ -485,10 +485,10 @@ class ConnectorAPI(ConnectorBaseTool):
         server = self.message_waiters.pop(message_type)
         server.close()
         try:
-            for the_path in self.connector.uds_path_receive_from_connector.values():
-                if os.path.exists(the_path):
-                    self.logger.info('Deleting file '+ the_path)
-                    os.remove(the_path)
+            uds_path_receive_from_connector = self.connector.uds_path_receive_from_connector.get(message_type, '')            
+            if os.path.exists(uds_path_receive_from_connector):
+                self.logger.info('Deleting file '+ uds_path_receive_from_connector)
+                os.remove(uds_path_receive_from_connector)
         except Exception:
             self.logger.exception('stop_waiting_for_messages')
             raise
