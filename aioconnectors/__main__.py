@@ -22,7 +22,8 @@ aioconnectors supported commands :
     - test_send_messages <config file path>
     - ping <config file path>
     - chat [--target <server_ip>] [--upload <path>] [--help]
-    
+    - --help
+    - --version
 '''
     
     
@@ -148,6 +149,8 @@ if len(sys.argv) > 1:
                         
     elif sys.argv[1] == '--help':
         print(HELP)
+    elif sys.argv[1] == '--version':
+        print(aioconnectors.__version__)
     else:
         print('Unknown command : '+str(sys.argv[1]))
 else:
