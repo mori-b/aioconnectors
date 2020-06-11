@@ -66,7 +66,8 @@ if len(sys.argv) > 1:
                         everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, send_message_types_priorities={})
         print('\n- MANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
-        file_recv_config = {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/','owner':'user:user'}}
+        file_recv_config = {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/',
+                                    'owner':'user:user', 'override_existing':False}}
         print('\n- file_recv_config example, used inside MANAGER TEMPLATE')
         print(json.dumps(file_recv_config, indent=4, sort_keys=True))                
         

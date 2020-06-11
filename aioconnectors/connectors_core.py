@@ -34,7 +34,7 @@ from copy import deepcopy
 import stat
 from time import time
 
-from .helpers import full_path, chown_file, chown_nobody_permissions, iface_to_ip
+from .helpers import full_path, chown_file, chown_nobody_permissions, iface_to_ip, CustomException
 from .ssl_helper import SSL_helper
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -101,7 +101,8 @@ class Connector:
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
     PERSISTENCE_SEPARATOR_REPLACEMENT = b'#@@PERSISTENCE_SEPARATOR@@#'    
-    #example : {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/','owner':'user:user'}}
+    #FILE_RECV_CONFIG example : {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/',
+    #'owner':'user:user', 'override_existing':False}}
     FILE_RECV_CONFIG = {}    
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
     EVERYBODY_CAN_SEND_MESSAGES = True
@@ -1821,22 +1822,27 @@ class FullDuplex:
                         file_recv_config = self.connector.file_recv_config.get(with_file.get('dst_type'))
                         dst_dirpath = file_recv_config['target_directory'].format(**transport_json)
                         file_owner = file_recv_config.get('owner')
+                        override_existing = file_recv_config.get('override_existing', False)
                         
                         if dst_dirpath:
+                            binary_offset = 0
                             try:
                                 if not binary:
                                     binary = b''
                                 binary_offset = with_file.get('binary_offset', 0)                            
                                 dst_fullpath = full_path(os.path.join(dst_dirpath, with_file.get('dst_name','')))
                                 if not dst_fullpath.startswith(dst_dirpath):
-                                    raise Exception(f'Illegal traversal file path {dst_fullpath}')
+                                    raise CustomException(f'Illegal traversal file path {dst_fullpath}')
                                 if with_file.get('file_error'):
-                                    raise Exception(f'File error : {with_file["file_error"]}')
+                                    raise CustomException(f'File error : {with_file["file_error"]}')
+                                continue_with_file = True
                                 if os.path.exists(dst_fullpath):
-                                    self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                    if not override_existing:
+                                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
                                                         f'peer {self.peername} trying to override existing file '
                                                         f'{dst_fullpath}, ignoring...')
-                                else:
+                                        continue_with_file = False
+                                if continue_with_file:
                                     self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                      f'{self.peername} writing received file to {dst_fullpath}')
                                     file_owner_from_client = with_file.get('owner')
@@ -1868,6 +1874,11 @@ class FullDuplex:
                                     #    self.logger.info(f'{self.connector.source_id} from peer {self.peername} '
                                     #                        'fcreating directory {dir_dst_fullpath}')
                                     #    os.makedirs(dir_dst_fullpath)
+                                    
+                                    if len(binary[binary_offset:]) > self.connector.max_size_file_upload:
+                                        raise CustomException(f'{self.connector.source_id} cannot receive too large file of size'
+                                                        f' {len(binary[binary_offset:])}')                                    
+                                                                        
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
                                     if file_owner:
@@ -1877,9 +1888,23 @@ class FullDuplex:
                                 if len(binary) == 0:
                                     if MessageFields.WITH_BINARY in transport_json:
                                         del transport_json[MessageFields.WITH_BINARY]
-                            except Exception:
-                                self.logger.exception(f'{self.connector.source_id} from peer {self.peername} '
+                            except Exception as exc:
+                                if isinstance(exc, CustomException):
+                                    self.logger.warning(f'{self.connector.source_id} from peer {self.peername} '
+                                                      f'handle_incoming_connection with_file : {exc}')
+                                else:
+                                    self.logger.exception(f'{self.connector.source_id} from peer {self.peername} '
                                                       'handle_incoming_connection with_file')
+                                try:
+                                    #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
+                                    binary = binary[:binary_offset]
+                                    if len(binary) == 0:
+                                        if MessageFields.WITH_BINARY in transport_json:
+                                            del transport_json[MessageFields.WITH_BINARY]
+                                except Exception:
+                                    self.logger.exception(f'{self.connector.source_id} from peer {self.peername} '
+                                                      'handle_incoming_connection with_file removal')
+                                    
                         else:
                             self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                 f'{self.peername} tried to create file in non existing directory '

@@ -76,3 +76,6 @@ def iface_to_ip(iface, logger=None):
         if logger:
             logger.exception('iface_to_ip')
         return iface
+
+class CustomException(Exception):
+    pass
