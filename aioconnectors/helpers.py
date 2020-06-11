@@ -7,6 +7,12 @@ import stat
 import subprocess
 import re
 
+PYTHON_VERSION = (sys.version_info.major,sys.version_info.minor)
+if PYTHON_VERSION < (3,6):
+    print('aioconnectors minimum requirement : Python 3.6')
+    sys.exit(1)
+PYTHON_GREATER_37 = (PYTHON_VERSION >= (3,7))
+
 DEFAULT_LOGGER_NAME = 'aioconnector'
 LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
 LOG_LEVEL = 'INFO'
