@@ -499,12 +499,12 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 ## Windows ?
 
 To port aioconnectors to Windows, these steps should be taken, and probably more :  
--Replace usage of unix sockets by local sockets (for example).  
-Since the implementation relies on unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
--Port the usage of openssl in ssl_helper.py  
--Convert paths format  
--Ignore the file uploaded ownership feature  
--Convert the interface to ipaddress function using ipconfig (used for sockaddr and client\_bind\_ip)
+-Replace usage of Unix sockets by local sockets for example, unless Unix sockets support is ready on Windows.  
+Since the implementation relies on Unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
+-Port the usage of openssl in ssl_helper.py.  
+-Convert paths format.  
+-Ignore the file uploaded ownership feature.  
+-Convert the interface to ipaddress function using ipconfig (used for sockaddr and client\_bind\_ip).
 
 
 
