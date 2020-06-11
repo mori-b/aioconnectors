@@ -1,25 +1,3 @@
-'''
-Protocol between client and server : 
-4 bytes = struct 'I' for size up to 2**32-1 = 4294967295 = 4GB
-2 bytes = struct 'H' for size up to 2**16-1 = 65536 = 65 KB
-
-network layer : 
-4 bytes = length, rest is data 
-
-transport layer :
-2 bytes = length, the rest is a json descriptor like : {'message_type':'any', 
-        'source_id':'', 'destination_id':'', 'request_id':<int>, 'response_id':<int>, 'with_binary':true,
-        'with_file':{'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':'', 'file_error':''},
-        'await_response':<bool>, 'wait_for_ack':<bool>}
-request_id and response_id are relevant for application layer
-
-application layer :
-4 bytes = length of json following, rest is custom json
-if with_binary key exists :
-4 bytes = length of binary data following, rest is binary data
-
-'''
-
 import asyncio
 import json
 import logging
@@ -34,8 +12,6 @@ from time import time
 from .connection import FullDuplex, DEBUG_SHOW_DATA, MessageFields, Structures
 from .helpers import full_path, chown_nobody_permissions, iface_to_ip
 from .ssl_helper import SSL_helper
-
-#logging.basicConfig(level=logging.DEBUG)
 
 
 class Connector:
