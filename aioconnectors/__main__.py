@@ -51,7 +51,7 @@ if len(sys.argv) > 1:
         manager_config_template = dict(default_logger_log_level='INFO', 
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
-                        is_server=True, server_sockaddr=Connector.SERVER_ADDR, 
+                        is_server=True, server_sockaddr=Connector.SERVER_ADDR, reuse_server_sockaddr=False,
                         use_ssl=Connector.USE_SSL, ssl_allow_all=False,
                         certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
                         client_name=None, client_bind_ip=None, 
