@@ -32,6 +32,7 @@ Usage examples can be found in applications.py
 __version__ = '1.0.0'
 __author__ = 'Mori Benech'
 
-from .connectors_api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool
-from .connectors_core import MessageFields
+from .api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool
+from .connection import MessageFields
+from .helpers import get_logger
 from . import applications

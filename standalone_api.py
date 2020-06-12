@@ -1,4 +1,4 @@
-'''This file is a simplified standalone version of connectors_api.ConnectorAPI
+'''This file is a simplified standalone version of api.ConnectorAPI
     which could be translated to other languages like javascript'''
 
 import os

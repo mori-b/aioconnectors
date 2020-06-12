@@ -33,11 +33,11 @@ if len(sys.argv) > 1:
         if len(sys.argv) == 3:
             if sys.argv[2] == '--help':
                 print('create_certificates without argument will create client and server certificates directories '
-                      f'under {aioconnectors.connectors_core.Connector.CONNECTOR_FILES_DIRPATH}.\n'
+                      f'under {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n'
                       'You can specify a target directory as an optional argument.\n'
                       '(Use "create_certificates ." to create your target directory in your current working directory.)')
                 sys.exit(0)
-            certificates_directory_path = aioconnectors.connectors_core.full_path(sys.argv[2])
+            certificates_directory_path = aioconnectors.helpers.full_path(sys.argv[2])
         else:
             certificates_directory_path = None
         logger.info('Starting create_certificates')            
@@ -46,7 +46,7 @@ if len(sys.argv) > 1:
             sys.exit(1)
         
     elif sys.argv[1] == 'print_config_templates':
-        Connector = aioconnectors.connectors_core.Connector
+        Connector = aioconnectors.core.Connector
     
         manager_config_template = dict(default_logger_log_level='INFO', 
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 

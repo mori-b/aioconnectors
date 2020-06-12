@@ -192,7 +192,7 @@ And then share the created directories between server and clients as explained i
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
-Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in connectors\_core.py.  
+Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in core.py.  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
 Your application might need to decide whether to accept a client connection : to do so, you might use the connector\_manager.hook\_server\_auth\_client method.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
@@ -499,12 +499,12 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 ## Windows ?
 
 To port aioconnectors to Windows, these steps should be taken, and probably more :  
--Replace usage of Unix sockets by local sockets for example, unless Unix sockets support is ready on Windows.  
-Since the implementation relies on Unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
--Port the usage of openssl in ssl_helper.py.  
--Convert paths format.  
--Ignore the file uploaded ownership feature.  
--Convert the interface to ipaddress function using ipconfig (used for sockaddr and client\_bind\_ip).
+-Replace usage of unix sockets by local sockets (for example).  
+Since the implementation relies on unix sockets paths, a possible approach would be to preserve these paths, and manage a mapping between the paths and their corresponding local listening ports.  
+-Port the usage of openssl in ssl_helper.py  
+-Convert paths format  
+-Ignore the file uploaded ownership feature  
+-Convert the interface to ipaddress function using ipconfig (used for sockaddr and client\_bind\_ip)
 
 
 

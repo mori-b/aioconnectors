@@ -900,8 +900,8 @@ class Connector:
                             return
                         continue
                         
-                #sanity check, that source_id exists and is valid : that way connectors_api doesn't have to ensure source_id, and cannot modify it
-                #but still it is more efficient to rely on connectors_api source_id
+                #sanity check, that source_id exists and is valid : that way api doesn't have to ensure source_id, and cannot modify it
+                #but still it is more efficient to rely on api source_id
                 if transport_json.get(MessageFields.SOURCE_ID) != self.source_id:
                     self.logger.warning(f'{self.source_id} queue_send_to_connector_put : overriding invalid source id '
                                         f'{transport_json.get(MessageFields.SOURCE_ID)} instead of {self.source_id}')
@@ -1249,7 +1249,7 @@ class Connector:
                     continue
         
                 if self.uds_path_receive_preserve_socket:
-                    #this requires start_waiting_for_messages in connectors_api to have a 
+                    #this requires start_waiting_for_messages in api to have a 
                     #client_connected_cb in a while loop, not a simple callback
                     use_existing_connection = False
                     #try to reuse connection to uds
@@ -1288,7 +1288,7 @@ class Connector:
                                       f'to {uds_path_receive}')                    
                     
                 else:
-                    #this requires start_waiting_for_messages in connectors_api to have a 
+                    #this requires start_waiting_for_messages in api to have a 
                     #client_connected_cb as a simple callback, not in a while loop
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
                     try:

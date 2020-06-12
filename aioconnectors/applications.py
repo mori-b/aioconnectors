@@ -12,7 +12,7 @@ import aioconnectors
 
 def create_connector(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='create_connector', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='create_connector', first_run=True)    
     logger.info('Creating connector with config file '+config_file_path)
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
     loop = asyncio.get_event_loop()
@@ -44,10 +44,9 @@ def cli(logger=None):
             print(str(the_key)+')    '+str(value))
     
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='cli', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='cli', first_run=True)    
     print('\nWelcome to aioconnectors CLI')
-    Connector = aioconnectors.connectors_core.Connector   
-    
+    Connector = aioconnectors.core.Connector    
     the_path = input('\nPlease type your connector_files_dirpath, or Enter if it is '
                      f'{Connector.CONNECTOR_FILES_DIRPATH}\n')
     if the_path:
@@ -205,7 +204,7 @@ def cli(logger=None):
         
 def test_receive_messages(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='test_receive_messages', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='test_receive_messages', first_run=True)    
     print('Warning : No other application should be receiving events from this connector')
     logger.info('Creating connector api with config file '+config_file_path)
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
@@ -236,7 +235,7 @@ def test_receive_messages(config_file_path, logger=None):
 
 def test_send_messages(config_file_path, logger=None):
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='test_send_messages', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='test_send_messages', first_run=True)    
     logger.info('Creating connector api with config file '+config_file_path)
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
     destination_id = None
@@ -268,7 +267,7 @@ def test_send_messages(config_file_path, logger=None):
 def ping(config_file_path, logger=None):
     #lets a connector ping a remote connector peer
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='ping', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='ping', first_run=True)    
     logger.info('Creating connector api with config file '+config_file_path)    
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
     destination_id = None
@@ -305,7 +304,7 @@ def ping(config_file_path, logger=None):
 def chat(args, logger=None):
     #chat supports sending messages and files/directories between 2 connectors
     if not logger:
-        logger = aioconnectors.helpers.get_logger(logger_name='chat', first_run=True)
+        logger = aioconnectors.get_logger(logger_name='chat', first_run=True)
     custom_prompt = 'aioconnectors>> '        
     chat_client_name = 'chat_client'
     CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
@@ -341,7 +340,7 @@ def chat(args, logger=None):
 
     
     if is_server:
-        server_sockaddr = (args.bind_server_ip or '0.0.0.0', int(args.port or 0) or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+        server_sockaddr = (args.bind_server_ip or '0.0.0.0', int(args.port or 0) or aioconnectors.core.Connector.SERVER_ADDR[1])
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
         aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 
@@ -359,7 +358,7 @@ def chat(args, logger=None):
                                                            default_logger_log_level='INFO')
         destination_id = chat_client_name
     else:
-        server_sockaddr = (args.target, args.port or aioconnectors.connectors_core.Connector.SERVER_ADDR[1])
+        server_sockaddr = (args.target, args.port or aioconnectors.core.Connector.SERVER_ADDR[1])
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
         aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
         connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr, 

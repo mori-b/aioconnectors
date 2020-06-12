@@ -5,7 +5,8 @@ from functools import partial
 import uuid
 
 from .helpers import get_logger, chown_nobody_permissions
-from .connectors_core import Connector, Structures
+from .core import Connector
+from .connection import Structures
 
 DEFAULT_LOGGER_NAME = 'aioconnectors'
 LOGFILE_DEFAULT_NAME = 'aioconnectors.log'
