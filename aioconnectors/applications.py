@@ -55,11 +55,24 @@ def cli(logger=None):
         the_path = Connector.CONNECTOR_FILES_DIRPATH
     
     while True:
-        name = input(f'\nTo check your server, please type your server <ip> <port> '
+        active_connectors_path = os.path.join(the_path, Connector.DEFAULT_ACTIVE_CONNECTORS_NAME)
+        dict_connector_names = {}
+        try:         
+            if os.path.exists(active_connectors_path):
+                with open(active_connectors_path, 'r') as fd:
+                    set_active_connectors = json.load(fd)    
+                dict_connector_names = {str(index):connector_name for index,connector_name in enumerate(set_active_connectors)}
+                display_dict(dict_connector_names)        
+                print('\nPlease type the connector number you would like to run, or')
+        except Exception as exc:
+            print(exc)
+        
+        name_input = input(f'\nTo check your server, please type your server <ip> <port> '
                      f'(default port is {Connector.SERVER_ADDR[1]}).\nTo check your client, please type your '
-                     'client name.\nType "q" to quit.\n')
-        if name == 'q':
+                     'client name.\nType "q" to quit.\n')        
+        if name_input == 'q':
             sys.exit(0)
+        name = dict_connector_names.get(name_input, name_input)
         names = name.split(maxsplit=1) #assume that client name has no spaces
         server_sockaddr = client_name = None
         if len(names) == 2:
@@ -75,6 +88,11 @@ def cli(logger=None):
         if not os.path.exists(connector_remote_tool.connector.uds_path_commander):
             clearscreen()
             print(f'The connector {name} does not exist')
+            if name_input in dict_connector_names:
+                #deleting invalid name_input from  dict_connector_names
+                set_active_connectors.remove(name)
+                with open(active_connectors_path, 'w') as fd:
+                    json.dump(set_active_connectors, fd)
             continue
         clearscreen()
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 

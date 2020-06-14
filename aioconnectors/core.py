@@ -53,6 +53,7 @@ class Connector:
     FILE_RECV_CONFIG = {}    
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False
     EVERYBODY_CAN_SEND_MESSAGES = True
+    DEFAULT_ACTIVE_CONNECTORS_NAME = 'active_connectors.json'    
     UDS_PATH_COMMANDER = 'uds_path_commander_{}'   
     
     UDS_PATH_SEND_TO_CONNECTOR_SERVER = 'uds_path_send_to_connector_server_{}'    
@@ -166,6 +167,7 @@ class Connector:
                 raise Exception(f'{self.uds_path_commander} is longer than {self.MAX_LENGTH_UDS_PATH}')
                     
             if not tool_only:
+                self.active_connectors_path = os.path.join(self.connector_files_dirpath, self.DEFAULT_ACTIVE_CONNECTORS_NAME)                
                 self.full_duplex_connections = {}
                 if not self.is_server:
                     self.client_certificate_name = None                         
@@ -319,7 +321,22 @@ class Connector:
                 
                 self.tasks['run_client'] = self.loop.create_task(self.run_client())    
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
-                
+              
+            try:
+                if not os.path.exists(self.active_connectors_path):
+                    with open(self.active_connectors_path, 'w') as fd:
+                        json.dump([], fd)
+                with open(self.active_connectors_path, 'r') as fd:
+                    set_active_connectors = json.load(fd)
+                if self.is_server:
+                    name = ' '.join([str(el) for el in self.server_sockaddr])
+                else:
+                    name = self.source_id
+                set_active_connectors.append(name)
+                with open(self.active_connectors_path, 'w') as fd:
+                    json.dump(list(set(set_active_connectors)), fd)
+            except Exception:
+                self.logger.exception('start_connector')                
             return
         except (ConnectionRefusedError, asyncio.TimeoutError) as exc:
             self.logger.warning(f'{str(exc) or type(exc)}')
@@ -432,7 +449,21 @@ class Connector:
             except Exception:
                 self.logger.exception('shutdown : remove uds_path_commander')
             #raise Exception('shutdown')
-                
+            
+        if os.path.exists(self.active_connectors_path):
+            try:
+                with open(self.active_connectors_path, 'r') as fd:
+                    set_active_connectors = json.load(fd)
+                if self.is_server:
+                    name = ' '.join([str(el) for el in self.server_sockaddr])
+                else:
+                    name = self.source_id 
+                set_active_connectors.remove(name)
+                with open(self.active_connectors_path, 'w') as fd:
+                    json.dump(set_active_connectors, fd)
+            except Exception:
+                self.logger.exception('stop_connector')                
+            
     async def restart(self, sleep_between=0, connector_socket_only=False, hard=False):    
         if connector_socket_only:
             self.logger.info(f'{self.source_id} Connector restarting socket only ...')            
