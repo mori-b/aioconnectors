@@ -196,7 +196,7 @@ Each node should be running an aioconnector server, and be able to also spawn an
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in 7.).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
 Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in 4.).  
-A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
+A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).
 
 ## USAGE
 
@@ -281,19 +281,19 @@ Then you can send and receive messages by calling the following coroutines in yo
 This returns a status (True or False).  
 "data" is your message, "binary" is an optional additional binary message in case you want your "data" to be a json for example.
 If your "data" is already a binary, then the "binary" field isn't necessary.  
-kwargs contain all the transport instructions for this message, as explained in 5-.  
+kwargs contain all the transport instructions for this message, as explained in 5.  
 If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet.  
 The received transport\_json field contains all the kwargs sent by the peer.  
-More details in 5-.  
+More details in 5.  
 
 3.4.To register to receive messages of a specific message\_type : 
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
 -**message\_received\_cb** is an async def coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
--**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5-. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
+-**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
 Your application can read these transport arguments to obtain information about peer (source\_id, request\_id if provided, etc), and in order to create a proper response (with correct destination\_id, and response\_id for example if needed, etc).  
-transport\_json will contain a with\_file key if a file has been received, more details in 5-.  
+transport\_json will contain a with\_file key if a file has been received, more details in 5.  
 -**data** is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
 -**binary** is an optional binary message (or None).  
 -**reuse_uds_path** is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.  
