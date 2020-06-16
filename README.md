@@ -290,13 +290,13 @@ More details in 5-.
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
--message\_received\_cb is a coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
--transport\_json is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5-. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
+-**message\_received\_cb** is an async def coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
+-**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5-. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
 Your application can read these transport arguments to obtain information about peer (source\_id, request\_id if provided, etc), and in order to create a proper response (with correct destination\_id, and response\_id for example if needed, etc).  
 transport\_json will contain a with\_file key if a file has been received, more details in 5-.  
--data is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
--binary is an optional binary message (or None).  
--reuse_uds_path is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.  
+-**data** is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
+-**binary** is an optional binary message (or None).  
+-**reuse_uds_path** is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.  
 -if you send a message using send\_message(await\_response=True), the response value is the expected response message : so in that case the response message is not received by the start\_waiting\_for\_messages task.
 
 
@@ -367,28 +367,28 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     "uds_path_send_preserve_socket": true
     }
 
--is\_server (boolean) is important to differentiate between server and client  
--server\_sockaddr can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip, for example ("eth0", 10673).  
--client\_name is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
--client_bind_ip is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
--use\_ssl and ssl_allow_all are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
--certificates\_directory\_path is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
--connector\_files\_dirpath is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
--send\_message\_types : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
--recv\_message\_types : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
--send\_message\_types\_priorities : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
--In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_recv\_config, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":"", "override\_existing":False}. "target\_directory" is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". "owner" is optional, it is the owner of the uploaded file. It must be of the form "user:group". "override\_existing" is optional and false by default : when receiving a file with an already existing destination path, it decides whether to override the existing file or not.  
--You can choose the size limit of files you send and receive with max\_size\_file\_upload, both on server and on client. Default is 1GB.  
--In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with max\_size\_persistence\_path.  
--In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True. There will be 1 persistence file per message type.  
--uds\_path\_receive\_preserve\_socket should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages stays connected to the connector once the latter starts sending it messages.  
--uds\_path\_send\_preserve\_socket should always be True for better performance.  
+-**is\_server** (boolean) is important to differentiate between server and client  
+-**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip, for example ("eth0", 10673).  
+-**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
+-**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
+-**use\_ssl** and **ssl_allow_all** are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
+-**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
+-**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
+-**send\_message\_types** : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
+-**recv\_message\_types** : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
+-**send\_message\_types\_priorities** : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
+-In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in **file\_recv\_config**, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":"", "override\_existing":False}. **target\_directory** is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". **owner** is optional, it is the owner of the uploaded file. It must be of the form "user:group". **override\_existing** is optional and false by default : when receiving a file with an already existing destination path, it decides whether to override the existing file or not.  
+-You can choose the size limit of files you send and receive with **max\_size\_file\_upload**, both on server and on client. Default is 1GB.  
+-In order to enable persistence between client and server (supported on both client and server sides), use **disk\_persistence\_send**=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with **max\_size\_persistence\_path**.  
+-In order to enable persistence between the connector and a message listener (supported on both client and server sides), use **disk\_persistence\_recv**=True. There will be 1 persistence file per message type.  
+-**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages.  
+-**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
--enable\_client\_try\_reconnect is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  
--reuse\_server\_sockaddr, reuse\_uds\_path\_send\_to\_connector, reuse\_uds\_path\_commander\_server : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
--everybody\_can\_send\_messages if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. This requires the connector to run as root.  
--receive\_from\_any\_connector\_owner if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api.  
--hook\_server\_auth\_client :  does not appear in the config file (kwargs only). Only for server. Can be a coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation.  
+-**enable\_client\_try\_reconnect** is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  
+-**reuse\_server\_sockaddr**, **reuse\_uds\_path\_send\_to\_connector**, **reuse\_uds\_path\_commander\_server** : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
+-**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
+-**receive\_from\_any\_connector\_owner** if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api. True by default.  
+-**hook\_server\_auth\_client** :  does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 
 
 ### 5.More details about the send\_message arguments
@@ -398,28 +398,28 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     with_file can be like : {'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':''}
 
 These arguments must be filled on the application layer by the user  
--message\_type is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.  
--destination\_id is mandatory for server : it is the remote client id.  
--data\_is\_json is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
--data is the payload of your message. By default it expects a json, but it can be a string, and even bytes. However, using together the "data" argument for a json or a string, and the "binary" argument for binary payload, is a nice way to accompany a binary payload with some textual information. Contrary to "data", "binary" must be bytes, and cannot be a string.  
--with\_file lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. src\_path is the source path of the file to be sent, dst\_type is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config". dst\_name is the name the file will be stored under. "delete" is a boolean telling if to delete the source file after it has been sent. "owner" is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config. If an error occurs while opening the the file to send, the file will not be sent but with\_file will still be present in transport\_json received by peer, and will contain an additional key file\_error telling the error to the peer application.  
--request\_id and response\_id are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The local peer message listener can then associate the received response with the request sent.  
--await\_response is False by default, set it to True if your coroutine calling send\_message expects a response value.  
-In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. This is shown in aioconnectors\_test.py.  
--wait\_for\_ack is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
+-**message\_type** is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.  
+-**destination\_id** is mandatory for server : it is the remote client id. Not needed by client.  
+-**data\_is\_json** is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
+-**data** is the payload of your message. By default it expects a json, but it can be a string, and even bytes. However, using together the "data" argument for a json or a string, and the "binary" argument for binary payload, is a nice way to accompany a binary payload with some textual information. Contrary to "data", **binary** must be bytes, and cannot be a string.  
+-**with\_file** lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. **src\_path** is the source path of the file to be sent, **dst\_type** is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config" dictionary. **dst\_name** is the name the file will be stored under. **delete** is a boolean telling if to delete the source file after it has been sent. **owner** is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config. If an error occurs while opening the the file to send, the file will not be sent but with\_file will still be present in transport\_json received by peer, and will contain an additional key **file\_error** telling the error to the peer application.  
+-**request\_id** and **response\_id** are optional : they are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The local peer message listener can then associate the received response with the request sent.  
+-**await\_response** is False by default, set it to True if your coroutine calling send\_message expects a response value.  
+In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
+-**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
 
-The send\_message\_await\_response method is the same as send_message, but automatically sets await_response to True.
+The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.
 
 
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in 7.  
--start\_connector, stop\_connector, restart\_connector  
--delete\_client\_certificate, disconnect\_client  
--show\_connected\_peers  
--delete\_previous\_persistence\_remains  
--ignore\_peer\_traffic\_show, ignore\_peer\_traffic\_enable\_unique, ignore\_peer\_traffic\_disable  
--show\_log\_level, set\_log\_level  
+-**start\_connector**, **stop\_connector**, **restart\_connector**  
+-**delete\_client\_certificate**, **disconnect\_client**  
+-**show\_connected\_peers**  
+-**delete\_previous\_persistence\_remains**  
+-**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
+-**show\_log\_level**, **set\_log\_level**  
 The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)  
 
     connector_remote_tool = aioconnectors.ConnectorRemoteTool(config_file_path=config_file_path)
