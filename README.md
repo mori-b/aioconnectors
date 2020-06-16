@@ -193,9 +193,9 @@ And then share the created directories between server and clients as explained i
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
-Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method in core.py.  
+Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in 7.).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
-Your application might need to decide whether to accept a client connection : to do so, you might use the connector\_manager.hook\_server\_auth\_client method.  
+Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in 4.).  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4-).
 
 ## USAGE
