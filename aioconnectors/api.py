@@ -62,7 +62,7 @@ class ConnectorManager:
         self.hook_server_auth_client, self.enable_client_try_reconnect = hook_server_auth_client, enable_client_try_reconnect
         self.reuse_server_sockaddr, self.reuse_uds_path_send_to_connector, self.reuse_uds_path_commander_server = \
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
-                            
+
         self.config_file_path = config_file_path
         if self.config_file_path:
             self.config_file_path = str(self.config_file_path)

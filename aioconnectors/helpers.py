@@ -19,7 +19,7 @@ LOG_LEVEL = 'INFO'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 
-IPADDR_REGEX = re.compile('inet (?P<ipaddr>\S+)')
+IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
 
 def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
                log_format=LOG_FORMAT, level=LOG_LEVEL):
@@ -74,9 +74,8 @@ def chown_nobody_permissions(directory_path, logger=None):
             logger.info('chown_nobody_permissions : '+str(exc))  
     
 def iface_to_ip(iface, logger=None):
-    #requires ifconfig
     try:
-        ifconfig_output = subprocess.check_output(['ifconfig', iface], encoding='utf8', timeout=5)
+        ifconfig_output = subprocess.check_output(['ip', 'addr', 'show', iface], encoding='utf8', timeout=5)
         return IPADDR_REGEX.search(ifconfig_output).group('ipaddr')
     except Exception:
         if logger:

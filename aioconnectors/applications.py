@@ -358,7 +358,10 @@ def chat(args, logger=None):
 
     
     if is_server:
-        server_sockaddr = (args.bind_server_ip or '0.0.0.0', int(args.port or 0) or aioconnectors.core.Connector.SERVER_ADDR[1])
+        listening_ip = args.bind_server_ip or '0.0.0.0'
+        if '.' not in listening_ip:
+            listening_ip = aioconnectors.iface_to_ip(listening_ip)
+        server_sockaddr = (listening_ip, int(args.port or 0) or aioconnectors.core.Connector.SERVER_ADDR[1])
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
         aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 

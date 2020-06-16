@@ -34,5 +34,5 @@ __author__ = 'Mori Benech'
 
 from .api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool
 from .connection import MessageFields
-from .helpers import get_logger
+from .helpers import get_logger, iface_to_ip
 from . import applications

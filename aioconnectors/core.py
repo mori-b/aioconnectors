@@ -315,7 +315,12 @@ class Connector:
                         sock_bind = iface_to_ip(sock_bind)
                         self.logger.info(f'Binding {self.client_bind_ip} using {sock_bind}')                         
                     self.sock.bind((sock_bind,0))
-                await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)                                   
+                server_sockaddr_addr = self.server_sockaddr[0]
+                if '.' not in server_sockaddr_addr:
+                    #this is useful only when client and server are on the same machine
+                    server_sockaddr_addr = iface_to_ip(server_sockaddr_addr)
+                await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                            (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
                 self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                  f'to peer {self.sock.getpeername()}')
                 
@@ -458,9 +463,10 @@ class Connector:
                     name = ' '.join([str(el) for el in self.server_sockaddr])
                 else:
                     name = self.source_id 
-                set_active_connectors.remove(name)
-                with open(self.active_connectors_path, 'w') as fd:
-                    json.dump(set_active_connectors, fd)
+                if name in set_active_connectors:
+                    set_active_connectors.remove(name)
+                    with open(self.active_connectors_path, 'w') as fd:
+                        json.dump(set_active_connectors, fd)
             except Exception:
                 self.logger.exception('stop_connector')                
             
@@ -541,7 +547,12 @@ class Connector:
                         sock_bind = iface_to_ip(sock_bind)
                         self.logger.info(f'Binding {self.client_bind_ip} using {sock_bind}')                         
                     self.sock.bind((sock_bind,0))
-                await asyncio.wait_for(self.loop.sock_connect(self.sock, self.server_sockaddr), timeout=2)
+                server_sockaddr_addr = self.server_sockaddr[0]
+                if '.' not in server_sockaddr_addr:
+                    #this is useful only when client and server are on the same machine                    
+                    server_sockaddr_addr = iface_to_ip(server_sockaddr_addr)
+                await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                            (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                              
             except asyncio.CancelledError:
                 raise
             except Exception as exc:    #(ConnectionRefusedError, asyncio.TimeoutError):
