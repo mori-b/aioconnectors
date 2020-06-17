@@ -191,7 +191,7 @@ In order to have all clients/server connections authenticated and encrypted, you
 And then share the created directories between server and clients as explained in 1-.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
-The following lines describe a possible approach to do that using aioconnectors.  
+You might prefer to use a MQTT approach for that use case. However, the following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in 7.).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
