@@ -223,9 +223,9 @@ You can always delete a client certificate on the server (and also on client) by
 
     python3 -m aioconnectors cli
 
-For this purpose, you can also call programmatically the connector_api.delete_client_certificate method.  
+For this purpose, you can also call programmatically the ConnectorManager.delete_client\_certificate method.  
 -Less secure options :  
-By setting ssl_allow_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
+By setting ssl\_allow\_all, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
 By unsetting use_ssl, you can disable encryption at all.
 
 
