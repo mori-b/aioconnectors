@@ -19,18 +19,12 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
-#with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-#    long_description = f.read()
-long_description = '''aioconnectors is an easy to set up broker that works on Unix like systems.  
-Requirements are : Python >= 3.6, and openssl installed.  
-It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.  
-It is built on the client/server model but both peers can push messages. Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
-A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities.'''
+with open(path.join(here, 'README.md'), encoding='utf-8') as fd:
+    long_description = fd.read()
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
