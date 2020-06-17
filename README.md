@@ -490,7 +490,7 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 
 -If you need your server to listen on a specific interface :
 
-    python3 -m aioconnectors chat bind_server_ip <server_ip>
+    python3 -m aioconnectors chat --bind_server_ip <server_ip>
 
 <server\_ip> can be an ip address, or an interface name  
 
