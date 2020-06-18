@@ -284,6 +284,21 @@ class ConnectorAPI(ConnectorBaseTool):
                                       data_is_json=data_is_json, binary=binary, with_file=with_file, 
                                       wait_for_ack=wait_for_ack)
         return res
+
+    def send_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+        self.logger.debug(f'send_message_sync of type {message_type}, destination_id {destination_id}, '
+                          f'request_id {request_id}, response_id {response_id}')
+        
+        loop = asyncio.get_event_loop()
+        send_task = self.send_message(message_type=message_type, destination_id=destination_id, 
+                                      request_id=request_id, response_id=response_id, data=data, 
+                                      data_is_json=data_is_json, binary=binary, await_response=await_response, 
+                                      with_file=with_file, wait_for_ack=wait_for_ack)
+        if loop.is_running():
+            loop.create_task(send_task)
+        else:
+            loop.run_until_complete(send_task)    
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 

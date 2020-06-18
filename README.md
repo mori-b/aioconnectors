@@ -284,6 +284,10 @@ If your "data" is already a binary, then the "binary" field isn't necessary.
 kwargs contain all the transport instructions for this message, as explained in 5.  
 If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet.  
 The received transport\_json field contains all the kwargs sent by the peer.  
+You can also send messages synchronously, with :
+
+    connector_api.send_message_sync(data=None, binary=None, **kwargs)
+
 More details in 5.  
 
 3.4.To register to receive messages of a specific message\_type : 
@@ -397,6 +401,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False) 
     with_file can be like : {'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':''}
 
+send_message is an async coroutine.  
 These arguments must be filled on the application layer by the user  
 -**message\_type** is mandatory, it enables to have different listeners that receive different message types. You can use "any" as a default.  
 -**destination\_id** is mandatory for server : it is the remote client id. Not needed by client.  
@@ -409,7 +414,7 @@ In such a case, the remote peer has to answer with response\_id equal to the req
 -**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.
-
+The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).
 
 ### 6.Management programmatic tools
 
