@@ -413,7 +413,7 @@ These arguments must be filled on the application layer by the user
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
 -**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
 
-The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.
+The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
 The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).
 
 ### 6.Management programmatic tools
