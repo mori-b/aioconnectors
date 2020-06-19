@@ -607,7 +607,7 @@ These arguments must be filled on the application layer by the user
 -**request\_id** and **response\_id** are optional : they are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The local peer message listener can then associate the received response with the request sent.  
 -**await\_response** is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
--**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of 10 messages per second instead of more than a thousand messages per second.  
+-**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of more than a thousand messages per second in the point to point approach (and more than a hundred per second in the publish/subscribe approach).  
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
 The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).
