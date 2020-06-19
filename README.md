@@ -2,8 +2,8 @@
 **Simple secure asynchronous persistent message broker**
 
 *Features*  
-*Server example*  
-*Client example*  
+*Example Point to point : Server and Client*  
+*Example publish/subscribe : Broker, Subscriber, and Publisher*  
 *High Level Design*  
 *Use Cases*  
 *Usage*  
@@ -23,12 +23,13 @@
 
 aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.  
-It is a point to point broker built on the client/server model, but both peers can push messages. Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
+It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
+Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
 A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
 
 
-## BASIC EXAMPLE
+## BASIC EXAMPLE - POINT TO POINT
 
 You can run a connector with a single shell command 
 
@@ -63,7 +64,6 @@ In case the server and client run on different machines, you should run the prer
 ### Server example
 
     import asyncio
-    import os
     import aioconnectors
     
     loop = asyncio.get_event_loop()
@@ -81,16 +81,18 @@ In case the server and client run on different machines, you should run the prer
     task_manager =  loop.create_task(connector_manager.start_connector())
     loop.run_until_complete(task_manager)
     
-    #start sending and receiving messages
+    #create api
     connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr,
                                                connector_files_dirpath=connector_files_dirpath,
                                                send_message_types=['any'], recv_message_types=['any'],
                                                default_logger_log_level='INFO')
     
+    #start receiving messages
     async def message_received_cb(logger, transport_json , data, binary):
         print('SERVER : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
     
+    #start sending messages
     async def send_messages(destination):
         await asyncio.sleep(2)
         index = 0
@@ -138,16 +140,18 @@ In case the server and client run on different machines, you should run the prer
     
     loop.create_task(connector_manager.start_connector())
     
-    #start sending and receiving messages
+    #create api
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
                                                connector_files_dirpath=connector_files_dirpath, client_name=client_name,
                                                send_message_types=['any'], recv_message_types=['any'],
                                                default_logger_log_level='INFO')
     
+    #start receiving messages
     async def message_received_cb(logger, transport_json , data, binary):
         print('CLIENT : message received', transport_json , data.decode())
     loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
     
+    #start sending messages
     async def send_messages():
         await asyncio.sleep(1)
         index = 0
@@ -173,6 +177,183 @@ In case the server and client run on different machines, you should run the prer
     loop.run_until_complete(task_stop)
 
 
+## BASIC EXAMPLE - PUBLISH/SUBSCRIBE
+
+You can run the following code of a broker, a publisher and a subscriber in 3 different shells on the same machine out of the box.  
+You should modify some values as explained in the previous example in order to run on different machines, and with encryption.  
+
+### Broker example
+
+
+    import asyncio
+    import aioconnectors
+
+    loop = asyncio.get_event_loop()
+    server_sockaddr = ('127.0.0.1',10673)
+    connector_files_dirpath = '/tmp/aioconnectors'
+
+    #create connector
+    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
+                                                       ssl_allow_all=True, connector_files_dirpath=connector_files_dirpath,
+                                                       certificates_directory_path=connector_files_dirpath,
+                                                       send_message_types=['any'], recv_message_types=['any'],
+                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}},
+                                                       pubsub_central_broker=True, reuse_server_sockaddr=True)
+
+    task_manager =  loop.create_task(connector_manager.start_connector())
+    loop.run_until_complete(task_manager)
+
+    #create api
+    connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr,
+                                               connector_files_dirpath=connector_files_dirpath,
+                                               send_message_types=['any'], recv_message_types=['any'],
+                                               default_logger_log_level='INFO')
+
+    #start receiving messages
+    async def message_received_cb(logger, transport_json , data, binary):
+        print('SERVER : message received', transport_json , data.decode())
+    loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
+
+    try:
+        print(f'Connector is running, check log at {connector_files_dirpath+"/aioconnectors.log"}'
+              f', type Ctrl+C to stop')
+        loop.run_forever()
+    except:
+        print('Connector stopped !')
+
+    #stop receiving messages
+    connector_api.stop_waiting_for_messages(message_type='any')
+
+    #stop connector
+    task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
+    loop.run_until_complete(task_stop)
+
+
+### Subscriber example
+
+
+    import asyncio
+    import aioconnectors
+
+    loop = asyncio.get_event_loop()
+    server_sockaddr = ('127.0.0.1',10673)
+    connector_files_dirpath = '/tmp/aioconnectors'
+    client_name = 'client2'
+
+    #create connector
+    connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
+                                                       use_ssl=False, ssl_allow_all=True,
+                                                       connector_files_dirpath=connector_files_dirpath,
+                                                       certificates_directory_path=connector_files_dirpath,
+                                                       send_message_types=['any'], recv_message_types=['type1'],
+                                                       file_recv_config={'type1': {'target_directory':connector_files_dirpath}},
+                                                       client_name=client_name, subscribe_message_types=["type1"])
+
+    loop.create_task(connector_manager.start_connector())
+
+    #create api
+    connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
+                                               connector_files_dirpath=connector_files_dirpath, client_name=client_name,
+                                               send_message_types=['any'], recv_message_types=['type1'],
+                                               default_logger_log_level='INFO')
+
+    #start receiving messages
+    async def message_received_cb(logger, transport_json , data, binary):
+        print('CLIENT : message received', transport_json , data.decode())
+    loop.create_task(connector_api.start_waiting_for_messages(message_type='type1', message_received_cb=message_received_cb))
+
+    '''
+    #start sending messages
+    async def send_messages():
+        await asyncio.sleep(1)
+        index = 0
+        while True:
+            index += 1
+            await connector_api.send_message(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='any')
+            await asyncio.sleep(1)
+                                           
+    loop.create_task(send_messages())
+    '''
+
+    try:
+        print(f'Connector is running, check log at {connector_files_dirpath+"/aioconnectors.log"}'
+              f', type Ctrl+C to stop')
+        loop.run_forever()
+    except:
+        print('Connector stopped !')
+
+    #stop receiving messages
+    connector_api.stop_waiting_for_messages(message_type='type1')
+
+    #stop connector
+    task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
+    loop.run_until_complete(task_stop)
+
+
+### Publisher example
+
+
+    import asyncio
+    import aioconnectors
+
+    loop = asyncio.get_event_loop()
+    server_sockaddr = ('127.0.0.1',10673)
+    connector_files_dirpath = '/tmp/aioconnectors'
+    client_name = 'client1'
+
+    #create connector
+    connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
+                                                       use_ssl=False, ssl_allow_all=True,
+                                                       connector_files_dirpath=connector_files_dirpath,
+                                                       certificates_directory_path=connector_files_dirpath,
+                                                       send_message_types=['type1','type2'], recv_message_types=['any'],
+                                                       file_recv_config={'any': {'target_directory':connector_files_dirpath}},
+                                                       client_name=client_name, disk_persistence_send=True)
+
+    loop.create_task(connector_manager.start_connector())
+
+    #create api
+    connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
+                                               connector_files_dirpath=connector_files_dirpath, client_name=client_name,
+                                               send_message_types=['type1','type2'], recv_message_types=['any'],
+                                               default_logger_log_level='INFO')
+
+    #start receiving messages
+    async def message_received_cb(logger, transport_json , data, binary):
+        print('CLIENT : message received', transport_json , data.decode())
+    loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
+
+    #start sending messages
+    async def send_messages():
+        await asyncio.sleep(1)
+        index = 0
+        #with_file={'src_path':'file_test','dst_type':'any', 'dst_name':'file_dest', 
+        #           'delete':False, 'owner':'nobody:nogroup'}                  
+        while True:
+            index += 1
+            #connector_api.publish_message_sync(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='type1')#,        
+            await connector_api.publish_message(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='type1')#,
+                                                #with_file=with_file, binary=b'\x01\x02\x03')
+            #await connector_api.publish_message(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='type2')#,                                            
+            await asyncio.sleep(1)
+                                           
+    loop.create_task(send_messages())
+
+    try:
+        print(f'Connector is running, check log at {connector_files_dirpath+"/aioconnectors.log"}'
+              f', type Ctrl+C to stop')
+        loop.run_forever()
+    except:
+        print('Connector stopped !')
+
+    #stop receiving messages
+    connector_api.stop_waiting_for_messages(message_type='any')
+
+    #stop connector
+    task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
+    loop.run_until_complete(task_stop)
+
+
 
 ## HIGH LEVEL DESIGN
 
@@ -191,6 +372,10 @@ In order to have all clients/server connections authenticated and encrypted, you
 
 And then share the created directories between server and clients as explained in 1.  
 
+-You might prefer to use a publish/subscribe approach.  
+This is also supported by configuring a single server as the broker (you just need to set pubsub\_central\_broker=True).  
+The other connectors should be clients. A client can subscribe to specific topics (message\_types) by setting the attribute subscribe\_message\_types in its constructor. To change the topics, you must restart the connector.  
+
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
@@ -198,9 +383,6 @@ Your application might need to know if a peer is already connected before initia
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
 Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in 4.).  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).  
-
--You might prefer to use a publish/subscribe approach. This also might be possible using aioconnectors, with a topology of a central server and multiple clients.  
-The server should know in advance all the possible message topics (send\_message\_types and recv\_message\_types). A new application layer on server and clients could manage the topics subscriptions and the message routing. A dedicated message\_type shared by the server and all clients could be used for this management communication.
 
 
 ## USAGE
@@ -293,6 +475,7 @@ You can also send messages synchronously, with :
 
     connector_api.send_message_sync(data=None, binary=None, **kwargs)
 
+Similarly, use the "publish\_message" and "publish\_message\_sync" methods in the publish/subscribe approach.  
 More details in 5.  
 
 3.4.To register to receive messages of a specific message\_type : 
@@ -319,62 +502,68 @@ You can use both kwargs and config_file_path : if there are shared items, the on
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
-    "certificates_directory_path": "/tmp/aioconnectors",
-    "client_bind_ip": null,
-    "client_name": null,
-    "connector_files_dirpath": "/tmp/aioconnectors",
-    "debug_msg_counts": true,
-    "default_logger_dirpath": "/tmp/aioconnectors",
-    "default_logger_log_level": "INFO",
-    "disk_persistence_recv": false,
-    "disk_persistence_send": false,
-    "enable_client_try_reconnect": true,
-    "everybody_can_send_messages": true,
-    "file_recv_config": {},
-    "is_server": true,
-    "max_size_file_upload": 1000000000,
-    "max_size_persistence_path": 1000000000,
-    "recv_message_types": [
-        "any"
-    ],
-    "send_message_types": [
-        "any"
-    ],
-    "send_message_types_priorities": {},
-    "server_sockaddr": [
-        "127.0.0.1",
-        10673
-    ],
-    "silent": true,
-    "ssl_allow_all": false,
-    "uds_path_receive_preserve_socket": true,
-    "uds_path_send_preserve_socket": true,
-    "use_ssl": true
+        "certificates_directory_path": "/tmp/aioconnectors",
+        "client_bind_ip": null,
+        "client_name": null,
+        "connector_files_dirpath": "/tmp/aioconnectors",
+        "debug_msg_counts": true,
+        "default_logger_dirpath": "/tmp/aioconnectors",
+        "default_logger_log_level": "INFO",
+        "disk_persistence_recv": false,
+        "disk_persistence_send": false,
+        "enable_client_try_reconnect": true,
+        "everybody_can_send_messages": true,
+        "file_recv_config": {},
+        "is_server": true,
+        "max_size_file_upload": 1000000000,
+        "max_size_persistence_path": 1000000000,
+        "pubsub_central_broker": false,
+        "recv_message_types": [
+            "any"
+        ],
+        "reuse_server_sockaddr": false,
+        "send_message_types": [
+            "any"
+        ],
+        "send_message_types_priorities": {},
+        "server_sockaddr": [
+            "127.0.0.1",
+            10673
+        ],
+        "silent": true,
+        "ssl_allow_all": false,
+        "subscribe_message_types": [],
+        "uds_path_receive_preserve_socket": true,
+        "uds_path_send_preserve_socket": true,
+        "use_ssl": true
     }
 
 Here is an example of config\_file\_path, with ConnectorAPI class arguments, used to send/receive messages.  
 These are a subset of ConnectorManager arguments : which means you can use the ConnectorManager config file also for ConnectorAPI.
 
+
     {
-    "client_name": null,
-    "connector_files_dirpath": "/tmp/aioconnectors",
-    "default_logger_dirpath": "/tmp/aioconnectors",
-    "default_logger_log_level": "INFO",
-    "is_server": true,
-    "receive_from_any_connector_owner": true,
-    "recv_message_types": [
-        "any"
-    ],
-    "send_message_types": [
-        "any"
-    ],
-    "server_sockaddr": [
-        "127.0.0.1",
-        10673
-    ],
-    "uds_path_receive_preserve_socket": true,
-    "uds_path_send_preserve_socket": true
+        "client_name": null,
+        "connector_files_dirpath": "/tmp/aioconnectors",
+        "default_logger_dirpath": "/tmp/aioconnectors",
+        "default_logger_log_level": "INFO",
+        "is_server": true,
+        "pubsub_central_broker": false,
+        "receive_from_any_connector_owner": true,
+        "recv_message_types": [
+            "any"
+        ],
+        "send_message_types": [
+            "any"
+        ],
+        "server_sockaddr": [
+            "127.0.0.1",
+            10673
+        ],
+        "uds_path_receive_preserve_socket": true,
+        "uds_path_send_preserve_socket": true
     }
+
 
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip, for example ("eth0", 10673).  
@@ -383,6 +572,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**use\_ssl** and **ssl_allow_all** are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
 -**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
+-**pubsub\_central\_broker** : set to True if you need your server to be the broker. Used on only in the publish/subscribe approach, not in the point to point approach.  
 -**send\_message\_types** : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -**recv\_message\_types** : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
 -**send\_message\_types\_priorities** : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
@@ -390,6 +580,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -You can choose the size limit of files you send and receive with **max\_size\_file\_upload**, both on server and on client. Default is 1GB.  
 -In order to enable persistence between client and server (supported on both client and server sides), use **disk\_persistence\_send**=True. There will be 1 persistence file per client/server connection. You can limit the persistence files size with **max\_size\_persistence\_path**.  
 -In order to enable persistence between the connector and a message listener (supported on both client and server sides), use **disk\_persistence\_recv**=True. There will be 1 persistence file per message type.  
+-**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages.  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
@@ -420,6 +611,7 @@ In such a case, the remote peer has to answer with response\_id equal to the req
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
 The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).
+The **publish\_message** and **publish\_message\_sync** methods are the same as the send_message ones, but used by a client in the publish/subscribe approach.  
 
 ### 6.Management programmatic tools
 

@@ -140,6 +140,7 @@ class ConnectorManager:
             await asyncio.sleep(delay)                
         self.logger.info('start_connector : '+str(self.source_id))        
         await self.connector.start(connector_socket_only=connector_socket_only)
+        
         if self.connector.pubsub_central_broker:    #only possible for server
             self.central_broker_api = ConnectorAPI(config_file_path=self.config_file_path,
                 logger=self.logger.getChild('central_broker_api'),
@@ -167,16 +168,19 @@ class ConnectorManager:
                     else:
                         #publish client message to subscribers
                         client_source = transport_json[MessageFields.SOURCE_ID]
-                        transport_json.pop(MessageFields.SOURCE_ID) #use central broker source id
+                        transport_json.pop(MessageFields.SOURCE_ID, None) #use central broker source id, otherwise may break
+                        transport_json.pop(MessageFields.WITH_BINARY, None)                        
                         message_type_publish = transport_json.pop(MessageFields.MESSAGE_TYPE_PUBLISH)
                         transport_json[MessageFields.MESSAGE_TYPE] = message_type_publish
-                        for client_destination in self.central_broker_api.clients_subscriptions[message_type_publish]:
+                        for client_destination in self.central_broker_api.clients_subscriptions.get(message_type_publish, []):
                             logger.info(f'Publish from {client_source} to {client_destination}')
                             transport_json[MessageFields.DESTINATION_ID] = client_destination
                             await self.central_broker_api.send_message(data=data, binary=binary, data_is_json=False,
-                                                                       **transport_json)
+                                                                       **transport_json)                        
+                            
                 except Exception:
-                    logger.exception('wtf')
+                    logger.exception('message_received_cb')
+                    
             await self.central_broker_api.start_waiting_for_messages(message_type='_pubsub', message_received_cb=message_received_cb)           
 
     async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False, 
@@ -185,6 +189,9 @@ class ConnectorManager:
             self.logger.info(f'Waiting {delay} seconds before stopping connector : {self.source_id}')
             await asyncio.sleep(delay)        
         self.logger.info('stop_connector : '+str(self.source_id))
+        if self.connector.pubsub_central_broker:    #only possible for server        
+            self.central_broker_api.stop_waiting_for_messages(message_type='_pubsub')           
+        
         await self.connector.stop(connector_socket_only=connector_socket_only, hard=hard, shutdown=shutdown,
                                   enable_delete_files=enable_delete_files)        
         
