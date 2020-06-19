@@ -33,7 +33,7 @@ from .helpers import full_path, chown_file, CustomException, PYTHON_GREATER_37
 DEBUG_SHOW_DATA = False
 
 class MessageFields:
-    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', <user-defined>, ...
+    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', '_pubsub', <user-defined>, ...
     SOURCE_ID = 'source_id'    #str
     DESTINATION_ID = 'destination_id'    #str
     REQUEST_ID = 'request_id'    #int
@@ -44,6 +44,7 @@ class MessageFields:
     WITH_FILE = 'with_file'    
     TRANSPORT_ID = 'transport_id'    #int
     WAIT_FOR_ACK = 'wait_for_ack'    #boolean
+    MESSAGE_TYPE_PUBLISH = 'message_type_publish'
     
 class Structures:
     MSG_4_STRUCT = Struct('I')    #4
@@ -298,6 +299,14 @@ class FullDuplex:
                     self.logger.exception(self.connector.source_id+' handle_incoming_connection')                    
                     return                   
         
+            if self.connector.subscribe_message_types:
+                try:
+                    await self.send_message(message_type='_pubsub',
+                                data=json.dumps({'subscribe_message_types':self.connector.subscribe_message_types}))
+                except Exception:
+                    self.logger.exception(self.connector.source_id+' handle_incoming_connection')                    
+                    return                   
+        
         while True:
             try:            
                 self.logger.debug(self.connector.source_id+' handle_incoming_connection waiting for message')
@@ -464,7 +473,9 @@ class FullDuplex:
                                                                         
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
-                                    if file_owner:
+                                    if self.connector.pubsub_central_broker:
+                                        with_file['src_path'] = dst_fullpath    #get ready to resend file to subscribers                                       
+                                    elif file_owner:
                                         chown_file(dst_fullpath, *file_owner, self.logger)                                        
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
                                 binary = binary[:binary_offset]
@@ -703,7 +714,7 @@ class FullDuplex:
 
     #4|2|json|4|data|4|binary
     async def send_message(self, message=None, message_type=None, source_id=None, destination_id=None, request_id=None,
-                           response_id=None, transport_json=None, data=None, binary=None):
+                           response_id=None, transport_json=None, data=None, binary=None, message_type_publish=None):
         try:
 #            async with self.lock_connection:       
             update_msg_counts = True                   
@@ -730,7 +741,7 @@ class FullDuplex:
                 message = self.connector.pack_message(message_type=message_type, source_id=source_id, 
                                                       destination_id=destination_id, request_id=request_id,
                                                       response_id=response_id, transport_json=transport_json,
-                                                      data=data, binary=binary)
+                                                      data=data, binary=binary, message_type_publish=message_type_publish)
                 if DEBUG_SHOW_DATA:
                     self.logger.info('send_message full message ready to send : '+str(message))    
 

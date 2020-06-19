@@ -282,6 +282,39 @@ def test_send_messages(config_file_path, logger=None):
         task_send.cancel()
         print('test_send_messages stopped !')
         
+def test_publish_messages(config_file_path, logger=None):
+    if not logger:
+        logger = aioconnectors.get_logger(logger_name='test_publish_messages', first_run=True)    
+    logger.info('Creating connector api with config file '+config_file_path)
+    connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
+    destination_id = None
+    if connector_api.is_server:
+        destination_id = input('\nPlease type the name of your remote client\n')
+        
+    loop = asyncio.get_event_loop()
+    
+    async def send_messages(destination_id):
+        index = 0
+        while True:
+            index += 1
+            for message_type in connector_api.send_message_types:
+                if message_type == '_pubsub':
+                    continue
+                print(f'PUBLISHING MESSAGE to peer {destination_id or connector_api.server_sockaddr} of type '
+                      f'{message_type} and index {index}')
+                response = await connector_api.publish_message(data=f'"TEST_MESSAGE {str(index)*5}"', data_is_json=False,
+                                                                                  destination_id=destination_id,
+                                                        message_type=message_type, await_response=False, request_id=index)
+                                                        #response_id=None, binary=b'\x01\x02\x03\x04\x05', with_file=None, wait_for_ack=False)        
+            await asyncio.sleep(2)
+                    
+    task_send = loop.create_task(send_messages(destination_id))
+    try:
+        loop.run_forever()
+    except:
+        task_send.cancel()
+        print('test_publish_messages stopped !')
+        
 def ping(config_file_path, logger=None):
     #lets a connector ping a remote connector peer
     if not logger:

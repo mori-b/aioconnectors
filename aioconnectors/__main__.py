@@ -20,6 +20,7 @@ aioconnectors supported commands :
     - create_connector <config file path>
     - test_receive_messages <config file path>
     - test_send_messages <config file path>
+    - test_publish_messages <config file path>    
     - ping <config file path>
     - chat [--target <server_ip>] [--upload <path>] [--help]
     - --help
@@ -56,7 +57,8 @@ if len(sys.argv) > 1:
                         certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
                         client_name=None, client_bind_ip=None, 
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
-                        recv_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
+                        recv_message_types=Connector.DEFAULT_MESSAGE_TYPES,
+                        subscribe_message_types=[], pubsub_central_broker=False,
                         disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, 
                         disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, 
                         max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
@@ -80,7 +82,7 @@ if len(sys.argv) > 1:
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         recv_message_types=Connector.DEFAULT_MESSAGE_TYPES,
-                        receive_from_any_connector_owner=True)                 
+                        receive_from_any_connector_owner=True, pubsub_central_broker=False)                 
         print('\n- API TEMPLATE, used to send/receive messages')
         print(json.dumps(api_config_template, indent=4, sort_keys=True))
 
@@ -116,6 +118,16 @@ if len(sys.argv) > 1:
             sys.exit(0)
         config_file_path=sys.argv[2]            
         aioconnectors.applications.test_send_messages(config_file_path, logger)
+
+    elif sys.argv[1] == 'test_publish_messages':
+        if len(sys.argv) != 3:
+            print('Usage : test_publish_messages <config file path>')
+            sys.exit(1)
+        if sys.argv[2] == '--help':
+            print('Usage : test_publish_messages <config file path>')
+            sys.exit(0)
+        config_file_path=sys.argv[2]            
+        aioconnectors.applications.test_publish_messages(config_file_path, logger)
                 
     elif sys.argv[1] == 'ping':
         if len(sys.argv) != 3:

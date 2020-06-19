@@ -6,7 +6,7 @@ import uuid
 
 from .helpers import get_logger, chown_nobody_permissions
 from .core import Connector
-from .connection import Structures
+from .connection import Structures, MessageFields
 
 DEFAULT_LOGGER_NAME = 'aioconnectors'
 LOGFILE_DEFAULT_NAME = 'aioconnectors.log'
@@ -17,7 +17,8 @@ class ConnectorManager:
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
                  client_bind_ip=None, certificates_directory_path=None, client_name=None, 
-                 send_message_types=None, recv_message_types=None, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
+                 send_message_types=None, recv_message_types=None, subscribe_message_types=None,
+                 connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, 
                  disk_persistence_recv=Connector.DISK_PERSISTENCE_RECV, 
                  max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
@@ -28,7 +29,7 @@ class ConnectorManager:
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES,
-                 send_message_types_priorities=None):
+                 send_message_types_priorities=None, pubsub_central_broker=False):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -51,9 +52,12 @@ class ConnectorManager:
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
         self.client_name, self.client_bind_ip = client_name, client_bind_ip
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+        self.pubsub_central_broker = pubsub_central_broker        
+        self.subscribe_message_types = subscribe_message_types
         self.max_size_file_upload = max_size_file_upload
         self.everybody_can_send_messages = everybody_can_send_messages
         self.send_message_types_priorities = send_message_types_priorities
+
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
         self.file_recv_config, self.debug_msg_counts, self.silent = file_recv_config, debug_msg_counts, silent
@@ -97,11 +101,20 @@ class ConnectorManager:
                 self.logger.warning(f'No client_name provided, using {self.client_name} instead')                
             self.source_id = self.client_name
         
+        if self.pubsub_central_broker:
+            if self.recv_message_types is None:
+                self.recv_message_types = []
+            self.recv_message_types.append('_pubsub')        
+        if self.send_message_types is None:
+            self.send_message_types = []
+        self.send_message_types.append('_pubsub')        
+        
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, 
                                    use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all,
                                    certificates_directory_path=self.certificates_directory_path, 
                                    client_name=self.client_name, client_bind_ip=self.client_bind_ip,
                                    send_message_types=self.send_message_types, recv_message_types=self.recv_message_types,
+                                   subscribe_message_types=self.subscribe_message_types,
                                    disk_persistence_send=self.disk_persistence_send, 
                                    disk_persistence_recv=self.disk_persistence_recv,
                                    max_size_persistence_path=self.max_size_persistence_path, 
@@ -117,7 +130,8 @@ class ConnectorManager:
                                    reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
                                    max_size_file_upload=self.max_size_file_upload,
                                    everybody_can_send_messages=self.everybody_can_send_messages,
-                                   send_message_types_priorities=self.send_message_types_priorities)        
+                                   send_message_types_priorities=self.send_message_types_priorities,
+                                   pubsub_central_broker=self.pubsub_central_broker)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
@@ -126,6 +140,44 @@ class ConnectorManager:
             await asyncio.sleep(delay)                
         self.logger.info('start_connector : '+str(self.source_id))        
         await self.connector.start(connector_socket_only=connector_socket_only)
+        if self.connector.pubsub_central_broker:    #only possible for server
+            self.central_broker_api = ConnectorAPI(config_file_path=self.config_file_path,
+                logger=self.logger.getChild('central_broker_api'),
+                connector_files_dirpath=self.connector_files_dirpath, 
+                is_server=True, server_sockaddr=self.server_sockaddr,
+                uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket,
+                uds_path_send_preserve_socket=self.uds_path_send_preserve_socket,
+                send_message_types=self.send_message_types, recv_message_types=self.recv_message_types)
+            self.central_broker_api.clients_subscriptions = {}   #key=message_type, value= list of subscribing client ids
+            
+            async def message_received_cb(logger, transport_json , data, binary):
+                try:                
+                    logger.info(f'central_broker_api message_received_cb {transport_json}')
+                    self.logger.info(f'central_broker_api message_received_cb {transport_json}')
+                    
+                    if MessageFields.MESSAGE_TYPE_PUBLISH not in transport_json:
+                        #extract client data about subscribe_message_types
+                        data_json = json.loads(data.decode())
+                        client_id = transport_json[MessageFields.SOURCE_ID]
+                        subscribe_message_types = data_json.get('subscribe_message_types', [])
+                        for message_type in subscribe_message_types:
+                            if message_type not in self.central_broker_api.clients_subscriptions:
+                                self.central_broker_api.clients_subscriptions[message_type] = []
+                            self.central_broker_api.clients_subscriptions[message_type].append(client_id)
+                    else:
+                        #publish client message to subscribers
+                        client_source = transport_json[MessageFields.SOURCE_ID]
+                        transport_json.pop(MessageFields.SOURCE_ID) #use central broker source id
+                        message_type_publish = transport_json.pop(MessageFields.MESSAGE_TYPE_PUBLISH)
+                        transport_json[MessageFields.MESSAGE_TYPE] = message_type_publish
+                        for client_destination in self.central_broker_api.clients_subscriptions[message_type_publish]:
+                            logger.info(f'Publish from {client_source} to {client_destination}')
+                            transport_json[MessageFields.DESTINATION_ID] = client_destination
+                            await self.central_broker_api.send_message(data=data, binary=binary, data_is_json=False,
+                                                                       **transport_json)
+                except Exception:
+                    logger.exception('wtf')
+            await self.central_broker_api.start_waiting_for_messages(message_type='_pubsub', message_received_cb=message_received_cb)           
 
     async def stop_connector(self, delay=None, connector_socket_only=False, hard=False, shutdown=False, 
                              enable_delete_files=True):
@@ -195,7 +247,7 @@ class ConnectorBaseTool:
                  is_server=False, server_sockaddr=None, client_name=None, 
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
-                 send_message_types=None, recv_message_types=None):
+                 send_message_types=None, recv_message_types=None, pubsub_central_broker=False):
 
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -212,6 +264,7 @@ class ConnectorBaseTool:
             self.logger = logger
         self.is_server, self.server_sockaddr, self.client_name = is_server, server_sockaddr, client_name
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+        self.pubsub_central_broker = pubsub_central_broker
         self.uds_path_send_preserve_socket = uds_path_send_preserve_socket
         self.uds_path_receive_preserve_socket = uds_path_receive_preserve_socket
 
@@ -251,10 +304,19 @@ class ConnectorBaseTool:
             self.source_id = self.client_name
         self.reader_writer_uds_path_send = None
         self.message_waiters = {}
+        
+        if self.pubsub_central_broker:
+            if self.recv_message_types is None:
+                self.recv_message_types = []
+            self.recv_message_types.append('_pubsub')        
+        if self.send_message_types is None:
+            self.send_message_types = []
+        self.send_message_types.append('_pubsub')             
+        
         self.connector = Connector(self.logger, tool_only=True, is_server=self.is_server, 
                             server_sockaddr=self.server_sockaddr, connector_files_dirpath=self.connector_files_dirpath, 
                             client_name=self.client_name, send_message_types=self.send_message_types, 
-                            recv_message_types=self.recv_message_types)
+                            recv_message_types=self.recv_message_types, pubsub_central_broker=self.pubsub_central_broker)
         
 class ConnectorAPI(ConnectorBaseTool):
     '''
@@ -278,15 +340,17 @@ class ConnectorAPI(ConnectorBaseTool):
         self.receive_from_any_connector_owner = receive_from_any_connector_owner
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None,
+                           wait_for_ack=False, message_type_publish=None):
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, with_file=with_file, 
-                                      wait_for_ack=wait_for_ack)
+                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
         return res
 
     def send_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           wait_for_ack=False, message_type_publish=None):
         self.logger.debug(f'send_message_sync of type {message_type}, destination_id {destination_id}, '
                           f'request_id {request_id}, response_id {response_id}')
         
@@ -294,7 +358,8 @@ class ConnectorAPI(ConnectorBaseTool):
         send_task = self.send_message(message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, await_response=await_response, 
-                                      with_file=with_file, wait_for_ack=wait_for_ack)
+                                      with_file=with_file, wait_for_ack=wait_for_ack,
+                                      message_type_publish=message_type_publish)
         if loop.is_running():
             loop.create_task(send_task)
         else:
@@ -302,7 +367,7 @@ class ConnectorAPI(ConnectorBaseTool):
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False):
+                           wait_for_ack=False, message_type_publish=None):
 
         try:  
             
@@ -316,7 +381,7 @@ class ConnectorAPI(ConnectorBaseTool):
             message_bytes = self.connector.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, 
                                    binary=binary, await_response=await_response, with_file=with_file, 
-                                   wait_for_ack=wait_for_ack)
+                                   wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
 
             send_message_lock_internally_acquired = False
             if self.uds_path_send_preserve_socket and not await_response:
@@ -419,6 +484,22 @@ class ConnectorAPI(ConnectorBaseTool):
             self.logger.exception('send_data')
             return False
 
+    async def publish_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           wait_for_ack=False):
+        res = await self.send_message(message_type='_pubsub', message_type_publish=message_type, destination_id=destination_id, 
+                                      request_id=request_id, response_id=response_id, data=data, 
+                                      data_is_json=data_is_json, binary=binary, await_response=await_response,
+                                      with_file=with_file, wait_for_ack=wait_for_ack)
+        return res
+    
+    def publish_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+        res = self.send_message_sync(self, message_type='_pubsub', message_type_publish=message_type,
+                                     destination_id=destination_id, request_id=request_id, response_id=response_id,
+                                     data=data, data_is_json=data_is_json, binary=binary, await_response=await_response,
+                                     with_file=with_file, wait_for_ack=wait_for_ack)
+        return res
             
     async def recv_message(self, reader, writer):
         try:

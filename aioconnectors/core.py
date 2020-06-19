@@ -68,14 +68,15 @@ class Connector:
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
                  disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
-                 send_message_types=None, recv_message_types=None, tool_only=False, file_recv_config=None,
+                 send_message_types=None, recv_message_types=None, subscribe_message_types=None,
+                 tool_only=False, file_recv_config=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
-                 send_message_types_priorities=None):
+                 send_message_types_priorities=None, pubsub_central_broker=False):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -145,7 +146,10 @@ class Connector:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
                 if recv_message_types is None:
                     recv_message_types = self.DEFAULT_MESSAGE_TYPES
+                if subscribe_message_types is None:
+                    subscribe_message_types = []
                 self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+                self.subscribe_message_types = subscribe_message_types
                 
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
                                                     self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))
@@ -193,6 +197,7 @@ class Connector:
                 self.send_message_types_priorities = send_message_types_priorities
                 if not self.send_message_types_priorities:
                     self.send_message_types_priorities = {}
+                self.pubsub_central_broker = pubsub_central_broker if self.is_server else False
                 self.max_size_file_upload = max_size_file_upload
                 self.disk_persistence = disk_persistence_send
                 self.persistence_path = os.path.join(self.connector_files_dirpath,
@@ -818,7 +823,7 @@ class Connector:
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,
                      request_id=None, response_id=None, binary=None, await_response=False,
-                     with_file=None, data=None, wait_for_ack=False):
+                     with_file=None, data=None, wait_for_ack=False, message_type_publish=None):
         if DEBUG_SHOW_DATA:
             self.logger.debug('pack_message with params : '+str(message_type)+', '+str(data)+', '+str(transport_json))
         if transport_json is None:
@@ -839,6 +844,8 @@ class Connector:
                 transport_json[MessageFields.WITH_FILE] = with_file
             if wait_for_ack:
                 transport_json[MessageFields.WAIT_FOR_ACK] = wait_for_ack
+            if message_type_publish:
+                transport_json[MessageFields.MESSAGE_TYPE_PUBLISH] = message_type_publish
                 
         #pack message
         json_field = json.dumps(transport_json).encode()
@@ -973,7 +980,7 @@ class Connector:
                         send_to_queue = False
                             
                 message_type = transport_json[MessageFields.MESSAGE_TYPE]
-                if (message_type not in self.send_message_types) and (message_type != '_ping'):
+                if (message_type not in self.send_message_types) and (message_type != '_ping') and (not self.pubsub_central_broker):
                     self.logger.warning(f'{self.source_id} queue_send_to_connector_put received a message with '
                                         f'invalid type {message_type}. Ignoring...')                    
                     send_to_queue = False                    
