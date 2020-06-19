@@ -39,7 +39,8 @@ class ConnectorAPI:
                  is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
                  send_message_types=("event","command"), recv_message_types=("event","command"),
                  uds_path_receive_preserve_socket=True, uds_path_send_preserve_socket=True,
-                 receive_from_any_connector_owner=RECEIVE_FROM_ANY_CONNECTOR_OWNER):
+                 receive_from_any_connector_owner=RECEIVE_FROM_ANY_CONNECTOR_OWNER,
+                 pubsub_central_broker=False):
 
         self.connector_files_dirpath = connector_files_dirpath
         if not os.path.isdir(self.connector_files_dirpath):
@@ -48,6 +49,7 @@ class ConnectorAPI:
 
         self.is_server, self.server_sockaddr, self.client_name = is_server, server_sockaddr, client_name
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
+        self.pubsub_central_broker = pubsub_central_broker        
         self.uds_path_send_preserve_socket = uds_path_send_preserve_socket
         self.uds_path_receive_preserve_socket = uds_path_receive_preserve_socket
         self.receive_from_any_connector_owner = receive_from_any_connector_owner        
@@ -83,6 +85,15 @@ class ConnectorAPI:
             self.source_id = self.client_name
         self.reader_writer_uds_path_send = None
         self.message_waiters = {}
+        
+        if self.pubsub_central_broker:
+            if self.recv_message_types is None:
+                self.recv_message_types = []
+            self.recv_message_types.append('_pubsub')        
+        if self.send_message_types is None:
+            self.send_message_types = []
+        self.send_message_types.append('_pubsub')            
+        
         self.uds_path_receive_from_connector = {}
         self.send_message_lock = asyncio.Lock()
         
@@ -113,7 +124,7 @@ class ConnectorAPI:
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,
                      request_id=None, response_id=None, binary=None, await_response=False,
-                     with_file=None, data=None, wait_for_ack=False):
+                     with_file=None, data=None, wait_for_ack=False, message_type_publish=None):
         if transport_json is None:
             transport_json = {MessageFields.MESSAGE_TYPE : message_type or self.send_message_types[0]}
             if source_id is not None:
@@ -132,6 +143,8 @@ class ConnectorAPI:
                 transport_json[MessageFields.WITH_FILE] = with_file
             if wait_for_ack:
                 transport_json[MessageFields.WAIT_FOR_ACK] = wait_for_ack
+            if message_type_publish:
+                transport_json[MessageFields.MESSAGE_TYPE_PUBLISH] = message_type_publish
                 
         #pack message
         json_field = json.dumps(transport_json).encode()
@@ -166,15 +179,16 @@ class ConnectorAPI:
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False):
+                           wait_for_ack=False, message_type_publish=None):
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id,
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, with_file=with_file,
-                                      wait_for_ack=wait_for_ack)
+                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
         return res
 
     def send_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None,
+                           wait_for_ack=False, message_type_publish=None):
         self.logger.debug(f'send_message_sync of type {message_type}, destination_id {destination_id}, '
                           f'request_id {request_id}, response_id {response_id}')
         
@@ -182,7 +196,7 @@ class ConnectorAPI:
         send_task = self.send_message(message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, await_response=await_response, 
-                                      with_file=with_file, wait_for_ack=wait_for_ack)
+                                      with_file=with_file, wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
         if loop.is_running():
             loop.create_task(send_task)
         else:
@@ -190,7 +204,7 @@ class ConnectorAPI:
 
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False): #, reuse_uds_connection=True):
+                           wait_for_ack=False, message_type_publish=None): #, reuse_uds_connection=True):
 
         try:  
             
@@ -203,7 +217,8 @@ class ConnectorAPI:
                 
             message_bytes = self.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, binary=binary,
-                                   await_response=await_response, with_file=with_file, wait_for_ack=wait_for_ack)
+                                   await_response=await_response, with_file=with_file, wait_for_ack=wait_for_ack,
+                                   message_type_publish=message_type_publish)
 
             send_message_lock_internally_acquired = False
             if self.uds_path_send_preserve_socket and not await_response:
@@ -306,6 +321,22 @@ class ConnectorAPI:
             self.logger.exception('send_data')
             return False
 
+    async def publish_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           wait_for_ack=False):
+        res = await self.send_message(message_type='_pubsub', message_type_publish=message_type, destination_id=destination_id, 
+                                      request_id=request_id, response_id=response_id, data=data, 
+                                      data_is_json=data_is_json, binary=binary, await_response=await_response,
+                                      with_file=with_file, wait_for_ack=wait_for_ack)
+        return res
+    
+    def publish_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+        res = self.send_message_sync(message_type='_pubsub', message_type_publish=message_type,
+                                     destination_id=destination_id, request_id=request_id, response_id=response_id,
+                                     data=data, data_is_json=data_is_json, binary=binary, await_response=await_response,
+                                     with_file=with_file, wait_for_ack=wait_for_ack)
+        return res
             
     async def recv_message(self, reader, writer):
         try:
