@@ -23,7 +23,7 @@
 
 aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.  
-It is built on the client/server model but both peers can push messages. Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
+It is a point to point broker built on the client/server model but both peers can push messages. Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
 A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
 
@@ -184,6 +184,7 @@ The optional encryption uses TLS. The server certificate and the default client 
 ## USE CASES
 
 -The standard use case is running server and client on separate stations. Each client station can then initiate a connection to the server station.  
+The valid message topics are defined in the server and client configurations (send\_message\_types and recv\_message\_types), and the messages are sent point to point.  
 In order to have all clients/server connections authenticated and encrypted, you just have to call
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
@@ -191,12 +192,15 @@ In order to have all clients/server connections authenticated and encrypted, you
 And then share the created directories between server and clients as explained in 1.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
-You might prefer to use a MQTT approach for that use case. However, the following lines describe a possible approach to do that using aioconnectors.  
+The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in 7.).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
 Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in 4.).  
-A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).
+A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).  
+
+-You might prefer to use a publish/subscribe approach. This also might be possible using aioconnectors, with a topology of a central server and multiple clients. A new application layer between the server and clients could manage the topics subscriptions and the message routing.
+
 
 ## USAGE
 
