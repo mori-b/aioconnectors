@@ -153,18 +153,27 @@ class ConnectorManager:
             
             async def message_received_cb(logger, transport_json , data, binary):
                 try:                
-                    logger.info(f'central_broker_api message_received_cb {transport_json}')
-                    self.logger.info(f'central_broker_api message_received_cb {transport_json}')
                     
                     if MessageFields.MESSAGE_TYPE_PUBLISH not in transport_json:
+                        logger.info(f'central_broker_api message_received_cb {transport_json}')                        
                         #extract client data about subscribe_message_types
+                        logger.debug('clients_subscriptions before '+str(self.central_broker_api.clients_subscriptions))
                         data_json = json.loads(data.decode())
                         client_id = transport_json[MessageFields.SOURCE_ID]
                         subscribe_message_types = data_json.get('subscribe_message_types', [])
                         for message_type in subscribe_message_types:
                             if message_type not in self.central_broker_api.clients_subscriptions:
                                 self.central_broker_api.clients_subscriptions[message_type] = []
+                            logger.info(f'Subscribing client {client_id} to message type {message_type}')
                             self.central_broker_api.clients_subscriptions[message_type].append(client_id)
+                        unsubscribe_message_types = data_json.get('unsubscribe_message_types', [])
+                        for message_type in unsubscribe_message_types:
+                            if message_type in self.central_broker_api.clients_subscriptions:
+                                logger.info(f'Unsubscribing client {client_id} to message type {message_type}')
+                                if client_id in self.central_broker_api.clients_subscriptions[message_type]:
+                                    self.central_broker_api.clients_subscriptions[message_type].remove(client_id)
+                        logger.debug('clients_subscriptions after '+str(self.central_broker_api.clients_subscriptions))
+                            
                     else:
                         #publish client message to subscribers
                         client_source = transport_json[MessageFields.SOURCE_ID]
@@ -173,7 +182,7 @@ class ConnectorManager:
                         message_type_publish = transport_json.pop(MessageFields.MESSAGE_TYPE_PUBLISH)
                         transport_json[MessageFields.MESSAGE_TYPE] = message_type_publish
                         for client_destination in self.central_broker_api.clients_subscriptions.get(message_type_publish, []):
-                            logger.info(f'Publish from {client_source} to {client_destination}')
+                            logger.debug(f'Publish from {client_source} to {client_destination}')
                             transport_json[MessageFields.DESTINATION_ID] = client_destination
                             await self.central_broker_api.send_message(data=data, binary=binary, data_is_json=False,
                                                                        **transport_json)                        
@@ -502,7 +511,7 @@ class ConnectorAPI(ConnectorBaseTool):
     
     def publish_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
-        res = self.send_message_sync(self, message_type='_pubsub', message_type_publish=message_type,
+        res = self.send_message_sync(message_type='_pubsub', message_type_publish=message_type,
                                      destination_id=destination_id, request_id=request_id, response_id=response_id,
                                      data=data, data_is_json=data_is_json, binary=binary, await_response=await_response,
                                      with_file=with_file, wait_for_ack=wait_for_ack)

@@ -123,6 +123,15 @@ class FullDuplex:
         
     async def stop(self, client_wait_for_reconnect=False, hard=False):
         try:
+            
+            if not self.connector.is_server:
+                if self.connector.subscribe_message_types:
+                    try:
+                        await self.send_message(message_type='_pubsub',
+                                    data=json.dumps({'unsubscribe_message_types':self.connector.subscribe_message_types}))
+                    except Exception:
+                        self.logger.exception(self.connector.source_id+' stop')                    
+            
             self.is_stopping = True
             self.logger.info(f'{self.connector.source_id} stop FullDuplex to peer {self.peername}')
             self.logger.info(f'queue_recv size {self.connector.queue_recv.qsize()} , queue_send size '
