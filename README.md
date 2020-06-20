@@ -184,6 +184,7 @@ You should modify some values as explained in the previous example in order to r
 
 ### Broker example
 
+Just a server with pubsub\_central\_broker=True
 
     import asyncio
     import aioconnectors
@@ -231,6 +232,7 @@ You should modify some values as explained in the previous example in order to r
 
 ### Subscriber example
 
+Just a client with subscribe\_message\_types = [topic1, topic2, ...]
 
     import asyncio
     import aioconnectors
@@ -292,6 +294,7 @@ You should modify some values as explained in the previous example in order to r
 
 ### Publisher example
 
+Just a client which uses publish\_message instead of send\_message
 
     import asyncio
     import aioconnectors
