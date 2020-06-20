@@ -446,7 +446,7 @@ To shutdown a connector :
 
     await connector_manager.stop_connector(shutdown=True)
 
-You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in the basic example later on, and in aioconnectors\_test.py.
+You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in the previous basic examples, and in aioconnectors\_test.py.
 
 
 ### 3.send/receive messages with the API
@@ -566,7 +566,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
 
 -**is\_server** (boolean) is important to differentiate between server and client  
--**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip, for example ("eth0", 10673).  
+-**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
 -**use\_ssl** and **ssl_allow_all** are boolean. use_ssl enables encryption as explained previously. When ssl_allow_all is disabled, certificates validation is enforced.  
@@ -583,7 +583,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages.  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
--debug_msg_counts is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if silent is disabled.  
+-**debug_msg_counts** is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if **silent** is disabled.  
 -**enable\_client\_try\_reconnect** is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  
 -**reuse\_server\_sockaddr**, **reuse\_uds\_path\_send\_to\_connector**, **reuse\_uds\_path\_commander\_server** : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
 -**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
@@ -603,14 +603,14 @@ These arguments must be filled on the application layer by the user
 -**destination\_id** is mandatory for server : it is the remote client id. Not needed by client.  
 -**data\_is\_json** is True by default since it assumes "data" is a json, and it dumps it automatically. Set it to False if "data" is not a json.  
 -**data** is the payload of your message. By default it expects a json, but it can be a string, and even bytes. However, using together the "data" argument for a json or a string, and the "binary" argument for binary payload, is a nice way to accompany a binary payload with some textual information. Contrary to "data", **binary** must be bytes, and cannot be a string.  
--**with\_file** lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. **src\_path** is the source path of the file to be sent, **dst\_type** is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config" dictionary. **dst\_name** is the name the file will be stored under. **delete** is a boolean telling if to delete the source file after it has been sent. **owner** is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config. If an error occurs while opening the the file to send, the file will not be sent but with\_file will still be present in transport\_json received by peer, and will contain an additional key **file\_error** telling the error to the peer application.  
--**request\_id** and **response\_id** are optional : they are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The local peer message listener can then associate the received response with the request sent.  
+-**with\_file** lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. **src\_path** is the source path of the file to be sent, **dst\_type** is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config" dictionary. **dst\_name** is the name the file will be stored under. **delete** is a boolean telling if to delete the source file after it has been sent. **owner** is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config. If an error occurs while opening the file to send, the file will not be sent but with\_file will still be present in transport\_json received by peer, and will contain an additional key **file\_error** telling the error to the peer application.  
+-**request\_id** and **response\_id** are optional : they are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The request sender can then associate the received response with the request sent.  
 -**await\_response** is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
 -**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of more than a thousand messages per second in the point to point approach (and more than a hundred per second in the publish/subscribe approach).  
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
-The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).
+The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).  
 The **publish\_message** and **publish\_message\_sync** methods are the same as the send_message ones, but used by a client in the publish/subscribe approach.  
 
 ### 6.Management programmatic tools
