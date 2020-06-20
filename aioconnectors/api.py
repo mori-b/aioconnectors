@@ -155,9 +155,9 @@ class ConnectorManager:
                 try:                
                     
                     if MessageFields.MESSAGE_TYPE_PUBLISH not in transport_json:
-                        logger.info(f'central_broker_api message_received_cb {transport_json}')                        
+                        logger.info(f'central_broker_api message_received_cb {transport_json} and {data}')                        
                         #extract client data about subscribe_message_types
-                        logger.debug('clients_subscriptions before '+str(self.central_broker_api.clients_subscriptions))
+                        logger.debug(f'clients_subscriptions before {self.central_broker_api.clients_subscriptions}')
                         data_json = json.loads(data.decode())
                         client_id = transport_json[MessageFields.SOURCE_ID]
                         subscribe_message_types = data_json.get('subscribe_message_types', [])
@@ -172,7 +172,7 @@ class ConnectorManager:
                                 logger.info(f'Unsubscribing client {client_id} to message type {message_type}')
                                 if client_id in self.central_broker_api.clients_subscriptions[message_type]:
                                     self.central_broker_api.clients_subscriptions[message_type].remove(client_id)
-                        logger.debug('clients_subscriptions after '+str(self.central_broker_api.clients_subscriptions))
+                        logger.debug(f'clients_subscriptions after {self.central_broker_api.clients_subscriptions}')
                             
                     else:
                         #publish client message to subscribers
