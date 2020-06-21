@@ -335,7 +335,7 @@ class ConnectorBaseTool:
             self.recv_message_types.append('_pubsub')        
         if self.send_message_types is None:
             self.send_message_types = []
-        self.send_message_types.append('_pubsub')             
+        #self.send_message_types.append('_pubsub')             
         
         self.connector = Connector(self.logger, tool_only=True, is_server=self.is_server, 
                             server_sockaddr=self.server_sockaddr, connector_files_dirpath=self.connector_files_dirpath, 

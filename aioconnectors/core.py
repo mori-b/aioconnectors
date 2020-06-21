@@ -1012,7 +1012,8 @@ class Connector:
                         send_to_queue = False
                             
                 message_type = transport_json[MessageFields.MESSAGE_TYPE]
-                if (message_type not in self.send_message_types) and (message_type != '_ping') and (not self.pubsub_central_broker):
+                if (message_type not in self.send_message_types) and (message_type != '_ping') \
+                            and (message_type != '_pubsub') and (not self.pubsub_central_broker):
                     self.logger.warning(f'{self.source_id} queue_send_to_connector_put received a message with '
                                         f'invalid type {message_type}. Ignoring...')                    
                     send_to_queue = False                    
