@@ -377,7 +377,7 @@ And then share the created directories between server and clients as explained i
 
 -You might prefer to use a publish/subscribe approach.  
 This is also supported by configuring a single server as the broker (you just need to set pubsub\_central\_broker=True).  
-The other connectors should be clients. A client can subscribe to specific topics (message\_types) by setting the attribute subscribe\_message\_types in its constructor. To change the topics, you must restart the connector.  
+The other connectors should be clients. A client can subscribe to specific topics (message\_types) by setting the attribute subscribe\_message\_types in its constructor, or by calling the set\_subscribe\_message\_types command on the fly.  
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
@@ -625,6 +625,7 @@ The class ConnectorManager has several methods to manage your connector. These m
 -**delete\_previous\_persistence\_remains**  
 -**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
 -**show\_log\_level**, **set\_log\_level**  
+-**show\_subscribe\_message\_types**, **set\_subscribe\_message\_types**  
 The same methods can be executed remotely, with the ConnectorRemoteTool class. This class is instantiated exactly like ConnectorAPI, with the same arguments (except for receive_from_any_connector_owner)  
 
     connector_remote_tool = aioconnectors.ConnectorRemoteTool(config_file_path=config_file_path)
@@ -644,8 +645,9 @@ to run several interesting commands like :
 -peek\_queues to show the internal queues sizes.  
 -ignore\_peer\_traffic can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
 -show\_log\_level to show the current log level.  
--set\_log\_level to set the log level on the fly.
-
+-set\_log\_level to set the log level on the fly.  
+-show\_subscribe\_message\_types to show the subscribed message types of a client.  
+-set\_subscribe\_message\_types to set the list of all subscribed message types of a client.  
 
 ### 8.Testing command line tools
 

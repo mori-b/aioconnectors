@@ -602,7 +602,7 @@ class Connector:
                 if response:
                     response = str(response).encode()
                 else:
-                    response = b'success'    #b'{}'
+                    response = b'{}' #b'success'    
                 response = Structures.MSG_4_STRUCT.pack(len(response)) + response
                 self.logger.info(f'commander_cb responding : {response}')
                 writer.write(response)            
@@ -718,6 +718,38 @@ class Connector:
         except Exception:
             self.logger.exception(f'{self.source_id} delete_previous_persistence_remains')
                 
+    def show_subscribe_message_types(self):
+        self.logger.info(f'{self.source_id} show_subscribe_message_types')
+        if not self.is_server:
+            return self.subscribe_message_types
+        else:
+            return []
+
+    async def set_subscribe_message_types(self, message_types):
+        self.logger.info(f'{self.source_id} set_subscribe_message_types {message_types}')
+        message_types_to_remove = [message_type for message_type in message_types \
+                                   if message_type not in self.recv_message_types]
+        if message_types_to_remove:
+            self.logger.warning(f'Ignoring {message_types_to_remove} because they are not in recv_message_types')
+        message_types = list(set(message_types) - set(message_types_to_remove))
+        if not self.is_server:
+            try:
+                unsubscribe_to_message_types = set(self.subscribe_message_types) - set(message_types)
+                subscribe_to_message_types = set(message_types) - set(self.subscribe_message_types)
+                send_message = self.full_duplex_connections[str(self.server_sockaddr)].send_message
+                if unsubscribe_to_message_types:
+                    await send_message(message_type='_pubsub',
+                                data=json.dumps({'unsubscribe_message_types':list(unsubscribe_to_message_types)}))
+                if subscribe_to_message_types:
+                    await send_message(message_type='_pubsub',
+                                data=json.dumps({'subscribe_message_types':list(subscribe_to_message_types)}))                
+                self.subscribe_message_types = message_types
+            except Exception:
+                self.logger.exception('set_subscribe_message_types')
+            return self.subscribe_message_types
+        else:
+            return []
+            
     def store_message_to_persistence(self, peername, message, ignore_count=False):
         persistence_path = self.persistence_path + self.alnum_name(peername)
         try:

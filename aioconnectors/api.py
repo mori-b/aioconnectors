@@ -232,6 +232,14 @@ class ConnectorManager:
         else:
             res = await self.connector.delete_client_certificate_on_client()
         return res     
+
+    def show_subscribe_message_types(self):
+        self.logger.info(f'{self.source_id} show_subscribe_message_types')
+        return self.connector.show_subscribe_message_types()
+
+    async def set_subscribe_message_types(self, *message_types):
+        self.logger.info(f'{self.source_id} set_subscribe_message_types {message_types}')
+        return self.connector.set_subscribe_message_types(*message_types)
         
     def show_connected_peers(self, dump_result=False):
         self.logger.info(f'{self.source_id} show_connected_peers') 
@@ -684,6 +692,16 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def delete_previous_persistence_remains(self):
         self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
         response = await self.send_command(cmd='delete_previous_persistence_remains__sync', kwargs={})        
+        return response
+    
+    async def show_subscribe_message_types(self):
+        self.logger.info(f'{self.source_id} show_subscribe_message_types')         
+        response = await self.send_command(cmd='show_subscribe_message_types__sync', kwargs={})        
+        return response
+    
+    async def set_subscribe_message_types(self, *message_types):
+        self.logger.info(f'{self.source_id} set_subscribe_message_types {message_types}')         
+        response = await self.send_command(cmd='set_subscribe_message_types', kwargs={'message_types':message_types})
         return response
     
     async def show_connected_peers(self):

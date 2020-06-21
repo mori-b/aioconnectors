@@ -61,7 +61,8 @@ def cli(logger=None):
             if os.path.exists(active_connectors_path):
                 with open(active_connectors_path, 'r') as fd:
                     set_active_connectors = json.load(fd)    
-                dict_connector_names = {str(index):connector_name for index,connector_name in enumerate(set_active_connectors)}
+                dict_connector_names = {str(index):connector_name for index,connector_name in \
+                                            enumerate(sorted(set_active_connectors))}
                 display_dict(dict_connector_names)        
                 print('\nPlease type the connector number you would like to run, or')
         except Exception as exc:
@@ -97,7 +98,7 @@ def cli(logger=None):
         clearscreen()
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
                      'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'disconnect_client',
-                     'show_log_level', 'set_log_level']
+                     'show_log_level', 'set_log_level', 'show_subscribe_message_types', 'set_subscribe_message_types']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
         display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
@@ -215,6 +216,32 @@ def cli(logger=None):
                     task = loop.create_task(connector_remote_tool.set_log_level(new_level))
                     loop.run_until_complete(task)
                     print(task.result().decode())       
+                elif the_cmd == 'show_subscribe_message_types':
+                    if is_server:
+                        print('Only available for clients')
+                    else:
+                        task = loop.create_task(connector_remote_tool.show_subscribe_message_types())
+                        loop.run_until_complete(task)
+                        print(task.result().decode())     
+                elif the_cmd == 'set_subscribe_message_types':
+                    if is_server:
+                        print('Only available for clients')
+                    else:                    
+                        print('Current subscribed message types are :')
+                        task = loop.create_task(connector_remote_tool.show_subscribe_message_types())
+                        loop.run_until_complete(task)
+                        print(task.result().decode())
+                        res = input('\nPlease type the list of all message types you would like to subscribe, or q to quit\n')
+                        clearscreen()                    
+                        if res == 'q':
+                            break
+                        new_message_types = res.split()                        
+                        res2 = input(f'\nAre you sure you want to subscribe to these message types : {new_message_types} ? y/n\n')
+                        if res2.lower() != 'y':
+                            break      
+                        task = loop.create_task(connector_remote_tool.set_subscribe_message_types(*new_message_types))
+                        loop.run_until_complete(task)
+                        print(task.result().decode())   
                     
             display_dict(dict_cmds, connector=server_sockaddr or client_name)                    
             res = input('\nPlease type the command number you would like to run, or q to quit\n')                    
