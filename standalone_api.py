@@ -92,7 +92,7 @@ class ConnectorAPI:
             self.recv_message_types.append('_pubsub')        
         if self.send_message_types is None:
             self.send_message_types = []
-        self.send_message_types.append('_pubsub')            
+        #self.send_message_types.append('_pubsub')            
         
         self.uds_path_receive_from_connector = {}
         self.send_message_lock = asyncio.Lock()
