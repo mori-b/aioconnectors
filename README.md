@@ -422,8 +422,8 @@ By unsetting use_ssl, you can disable encryption at all.
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.
 
 2.1.Command line tool  
--To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json, and configure it according to your needs.
-Relevant for both server and client. A Manager template json can be obtained by calling : 
+-To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json, and configure it according to your needs (more details in 4.). Relevant for both server and client.  
+A Manager template json can be obtained by calling : 
 
     python3 -m aioconnectors print_config_templates
 
