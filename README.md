@@ -611,6 +611,7 @@ These arguments must be filled on the application layer by the user
 -**await\_response** is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
 -**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of more than a thousand messages per second in the point to point approach (and more than a hundred per second in the publish/subscribe approach).  
+Not a benchmark, but some point-to-point trials showed that up until 4000 messages (of 100 bytes) per second could be received by a server without delay, and from that point the receive queue started to be non empty. This test gave the same result with 100 clients sending each 40 events per second, and with 1 client sending 4000 events per second.  
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
 The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).  
