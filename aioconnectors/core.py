@@ -269,8 +269,14 @@ class Connector:
                 self.logger.info('msg_counts : '+str(self.msg_counts))
                 self.previous_msg_counts = deepcopy(self.msg_counts)
             queues_stats = self.peek_queues()
-            if queues_stats['queue_recv'] or any(queues_stats['queue_send'].values()):
-                self.logger.info('peek_queues : '+json.dumps(queues_stats, indent=4, sort_keys=True))
+            queues_stats_display = {}            
+            if queues_stats['queue_recv']:
+                queues_stats_display['queue_recv'] = queues_stats['queue_recv']                
+            if any(queues_stats['queue_send'].values()):
+                queues_stats_display['queue_send'] = {key:value for (key,value) in \
+                                            queues_stats['queue_send'].items() if value}
+            if queues_stats_display:
+                self.logger.info('peek_queues : '+json.dumps(queues_stats_display, indent=4, sort_keys=True))
                 
     def alnum_name(self, name):
         return ''.join([str(letter) for letter in name if str(letter).isalnum()])
