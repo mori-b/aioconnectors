@@ -2,6 +2,7 @@
 **Simple secure asynchronous persistent message broker**
 
 *Features*  
+*Installation*  
 *Example Point to point : Server and Client*  
 *Example publish/subscribe : Broker, Subscriber, and Publisher*  
 *High Level Design*  
@@ -27,6 +28,11 @@ It is a point to point broker built on the client/server model, but both peers c
 Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector and manage it with shell commands.  
 A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
+
+
+## INSTALLATION
+
+pip3 install aioconnectors
 
 
 ## BASIC EXAMPLE - POINT TO POINT
