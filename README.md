@@ -32,7 +32,7 @@ A simple programmatic Python API is also exposed, with functionalities like star
 
 ## INSTALLATION
 
-pip3 install aioconnectors
+    pip3 install aioconnectors
 
 
 ## BASIC EXAMPLE - POINT TO POINT
