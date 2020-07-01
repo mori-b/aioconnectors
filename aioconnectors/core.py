@@ -500,7 +500,8 @@ class Connector:
     def cancel_tasks(self, task_names=None, task_excludes=None):
         #If task_names=None, cancel all tasks, else cancel task_names list of tasks
         try:
-            self.logger.info('cancel_tasks called. Current self.tasks are : '+str(list(self.tasks.keys())))
+            self.logger.info(f'cancel_tasks called with task_names : {task_names} and task_excludes : {task_excludes}'
+                             f' and current self.tasks : {list(self.tasks.keys())}')
             tasks_to_pop = []
             for name, tasks in self.tasks.items():
                 

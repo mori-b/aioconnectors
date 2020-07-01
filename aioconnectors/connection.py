@@ -141,10 +141,15 @@ class FullDuplex:
             #we never stop listening to uds queue_send_to_connector,
             #but we remove peername from queue_send so that it stops writing messages into queue_send
             #this has been done already in stop_nowait_for_persistence in case of persistence, but need to be done here otherwise
+            
+            #stop_nowait_for_persistence is not necessarily called during handle_ssl and no_ssl_handshake, so 
+            #pop full_duplex_connections always : at worst it will try to pop again.
+            self.connector.full_duplex_connections.pop(self.peername, None)                
+            
             if not self.connector.disk_persistence:            
                 #this has been done already in stop_nowait_for_persistence if disk_persistence
                 self.logger.info(f'{self.connector.source_id} stop, now deleting queue_send of peer {self.peername}')
-                self.connector.full_duplex_connections.pop(self.peername, None)                
+#                self.connector.full_duplex_connections.pop(self.peername, None)                
                 queue_send = self.connector.queue_send.pop(self.peername, None)
                 if queue_send:
                     if hard:
@@ -237,7 +242,7 @@ class FullDuplex:
                 peer_identification_finished = True
                 
             if peername+'_incoming' in self.connector.tasks:
-                #problem here in case of server, after client without ssh had its peername replaced. 
+                #problem here in case of server, after client without ssl had its peername replaced. 
                 #we won't detect the redundant connection
                 self.logger.warning('peername : '+str(peername)+' already connected : Disconnecting and reconnecting...')
                 self.connector.cancel_tasks(task_names=[peername+'_incoming', peername+'_outgoing'])
