@@ -19,7 +19,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-VERSION = '1.0.14'
+VERSION = '1.0.15'
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
@@ -109,8 +109,7 @@ setup(
     # This field adds keywords for your project which will appear on the
     # project page. What does your project relate to?
     #
-    # Note that this is a string of words separated by whitespace, not a list.
-    keywords='message queue broker simple asyncio',  # Optional
+    keywords=['message queue', 'broker', 'simple', 'asyncio'],  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
