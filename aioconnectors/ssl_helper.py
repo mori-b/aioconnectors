@@ -6,6 +6,12 @@ import uuid
 import shutil
 
 
+def update_conf(conf_template, conf, replacement_dict):
+    shutil.copy(conf_template, conf)
+    with open(conf, 'a') as fd:
+        for key,value in replacement_dict.items():
+            fd.write(str(key)+' = '+str(value)+'\n')
+        
 class SSL_helper:
     DEFAULT_BASE_PATH = '/tmp/aioconnectors' #os.getcwd()
     CLIENT_DEFAULT_CERT_NAME = 'default'    
@@ -32,6 +38,7 @@ class SSL_helper:
             self.SERVER_PEM_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server.'+self.CERT_NAME_EXTENSION)
             self.SERVER_KEY_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server.'+self.KEY_NAME_EXTENSION)
             self.CSR_CONF  = os.path.join(self.SERVER_BASE_PATH, 'csr_details.conf')
+            self.CSR_TEMPLATE_CONF  = os.path.join(self.SERVER_BASE_PATH, 'csr_details_template.conf')
             
             #client
             self.CLIENT_BASE_PATH = os.path.join(self.certificates_base_path, 'client')
@@ -89,13 +96,15 @@ class SSL_helper:
                 raise Exception(f'A certificate already exists for client {source_id}. '
                                 f'Use delete_client_certificate to delete it')
             if common_name:
-                create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={common_name}/CN={common_name}' -keyout "\
+                update_conf(self.CSR_TEMPLATE_CONF, self.CSR_CONF, {'O':common_name, 'CN':common_name})
+                create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
             else:
                 #necessary to set a unique field (like organization), so that each certificate has a unique hash, 
                 #which is better for fast authentication
                 organization = uuid.uuid4().hex
-                create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout "\
+                update_conf(self.CSR_TEMPLATE_CONF, self.CSR_CONF, {'O':organization})                
+                create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
                                      
             proc, stdout, stderr = await self.run_cmd(create_certificate_cmd)
@@ -277,8 +286,9 @@ def create_certificates(logger, certificates_directory_path):
     SERVER_CERTS_PATH = os.path.join(certificates_path_server_client, '{}.pem')
     
     csr_details_conf = os.path.join(certificates_path_server, 'csr_details.conf')
+    csr_details_template_conf = os.path.join(certificates_path_server, 'csr_details_template.conf')
     
-    with open(csr_details_conf, 'w') as fd:
+    with open(csr_details_template_conf, 'w') as fd:
         fd.write(
             '''
             [req]
@@ -288,11 +298,13 @@ def create_certificates(logger, certificates_directory_path):
             distinguished_name = dn
             
             [ dn ]
-            C=US
-            O=Company)
+            C = US
             ''')
+
+    shutil.copy(csr_details_template_conf, csr_details_conf)
     
 #        1) Create Server certificate            
+    update_conf(csr_details_template_conf, csr_details_conf, {'O':'company'})                        
     cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
     stdout = subprocess.check_output(cmd, shell=True)
     shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
@@ -304,7 +316,8 @@ def create_certificates(logger, certificates_directory_path):
     organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
     #we might want to obfuscate organization
     organization = str(abs(hash(organization)) % (10 ** 8))
-    cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -subj '/O={organization}' -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
+    update_conf(csr_details_template_conf, csr_details_conf, {'O':organization})                    
+    cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
     stdout = subprocess.check_output(cmd, shell=True)        
     shutil.copy(client_default_pem, SERVER_CERTS_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
 
