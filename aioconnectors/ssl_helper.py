@@ -256,9 +256,6 @@ def create_certificates(logger, certificates_directory_path):
     #certificates_path = os.path.join(ssl_helper.BASE_PATH, 'certificates')
     certificates_path = ssl_helper.certificates_base_path
     logger.info('Certificates will be created under directory : '+certificates_path)
-    if os.path.exists(certificates_path) and os.listdir(certificates_path):
-        logger.error(certificates_path+' should be empty before starting this process')
-        return False
         
     certificates_path_server = os.path.join(certificates_path, 'server')
     certificates_path_server_client = os.path.join(certificates_path_server, 'client-certs')       
@@ -267,6 +264,16 @@ def create_certificates(logger, certificates_directory_path):
     certificates_path_client = os.path.join(certificates_path, 'client')        
     certificates_path_client_client = os.path.join(certificates_path_client, 'client-certs')        
     certificates_path_client_server = os.path.join(certificates_path_client, 'server-cert')                
+
+    if os.path.exists(certificates_path_server_server) and os.listdir(certificates_path_server_server):
+        logger.error(certificates_path_server_server+' should be empty before starting this process')
+        return False
+    if os.path.exists(certificates_path_server_client) and os.listdir(certificates_path_server_client):
+        logger.error(certificates_path_server_client+' should be empty before starting this process')
+        return False
+    if os.path.exists(certificates_path_client) and os.listdir(certificates_path_client):
+        logger.error(certificates_path_client+' should be empty before starting this process')
+        return False
     
     if not os.path.exists(certificates_path_server_server):
         os.makedirs(certificates_path_server_server)
@@ -288,21 +295,23 @@ def create_certificates(logger, certificates_directory_path):
     csr_details_conf = os.path.join(certificates_path_server, 'csr_details.conf')
     csr_details_template_conf = os.path.join(certificates_path_server, 'csr_details_template.conf')
     
-    with open(csr_details_template_conf, 'w') as fd:
-        fd.write(
-            '''
-            [req]
-            prompt = no
-            default_bits = 2048
-            default_md = sha256
-            distinguished_name = dn
-            
-            [ dn ]
-            C = US
-            ''')
+    #this if lets the user tweak the base csr_details_template_conf
+    if not os.path.exists(csr_details_template_conf):
+        with open(csr_details_template_conf, 'w') as fd:
+            fd.write(
+'''
+[req]
+prompt = no
+default_bits = 2048
+default_md = sha256
+distinguished_name = dn
 
-    shutil.copy(csr_details_template_conf, csr_details_conf)
-    
+[ dn ]
+C = US
+''')
+    else:
+        logger.info(f'Using preexisting {csr_details_template_conf}')
+        
 #        1) Create Server certificate            
     update_conf(csr_details_template_conf, csr_details_conf, {'O':'company'})                        
     cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
