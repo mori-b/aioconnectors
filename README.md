@@ -1,5 +1,5 @@
 # aioconnectors
-**Simple secure asynchronous persistent message broker**
+**Simple secure asynchronous message broker**
 
 *Features*  
 *Installation*  
