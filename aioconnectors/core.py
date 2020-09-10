@@ -387,7 +387,7 @@ class Connector:
         #Proxy-Authorization: Basic encoded-credentials
         #response : HTTP/1.1 200 OK
         try:
-            proxy_msg = "CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1"
+            proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1".encode()
             self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
             await self.loop.sock_sendall(self.sock, proxy_msg)
             resp = await self.loop.sock_recv(self.sock, 2048)
