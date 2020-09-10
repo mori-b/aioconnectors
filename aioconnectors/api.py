@@ -29,7 +29,7 @@ class ConnectorManager:
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES,
-                 send_message_types_priorities=None, pubsub_central_broker=False):
+                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -57,6 +57,7 @@ class ConnectorManager:
         self.max_size_file_upload = max_size_file_upload
         self.everybody_can_send_messages = everybody_can_send_messages
         self.send_message_types_priorities = send_message_types_priorities
+        self.proxy = proxy
 
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
@@ -131,7 +132,7 @@ class ConnectorManager:
                                    max_size_file_upload=self.max_size_file_upload,
                                    everybody_can_send_messages=self.everybody_can_send_messages,
                                    send_message_types_priorities=self.send_message_types_priorities,
-                                   pubsub_central_broker=self.pubsub_central_broker)        
+                                   pubsub_central_broker=self.pubsub_central_broker, proxy=self.proxy)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
