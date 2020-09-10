@@ -527,6 +527,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "is_server": true,
         "max_size_file_upload": 1000000000,
         "max_size_persistence_path": 1000000000,
+        "proxy": {},
         "pubsub_central_broker": false,
         "recv_message_types": [
             "any"
@@ -598,6 +599,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**reuse\_server\_sockaddr**, **reuse\_uds\_path\_send\_to\_connector**, **reuse\_uds\_path\_commander\_server** : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
 -**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
 -**receive\_from\_any\_connector\_owner** if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api. True by default (requires the api to run as root to be effective).  
+-**proxy** an optional dictionary like {"enabled":true, "address":"<proxy_url>", "port":<proxy_port>, "authorization":None}. Relevant only on client side. Lets the client connect to the server through a proxy, if the **enabled** field is true. The authorization field can have a value like {"username":"<username>", "password":"<password>"}.  
 -**hook\_server\_auth\_client** :  does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 
 
