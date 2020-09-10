@@ -76,7 +76,7 @@ class Connector:
                  hook_server_auth_client=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
-                 send_message_types_priorities=None, pubsub_central_broker=False):
+                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -141,6 +141,10 @@ class Connector:
                 self.logger.info('Client has source id : '+self.source_id)   
                 self.alnum_source_id = self.alnum_name(self.source_id)                            
                 self.enable_client_try_reconnect = enable_client_try_reconnect
+                self.proxy = proxy or {}
+                if self.proxy.get('enabled'):
+                    #proxy can be like {'enabled':True, 'address':'streamline.t-mobile.com, 'port':'22', 'authentication':''}
+                    self.logger.info(f'Client {self.source_id} will use proxy {str(self.proxy)}')
                 
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
@@ -330,11 +334,19 @@ class Connector:
                 if '.' not in server_sockaddr_addr:
                     #this is useful only when client and server are on the same machine
                     server_sockaddr_addr = iface_to_ip(server_sockaddr_addr)
-                await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                            (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
-                self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
-                                 f'to peer {self.sock.getpeername()}')
-                
+                    
+                if not self.proxy.get('enabled'):
+                    await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
+                    self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
+                                     f'to peer {self.sock.getpeername()}')
+                else:
+                    await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                                (self.proxy['address'], self.proxy['port'])), timeout=2)                                
+                    self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
+                                     f'to proxy {self.sock.getpeername()}')
+                    await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
+                    
                 self.tasks['run_client'] = self.loop.create_task(self.run_client())    
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
               
@@ -369,6 +381,25 @@ class Connector:
                 await self.stop(shutdown=True, enable_delete_files=False)
                 raise
             return
+        
+    async def proxy_connect(self, server_sockaddr, server_sockaddr_addr=None):
+        #request : CONNECT streamline.t-mobile.com:22 HTTP/1.1
+        #Proxy-Authorization: Basic encoded-credentials
+        #response : HTTP/1.1 200 OK
+        try:
+            proxy_msg = "CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1"
+            self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
+            await self.loop.sock_sendall(self.sock, proxy_msg)
+            resp = await self.loop.sock_recv(self.sock, 2048)
+            self.logger.info(f'Proxy server response received : {str(resp)}')
+            if resp.startswith(b'HTTP/1.1 200 OK'):
+                self.logger.info('Proxy success')
+            else:
+                self.logger.error('Proxy failure, raising ConnectionRefusedError')
+                raise ConnectionRefusedError()
+        except Exception:
+            self.logger.exception('proxy_connect')
+            raise
         
     async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False,
                    shutdown=False, enable_delete_files=True):
@@ -563,8 +594,19 @@ class Connector:
                 if '.' not in server_sockaddr_addr:
                     #this is useful only when client and server are on the same machine                    
                     server_sockaddr_addr = iface_to_ip(server_sockaddr_addr)
-                await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                            (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                              
+
+                if not self.proxy.get('enabled'):
+                    await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
+                    self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
+                                     f'to peer {self.sock.getpeername()}')
+                else:
+                    await asyncio.wait_for(self.loop.sock_connect(self.sock,
+                                                (self.proxy['address'], self.proxy['port'])), timeout=2)                                
+                    self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
+                                     f'to proxy {self.sock.getpeername()}')
+                    await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
+                      
             except asyncio.CancelledError:
                 raise
             except Exception as exc:    #(ConnectionRefusedError, asyncio.TimeoutError):

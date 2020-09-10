@@ -66,7 +66,8 @@ if len(sys.argv) > 1:
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         enable_client_try_reconnect=True, max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
-                        everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, send_message_types_priorities={})
+                        everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, send_message_types_priorities={},
+                        proxy={})
         print('\n- MANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
         file_recv_config = {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/',
