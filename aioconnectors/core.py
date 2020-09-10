@@ -387,12 +387,12 @@ class Connector:
         #Proxy-Authorization: Basic encoded-credentials
         #response : HTTP/1.1 200 OK
         try:
-            proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1".encode()
+            proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1\r\n\r\n".encode()
             self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
             await self.loop.sock_sendall(self.sock, proxy_msg)
             resp = await self.loop.sock_recv(self.sock, 2048)
             self.logger.info(f'Proxy server response received : {str(resp)}')
-            if resp.startswith(b'HTTP/1.1 200 OK'):
+            if resp.startswith(b'HTTP/1.1 200'):
                 self.logger.info('Proxy success')
             else:
                 self.logger.error('Proxy failure, raising ConnectionRefusedError')
