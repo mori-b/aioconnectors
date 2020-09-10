@@ -8,6 +8,7 @@ import ssl
 import uuid
 from copy import deepcopy
 from time import time
+from base64 import b64encode
 
 from .connection import FullDuplex, DEBUG_SHOW_DATA, MessageFields, Structures
 from .helpers import full_path, chown_nobody_permissions, iface_to_ip
@@ -143,7 +144,8 @@ class Connector:
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
                 if self.proxy.get('enabled'):
-                    #proxy can be like {'enabled':True, 'address':'streamline.t-mobile.com, 'port':'22', 'authentication':''}
+                    #proxy can be like {'enabled':True, 'address':'streamline.t-mobile.com, 'port':'22', 'authorization':''},
+                    #or with 'authorization':{'username':<username>, 'password':<password>}
                     self.logger.info(f'Client {self.source_id} will use proxy {str(self.proxy)}')
                 
                 if send_message_types is None:
@@ -387,7 +389,15 @@ class Connector:
         #Proxy-Authorization: Basic encoded-credentials
         #response : HTTP/1.1 200 OK
         try:
-            proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1\r\n\r\n".encode()
+            proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1"
+            authorization = self.proxy.get('authorization', None)
+            if authorization:
+                #not tested
+                proxy_msg_cont = "\r\nProxy-Authorization: basic " + \
+                b64encode((authorization['username']+':'+authorization['password']).encode()).decode()
+                proxy_msg += proxy_msg_cont
+            proxy_msg += "\r\n\r\n"
+            proxy_msg = proxy_msg.encode()
             self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
             await self.loop.sock_sendall(self.sock, proxy_msg)
             resp = await self.loop.sock_recv(self.sock, 2048)
