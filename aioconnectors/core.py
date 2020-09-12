@@ -143,9 +143,11 @@ class Connector:
                 self.alnum_source_id = self.alnum_name(self.source_id)                            
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
+                self.inside_end_sockpair = None
                 if self.proxy.get('enabled'):
-                    #proxy can be like {'enabled':True, 'address':'streamline.t-mobile.com, 'port':'22', 'authorization':''},
-                    #or with 'authorization':{'username':<username>, 'password':<password>}
+                    #proxy can be like {'enabled':True, 'address':'1.2.3.4 or bla.com', 'port':'22',
+                    #'https_proxy':False, 'authorization':''},
+                    #'authorization' can also be like : {'username':<username>, 'password':<password>}
                     self.logger.info(f'Client {self.source_id} will use proxy {str(self.proxy)}')
                 
                 if send_message_types is None:
@@ -343,6 +345,7 @@ class Connector:
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
+                    #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
                                                 (self.proxy['address'], self.proxy['port'])), timeout=2)                                
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
@@ -385,8 +388,8 @@ class Connector:
             return
         
     async def proxy_connect(self, server_sockaddr, server_sockaddr_addr=None):
-        #request : CONNECT streamline.t-mobile.com:22 HTTP/1.1
-        #Proxy-Authorization: Basic encoded-credentials
+        #request : CONNECT bla.com:22 HTTP/1.1
+        #Proxy-Authorization: Basic <b64encode(username:password)>
         #response : HTTP/1.1 200 OK
         try:
             proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1"
@@ -399,6 +402,21 @@ class Connector:
             proxy_msg += "\r\n\r\n"
             proxy_msg = proxy_msg.encode()
             self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
+            
+            if self.proxy.get('https_proxy', None):
+                self.logger.info('Using HTTPS proxy')
+                context = ssl.create_default_context()
+                #ssl wrap the client/proxy socket
+                self.sock = context.wrap_socket(self.sock)
+                #create a sockpair :
+                #inside end self.inside_end_sockpair will be used by run_client instead of self.sock
+                #outside end should be forwarded to/from self.sock in 2 new tasks appended to run_client task
+                self.inside_end_sockpair, self.outside_end_sockpair = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+                if not isinstance(self.tasks['run_client'], list):
+                    self.tasks['run_client'] = [self.tasks['run_client']]
+                self.tasks['run_client'].append(self.loop.create_task(self.internal_proxy_to_socket()))
+                self.tasks['run_client'].append(self.loop.create_task(self.socket_to_internal_proxy()))                
+                
             await self.loop.sock_sendall(self.sock, proxy_msg)
             resp = await self.loop.sock_recv(self.sock, 2048)
             self.logger.info(f'Proxy server response received : {str(resp)}')
@@ -410,6 +428,31 @@ class Connector:
         except Exception:
             self.logger.exception('proxy_connect')
             raise
+        
+    async def internal_proxy_to_socket(self):
+        #used only in https_proxy
+        #forward data received by self.outside_end_sockpair to self.sock
+        while True:
+            #data sent by client goes from inside_end_sockpair (in run_client) to outside_end_sockpair
+            #then we must forward it from self.outside_end_sockpair to self.sock :
+            try:
+                data = await self.loop.sock_recv(self.outside_end_sockpair, 2048)
+                await self.loop.sock_sendall(self.sock, data)
+            except Exception:
+                self.logger.exception('internal_proxy_to_socket')
+            
+    async def socket_to_internal_proxy(self):
+        #used only in https_proxy        
+        #forward data received by self.sock to self.outside_end_sockpair
+        while True:
+            #we must forward data received by client self.sock into outside_end_sockpair      
+            #then this data will reach self.inside_end_sockpair in run_client
+            try:
+                data = await self.loop.sock_recv(self.sock, 2048)
+                await self.loop.sock_sendall(self.outside_end_sockpair, data)
+            except Exception:
+                self.logger.exception('socket_to_internal_proxy')
+            
         
     async def stop(self, connector_socket_only=False, client_wait_for_reconnect=False, hard=False,
                    shutdown=False, enable_delete_files=True):
@@ -611,6 +654,7 @@ class Connector:
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
+                    #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
                                                 (self.proxy['address'], self.proxy['port'])), timeout=2)                                
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
@@ -1493,7 +1537,9 @@ class Connector:
         try:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
-            reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=self.sock, ssl=ssl_context,
+            #self.inside_end_sockpair is not None only when https_proxy is configured
+            socket_used = self.inside_end_sockpair or self.sock
+            reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
                                     server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), 
                                     timeout=self.ASYNC_TIMEOUT)                                                                     
             await self.manage_full_duplex(reader, writer)

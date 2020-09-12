@@ -380,6 +380,7 @@ In order to have all clients/server connections authenticated and encrypted, you
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
 And then share the created directories between server and clients as explained in 1.  
+You can also use a proxy between your client and server, as explained in 4-.  
 
 -You might prefer to use a publish/subscribe approach.  
 This is also supported by configuring a single server as the broker (you just need to set pubsub\_central\_broker=True).  
@@ -599,7 +600,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**reuse\_server\_sockaddr**, **reuse\_uds\_path\_send\_to\_connector**, **reuse\_uds\_path\_commander\_server** : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
 -**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
 -**receive\_from\_any\_connector\_owner** if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api. True by default (requires the api to run as root to be effective).  
--**proxy** an optional dictionary like {"enabled":true, "address":"<proxy_url>", "port":<proxy_port>, "authorization":None}. Relevant only on client side. Lets the client connect to the server through a proxy, if the **enabled** field is true. The authorization field can have a value like {"username":"<username>", "password":"<password>"}.  
+-**proxy** an optional dictionary like {"enabled":true, "address":"<proxy_url>", "port":<proxy_port>, "authorization":None, "https\_proxy":False}. Relevant only on client side. Lets the client connect to the server through an http proxy, if the **enabled** field is true. The authorization field can have a value like {"username":"<username>", "password":"<password>"}. Regardless of aioconnectors encryption, set the "https\_proxy" flag in case you are using an https proxy.  
 -**hook\_server\_auth\_client** :  does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 
 
