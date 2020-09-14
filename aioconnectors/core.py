@@ -147,7 +147,7 @@ class Connector:
                 self.inside_end_sockpair = None
                 if self.proxy.get('enabled'):
                     #proxy can be like {'enabled':True, 'address':'1.2.3.4 or bla.com', 'port':'22',
-                    #'https_proxy':False, 'authorization':''},
+                    #'ssl_server':False, 'authorization':''},
                     #'authorization' can also be like : {'username':<username>, 'password':<password>}
                     self.logger.info(f'Client {self.source_id} will use proxy {str(self.proxy)}')
                 
@@ -404,8 +404,8 @@ class Connector:
             proxy_msg = proxy_msg.encode()
             self.logger.info(f'Trying to connect through proxy with : {proxy_msg}')
             
-            if self.proxy.get('https_proxy', None):
-                self.logger.info('Using HTTPS proxy')
+            if self.proxy.get('ssl_server', None):
+                self.logger.info('Proxy server listens with SSL')
                 context = ssl.create_default_context()
                 #ssl wrap the client/proxy socket
                 self.sock = context.wrap_socket(self.sock)
@@ -433,7 +433,7 @@ class Connector:
             raise
         
     async def internal_proxy_to_socket(self):
-        #used only in https_proxy
+        #used only in ssl_server
         #forward data received by self.outside_end_sockpair to self.sock
         while True:
             #data sent by client goes from inside_end_sockpair (in run_client) to outside_end_sockpair
@@ -445,7 +445,7 @@ class Connector:
                 self.logger.exception('internal_proxy_to_socket')
             
     async def socket_to_internal_proxy(self):
-        #used only in https_proxy        
+        #used only in ssl_server        
         #forward data received by self.sock to self.outside_end_sockpair
         while True:
             #we must forward data received by client self.sock into outside_end_sockpair      
@@ -1540,7 +1540,7 @@ class Connector:
         try:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
-            #self.inside_end_sockpair is not None only when https_proxy is configured
+            #self.inside_end_sockpair is not None only when proxy with ssl_server is configured
             socket_used = self.inside_end_sockpair or self.sock
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
                                     server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), 
