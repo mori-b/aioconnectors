@@ -6,6 +6,7 @@ import weakref
 import os
 import ssl
 import uuid
+import re
 from copy import deepcopy
 from time import time
 from base64 import b64encode
@@ -420,7 +421,9 @@ class Connector:
             await self.loop.sock_sendall(self.sock, proxy_msg)
             resp = await self.loop.sock_recv(self.sock, 2048)
             self.logger.info(f'Proxy server response received : {str(resp)}')
-            if resp.startswith(b'HTTP/1.1 200'):
+            regex_status = b'HTTP\/\d.\d 200'
+            if re.match(regex_status, resp[:12]):
+            #if resp.startswith(b'HTTP/1.1 200') or resp.startswith(b'HTTP/1.0 200'):
                 self.logger.info('Proxy success')
             else:
                 self.logger.error('Proxy failure, raising ConnectionRefusedError')
