@@ -366,33 +366,34 @@ class ConnectorAPI(ConnectorBaseTool):
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None,
-                           wait_for_ack=False, message_type_publish=None):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None):
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, with_file=with_file, 
-                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
+                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish,
+                                      await_response_timeout=await_response_timeout)
         return res
 
     def send_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False, message_type_publish=None):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None, loop=None):
         self.logger.debug(f'send_message_sync of type {message_type}, destination_id {destination_id}, '
                           f'request_id {request_id}, response_id {response_id}')
         
-        loop = asyncio.get_event_loop()
+        loop = loop or asyncio.get_event_loop()
         send_task = self.send_message(message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, await_response=await_response, 
                                       with_file=with_file, wait_for_ack=wait_for_ack,
-                                      message_type_publish=message_type_publish)
+                                      message_type_publish=message_type_publish, await_response_timeout=await_response_timeout)
         if loop.is_running():
-            loop.create_task(send_task)
+            return loop.create_task(send_task)
         else:
-            loop.run_until_complete(send_task)    
+            return loop.run_until_complete(send_task)
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False, message_type_publish=None):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None):
 
         try:  
             
@@ -489,8 +490,16 @@ class ConnectorAPI(ConnectorBaseTool):
             except Exception:
                 self.logger.exception('send_message writer drain')
             #beware to not lock the await_response recv_message with send_message_lock
-            if await_response:            
-                the_response = await self.recv_message(reader, writer)
+            if await_response:
+                if await_response_timeout is not None:
+                    try:
+                        the_response = await asyncio.wait_for(self.recv_message(reader, writer), timeout=await_response_timeout)
+                    except asyncio.TimeoutError:
+                        self.logger.warning(f'send_message : await_response_timeout error ({await_response_timeout} s)')
+                        writer.close()
+                        return False                      
+                else:
+                    the_response = await self.recv_message(reader, writer)
             self.logger.debug('send_message finished sending')                    
             if await_response:
                 writer.close()

@@ -16,20 +16,22 @@
 '''
 https://github.com/mori-b/aioconnectors
 
-aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.
-It provides optional authentication and encryption, transfer of messages and files, persistence in case of connection loss.
-It is built on the client/server model but both peers can push messages. Based on asyncio, message sending and receiving are asynchronous,
-either independent or with the option to wait asynchronously for a response.
-A connector can be configured with a short json file. An embedded command line tool enables to easily run a connector
-and manage it with shell commands.
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector,
-sending a message, or receiving messages, and other management capabilities.
+aioconnectors is an easy to set up broker that currently works on Unix like systems.
+Requirements are : Python >= 3.6, and openssl installed.
+It makes it easy to securely send and receive loads of messages and files between remote applications.
+- Easy and fast installation with pip, zero dependency
+- Nice trade off between ease of use and efficiency
+- Supports several use cases : transfer of messages, files, authentication, encryption, persistence, point-to-point, publish/subscribe. All configurable by simply modifying a configuration file
+- User friendly and intuitive API, with simple Python asynchronous functions to send and receive messages, easy to integrate in an existing asyncio code base
+- Bidirectional : client and server can push messages to each other
+- Embeds a command line interface, which can manage the broker through the command line
+- Embeds an encrypted chat/file transfer tool easily callable through the command line
 
 The command line tool can be called by "python3 -m aioconnectors --help"
 Usage examples can be found in applications.py
 '''
 
-__version__ = '1.0.20'
+__version__ = '1.0.21'
 __author__ = 'Mori Benech'
 
 from .api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool

@@ -607,7 +607,8 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 ### 5.More details about the send\_message arguments
 
     send_message(message_type=None, destination_id=None, request_id=None, response_id=None,
-    data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False) 
+    data=None, data_is_json=True, binary=None, await_response=False, with_file=None,
+    wait_for_ack=False, await_response_timeout=None) 
     with_file can be like : {'src_path':'','dst_type':'', 'dst_name':'', 'delete':False, 'owner':''}
 
 send_message is an async coroutine.  
@@ -622,9 +623,10 @@ These arguments must be filled on the application layer by the user
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
 -**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of more than a thousand messages per second in the point to point approach (and more than a hundred per second in the publish/subscribe approach).  
 Not a benchmark, but some point-to-point trials showed that up until 4000 messages (with data of 100 bytes) per second could be received by a server without delay, and from that point the receive queue started to be non empty. This test gave the same result with 100 clients sending each 40 events per second, and with 1 client sending 4000 events per second.  
+-**await_response_timeout** is None by default. If set to a number, and if await\_response is true, the method waits up to this timeout for the peer response, and if timeout is exceeded it returns False.  
 
 The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
-The **send\_message\_sync** method is the same as send_message, but called synchronously (not an async coroutine).  
+The **send\_message\_sync** method is almost the same as send_message, but called synchronously (not an async coroutine). It can also receive a "loop" as a kwarg. If a loop is running in the background, it schedules and returns a task. Otherwise it returns the peer response if called with await\_response.  
 The **publish\_message** and **publish\_message\_sync** methods are the same as the send_message ones, but used by a client in the publish/subscribe approach.  
 
 ### 6.Management programmatic tools
