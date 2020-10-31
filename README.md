@@ -44,7 +44,7 @@ You can run a connector with a single shell command
 
     python3 -m aioconnectors create_connector <config_json_path>
 
-This is covered in 2., but this example shows the programmatic way to run connectors.  
+This is covered in <a href="#run">2-</a>, but this example shows the programmatic way to run connectors.  
 This is a basic example of a server and a client sending messages to each other. For more interesting examples, please refer to applications.py or aioconnectors\_test.py.  
 For both server and client, connector\_manager is running the connector, and connector\_api is sending/receiving messages.  
 In this example, connector\_manager and connector\_api are running in the same process for convenience. They can obviously run in different processes, as shown in the other examples.  
@@ -385,8 +385,8 @@ In order to have all clients/server connections authenticated and encrypted, you
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
-And then share the created directories between server and clients as explained in 1.  
-You can also use a proxy between your client and server, as explained in 4-.  
+And then share the created directories between server and clients as explained in <a href="#enc">1-</a>.  
+You can also use a proxy between your client and server, as explained in <a href="#classes">4-</a>.  
 
 -You might prefer to use a publish/subscribe approach.  
 This is also supported by configuring a single server as the broker (you just need to set pubsub\_central\_broker=True).  
@@ -395,10 +395,10 @@ The other connectors should be clients. A client can subscribe to specific topic
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
-Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in 7.).  
+Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in <a href="#cli">7-</a>).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
-Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in 4.).  
-A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).  
+Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method and provide it to your ConnectorManager constructor (explained in <a href="#classes">4-</a>).  
+A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in <a href="#classes">4-</a>).  
 
 
 <a name="usage"></a>
@@ -439,7 +439,7 @@ By unsetting use_ssl, you can disable encryption at all.
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.
 
 2.1.Command line tool  
--To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json, and configure it according to your needs (more details in 4.). Relevant for both server and client.  
+-To configure the Connector Manager, create a <config\_json\_path> file based on the Manager template json, and configure it according to your needs (more details in <a href="#classes">4-</a>). Relevant for both server and client.  
 A Manager template json can be obtained by calling : 
 
     python3 -m aioconnectors print_config_templates
@@ -450,7 +450,7 @@ A Manager template json can be obtained by calling :
 
 If you are testing your connector server and client on the same machine, you can use the configuration generated by print\_config\_templates almost out of the box.  
 The only change you should do is set is\_server to False in the client configuration, and use\_ssl to False in both configurations.  
-If you want to test messages sending/receiving, you should also set a client\_name in the client configuration. Then you can use the other command line testing facilites mentioned in 8. : on both server and client you can run "python3 -m aioconnectors test\_receive\_messages <config\_json\_path>" and "python3 -m aioconnectors test\_send\_messages <config\_json\_path>".  
+If you want to test messages sending/receiving, you should also set a client\_name in the client configuration. Then you can use the other command line testing facilites mentioned in <a href="#testing">8-</a> : on both server and client you can run "python3 -m aioconnectors test\_receive\_messages <config\_json\_path>" and "python3 -m aioconnectors test\_send\_messages <config\_json\_path>".  
 
 2.2.Programmatically, examples are provided in applications.py and in aioconnectors\_test.py.  
 To create and start a connector :
@@ -489,7 +489,7 @@ Then you can send and receive messages by calling the following coroutines in yo
 This returns a status (True or False).  
 "data" is your message, "binary" is an optional additional binary message in case you want your "data" to be a json for example.
 If your "data" is already a binary, then the "binary" field isn't necessary.  
-kwargs contain all the transport instructions for this message, as explained in 5.  
+kwargs contain all the transport instructions for this message, as explained in <a href="#send">5-</a>.  
 If you set the await\_response kwarg to True, this returns the response, which is a (transport\_json , data, binary) triplet.  
 The received transport\_json field contains all the kwargs sent by the peer.  
 You can also send messages synchronously, with :
@@ -497,16 +497,16 @@ You can also send messages synchronously, with :
     connector_api.send_message_sync(data=None, binary=None, **kwargs)
 
 Similarly, use the "publish\_message" and "publish\_message\_sync" methods in the publish/subscribe approach.  
-More details in 5.  
+More details in <a href="#send">5-</a>.  
 
 3.4.To register to receive messages of a specific message\_type : 
 
     loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
 
 -**message\_received\_cb** is an async def coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
--**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in 5. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
+-**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in <a href="#send">5-</a>. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
 Your application can read these transport arguments to obtain information about peer (source\_id, request\_id if provided, etc), and in order to create a proper response (with correct destination\_id, and response\_id for example if needed, etc).  
-transport\_json will contain a with\_file key if a file has been received, more details in 5.  
+transport\_json will contain a with\_file key if a file has been received, more details in <a href="#send">5-</a>.  
 -**data** is the message data bytes. It is always bytes, so if it was originally sent as a json or a string, you'll have to convert it back by yourself.  
 -**binary** is an optional binary message (or None).  
 -**reuse_uds_path** is false by default, preventing multiple listeners of same message type. In case it raises an exception even with a single listener, you might want to find and delete an old uds\_path\_receive\_from\_connector file specified in the exception.  
@@ -645,7 +645,7 @@ The **publish\_message** and **publish\_message\_sync** methods are the same as 
 <a name="management"></a>
 ### 6.Management programmatic tools
 
-The class ConnectorManager has several methods to manage your connector. These methods are explained in 7.  
+The class ConnectorManager has several methods to manage your connector. These methods are explained in <a href="#cli">7-</a>.  
 -**start\_connector**, **stop\_connector**, **restart\_connector**  
 -**delete\_client\_certificate**, **disconnect\_client**  
 -**show\_connected\_peers**  
