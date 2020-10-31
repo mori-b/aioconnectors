@@ -1,25 +1,26 @@
 # aioconnectors
 **Simple secure asynchronous message broker**
 
-*Features*  
-*Installation*  
-*Example Point to point : Server and Client*  
-*Example publish/subscribe : Broker, Subscriber, and Publisher*  
-*High Level Design*  
-*Use Cases*  
-*Usage*  
-*1.Encryption*  
-*2.Run a connector*  
-*3.Send/receive messages*  
-*4.ConnectorManager and ConnectorAPI*  
-*5.send_message*  
-*6.Programmatic management tools*  
-*7.Command line interface management tools*  
-*8.Testing tools*  
-*9.Embedded chat*  
-*Windows*  
+*<a href="#features">Features</a>*  
+*<a href="#installation">Installation</a>*  
+*<a href="#exampleptp">Example Point to point : Server and Client</a>*  
+*<a href="#exampleps">Example publish/subscribe : Broker, Subscriber, and Publisher</a>*  
+*<a href="#hld">High Level Design</a>*  
+*<a href="#usecases">Use Cases</a>*  
+*<a href="#usage">Usage</a>*  
+*<a href="#enc">1.Encryption</a>*  
+*<a href="#run">2.Run a connector</a>*  
+*<a href="#sendreceive">3.Send/receive messages</a>*  
+*<a href="#classes">4.ConnectorManager and ConnectorAPI</a>*  
+*<a href="#send">5.send_message</a>*  
+*<a href="#management">6.Programmatic management tools</a>*  
+*<a href="#cli">7.Command line interface management tools</a>*  
+*<a href="#testing">8.Testing tools</a>*  
+*<a href="#chat">9.Embedded chat</a>*  
+*<a href="#windows">Windows</a>*  
 
 
+<a name="features"></a>
 ## FEATURES
 
 aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
@@ -30,11 +31,13 @@ A connector can be configured with a short json file. An embedded command line t
 A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
 
 
+<a name="installation"></a>
 ## INSTALLATION
 
     pip3 install aioconnectors
 
 
+<a name="exampleptp"></a>
 ## BASIC EXAMPLE - POINT TO POINT
 
 You can run a connector with a single shell command 
@@ -183,6 +186,7 @@ In case the server and client run on different machines, you should run the prer
     loop.run_until_complete(task_stop)
 
 
+<a name="exampleps"></a>
 ## BASIC EXAMPLE - PUBLISH/SUBSCRIBE
 
 You can run the following code of a broker, a publisher and a subscriber in 3 different shells on the same machine out of the box.  
@@ -364,6 +368,7 @@ Just a client which uses publish\_message instead of send\_message
 
 
 
+<a name="hld"></a>
 ## HIGH LEVEL DESIGN
 
 The client and server are connected by one single tcp socket.
@@ -371,6 +376,7 @@ When a peer sends a message, it is first sent to a unix socket, then transferred
 The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot communicate. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
 
 
+<a name="usecases"></a>
 ## USE CASES
 
 -The standard use case is running server and client on separate stations. Each client station can then initiate a connection to the server station.  
@@ -395,6 +401,7 @@ Your application might need to decide whether to accept a client connection : to
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in 4.).  
 
 
+<a name="usage"></a>
 ## USAGE
 
 aioconnectors provides the ConnectorManager class which runs the connectors, and the ConnectorAPI class which sends and receives messages. It also provides a command line tool accessible by typing
@@ -402,6 +409,7 @@ aioconnectors provides the ConnectorManager class which runs the connectors, and
     python3 -m aioconnectors --help
 
 
+<a name="enc"></a>
 ### 1.Encryption
 
 -If you choose to use encryption, you should call
@@ -427,6 +435,7 @@ By setting ssl\_allow\_all, you can use encryption without the hassle of sharing
 By unsetting use_ssl, you can disable encryption at all.
 
 
+<a name="run"></a>
 ### 2.You have 2 options to run your connectors, either through the command line tool, or programmatically.
 
 2.1.Command line tool  
@@ -460,6 +469,7 @@ To shutdown a connector :
 You don't have to use a config file (config\_file\_path), you can also directly initialize your ConnectorManager kwargs, as shown in the previous basic examples, and in aioconnectors\_test.py.
 
 
+<a name="sendreceive"></a>
 ### 3.send/receive messages with the API
 
 3.1.To configure the Connector API, create a <config\_json\_path> file based on the API template json.
@@ -503,6 +513,7 @@ transport\_json will contain a with\_file key if a file has been received, more 
 -if you send a message using send\_message(await\_response=True), the response value is the expected response message : so in that case the response message is not received by the start\_waiting\_for\_messages task.
 
 
+<a name="classes"></a>
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
 
     logger=None, use_default_logger=True, default_logger_log_level='INFO', config_file_path=<path>
@@ -604,6 +615,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**hook\_server\_auth\_client** :  does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 
 
+<a name="send"></a>
 ### 5.More details about the send\_message arguments
 
     send_message(message_type=None, destination_id=None, request_id=None, response_id=None,
@@ -629,6 +641,8 @@ The **send\_message\_await\_response** method is the same as send_message, but a
 The **send\_message\_sync** method is almost the same as send_message, but called synchronously (not an async coroutine). It can also receive a "loop" as a kwarg. If a loop is running in the background, it schedules and returns a task. Otherwise it returns the peer response if called with await\_response.  
 The **publish\_message** and **publish\_message\_sync** methods are the same as the send_message ones, but used by a client in the publish/subscribe approach.  
 
+
+<a name="management"></a>
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in 7.  
@@ -646,6 +660,7 @@ The same methods can be executed remotely, with the ConnectorRemoteTool class. T
 An example of ConnectorRemoteTool is available in applications.py in the cli implementation.
 
 
+<a name="cli"></a>
 ### 7.Other management command line tools
 
     python3 -m aioconnectors cli
@@ -662,6 +677,8 @@ to run several interesting commands like :
 -show\_subscribe\_message\_types to show the subscribed message types of a client.  
 -set\_subscribe\_message\_types to set the list of all subscribed message types of a client.  
 
+
+<a name="testing"></a>
 ### 8.Testing command line tools
 
 -To let your connector send pings to a remote connector, and print its replies. 
@@ -677,6 +694,7 @@ to run several interesting commands like :
     python3 -m aioconnectors test_send_messages <config_json_path>
 
 
+<a name="chat"></a>
 ### 9.Funny embedded chat
 
 A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux stations.  
@@ -719,6 +737,7 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
     python3 -m aioconnectors chat --port <port> [--target <server_ip>]
 
 
+<a name="windows"></a>
 ## Windows ?
 
 To port aioconnectors to Windows, these steps should be taken, and probably more :  
