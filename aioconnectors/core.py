@@ -779,13 +779,14 @@ class Connector:
             self.logger.exception('delete_client_certificate_on_server')
             return json.dumps({'status':False, 'msg':str(exc)})
 
-    async def delete_client_certificate_on_client(self):
+    async def delete_client_certificate_on_client(self, restart_client=True):
         try:
             self.logger.info(f'{self.source_id} deleting own certificate')            
             response = await self.ssl_helper.remove_client_cert_on_client(self.source_id)
             self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
             self.logger.info('Client will use again the default certificate : '+self.client_certificate_name)
-            await self.restart()            
+            if restart_client:
+                await self.restart()            
             return response
         except Exception as exc:
             self.logger.exception('delete_client_certificate_on_client')

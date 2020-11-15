@@ -681,14 +681,14 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='restart', kwargs={'hard':hard, 'sleep_between':sleep_between})
         return response
                 
-    async def delete_client_certificate(self, client_id=None, remove_only_symlink=False):
+    async def delete_client_certificate(self, client_id=None, remove_only_symlink=False, restart_client=True):
         self.logger.info(f'{self.source_id} delete_client_certificate {client_id}')                 
         if self.is_server:
             response = await self.send_command(cmd='delete_client_certificate_on_server', 
                                                kwargs={'client_id':client_id, 'remove_only_symlink':remove_only_symlink})
             return response
         else:
-            response = await self.send_command(cmd='delete_client_certificate_on_client', kwargs={})
+            response = await self.send_command(cmd='delete_client_certificate_on_client', kwargs={'restart_client':restart_client})
             return response
         
     async def disconnect_client(self, client_id=None):
