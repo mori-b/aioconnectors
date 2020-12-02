@@ -590,7 +590,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     }
 
 
--**default\_logger\_log\_level** (boolean) can also be an integer telling the maximum size of the log file. There are 5 backups configured.
+-**default\_logger\_rotate** (boolean) can also be an integer telling the maximum size of the log file in bytes. There are 5 backups configured.  
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
