@@ -516,7 +516,7 @@ transport\_json will contain a with\_file key if a file has been received, more 
 <a name="classes"></a>
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
 
-    logger=None, use_default_logger=True, default_logger_log_level='INFO', config_file_path=<path>
+    logger=None, use_default_logger=True, default_logger_log_level='INFO', default_logger_rotate=True, config_file_path=<path>
 
 config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in the basic example later on and in aioconnectors\_test.py  
 You can use both kwargs and config_file_path : if there are shared items, the ones from config_file_path will override the kwargs.  
@@ -531,6 +531,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "debug_msg_counts": true,
         "default_logger_dirpath": "/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
+        "default_logger_rotate": true,
         "disk_persistence_recv": false,
         "disk_persistence_send": false,
         "enable_client_try_reconnect": true,
@@ -570,6 +571,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
         "connector_files_dirpath": "/tmp/aioconnectors",
         "default_logger_dirpath": "/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
+        "default_logger_rotate": true,
         "is_server": true,
         "pubsub_central_broker": false,
         "receive_from_any_connector_owner": true,
@@ -588,6 +590,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     }
 
 
+-**default\_logger\_log\_level** (boolean) can also be an integer telling the maximum size of the log file. There are 5 backups configured.
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
@@ -697,7 +700,7 @@ to run several interesting commands like :
 <a name="chat"></a>
 ### 9.Funny embedded chat
 
-A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux stations.  
+A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux or Mac stations.  
 It is encrypted, and supports authentication by prompting to accept connections.  
 It is not a multi user chat, but more of a tool to easily transfer stuff between your computers.
 

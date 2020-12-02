@@ -436,7 +436,8 @@ def chat(args, logger=None):
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
                                                    connector_files_dirpath=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
-                                                           default_logger_log_level='INFO')
+                                                           default_logger_log_level='INFO',
+                                                           default_logger_rotate=True)
         destination_id = chat_client_name
     else:
         server_sockaddr = (args.target, args.port or aioconnectors.core.Connector.SERVER_ADDR[1])
@@ -454,7 +455,8 @@ def chat(args, logger=None):
                                                    connector_files_dirpath=connector_files_dirpath, 
                                                    client_name=chat_client_name,
                                                    send_message_types=['any'], recv_message_types=['any'], 
-                                                   default_logger_log_level='INFO')
+                                                   default_logger_log_level='INFO',
+                                                   default_logger_rotate=True)
         destination_id = None
         
         

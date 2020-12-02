@@ -16,19 +16,33 @@ PYTHON_GREATER_37 = (PYTHON_VERSION >= (3,7))
 DEFAULT_LOGGER_NAME = 'aioconnector'
 LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
 LOG_LEVEL = 'INFO'
+LOG_ROTATE = True
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
+LOG_BK_COUNT = 5
+LOG_MAX_SIZE = 100000000 #100MB
 
 IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
 
 def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
-               log_format=LOG_FORMAT, level=LOG_LEVEL):
+               log_format=LOG_FORMAT, level=LOG_LEVEL, rotate=LOG_ROTATE):
     logger = logging.getLogger(logger_name)
     logger.handlers = []
     if not first_run:
         handlers = []
         if logfile_path:    #could be '' if no config file provided
-            handlers.append(logging.FileHandler(logfile_path))
+            if rotate:
+                if rotate is True:
+                    rotate = LOG_MAX_SIZE
+                else:
+                    #use user defined value                    
+                    try:
+                        rotate = int(rotate)
+                    except Exception:
+                        rotate = LOG_MAX_SIZE
+                handlers.append(logging.RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT))
+            else:
+                handlers.append(logging.FileHandler(logfile_path))
         if not silent:
             handlers.append(logging.StreamHandler(sys.stdout))
         if not handlers:

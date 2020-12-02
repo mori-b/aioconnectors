@@ -49,7 +49,7 @@ if len(sys.argv) > 1:
     elif sys.argv[1] == 'print_config_templates':
         Connector = aioconnectors.core.Connector
     
-        manager_config_template = dict(default_logger_log_level='INFO', 
+        manager_config_template = dict(default_logger_log_level='INFO', default_logger_rotate=True,
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, reuse_server_sockaddr=False,
@@ -75,7 +75,7 @@ if len(sys.argv) > 1:
         print('\n- file_recv_config example, used inside MANAGER TEMPLATE')
         print(json.dumps(file_recv_config, indent=4, sort_keys=True))                
         
-        api_config_template = dict(default_logger_log_level='INFO', 
+        api_config_template = dict(default_logger_log_level='INFO', default_logger_rotate=True,
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, client_name=None,

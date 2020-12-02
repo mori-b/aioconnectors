@@ -11,10 +11,12 @@ from .connection import Structures, MessageFields
 DEFAULT_LOGGER_NAME = 'aioconnectors'
 LOGFILE_DEFAULT_NAME = 'aioconnectors.log'
 DEFAULT_LOGGER_LOG_LEVEL = 'INFO'
+DEFAULT_LOGGER_ROTATE = True
 
 class ConnectorManager:
     def __init__(self, config_file_path=None, logger=None, use_default_logger=True, 
-                 default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
+                 default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
+                 default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
                  client_bind_ip=None, certificates_directory_path=None, client_name=None, 
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
@@ -34,6 +36,7 @@ class ConnectorManager:
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
         self.default_logger_log_level = default_logger_log_level
+        self.default_logger_rotate = default_logger_rotate
         if not os.path.isdir(self.connector_files_dirpath):
             os.makedirs(self.connector_files_dirpath)
         if not os.path.isdir(self.default_logger_dirpath):
@@ -42,7 +45,8 @@ class ConnectorManager:
         if not logger:
             if use_default_logger:
                 self.logger = get_logger(logfile_path=os.path.join(self.default_logger_dirpath, LOGFILE_DEFAULT_NAME), 
-                                         logger_name=DEFAULT_LOGGER_NAME, silent=True, level=default_logger_log_level)
+                                         logger_name=DEFAULT_LOGGER_NAME, silent=True, level=default_logger_log_level,
+                                         rotate=default_logger_rotate)
             else:
                 self.logger = get_logger(logfile_path=None)  #dummy logger
         else:
@@ -83,7 +87,8 @@ class ConnectorManager:
                     if not logger and use_default_logger:
                         self.logger = get_logger(logfile_path=os.path.join(self.default_logger_dirpath,
                                                  LOGFILE_DEFAULT_NAME), logger_name=DEFAULT_LOGGER_NAME, 
-                                                 silent=self.silent, level=self.default_logger_log_level)                            
+                                                 silent=self.silent, level=self.default_logger_log_level,
+                                                 rotate=self.default_logger_rotate)                            
                 except Exception:
                     self.logger.exception('ConnectorManager init config_file_path')
             else:
@@ -267,7 +272,8 @@ class ConnectorManager:
         return self.connector.set_log_level(level)       
 
 class ConnectorBaseTool:
-    def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL,
+    def __init__(self, config_file_path=None, logger=None, use_default_logger=True, default_logger_rotate=DEFAULT_LOGGER_ROTATE,
+                 default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL,
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                  is_server=False, server_sockaddr=None, client_name=None, 
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
@@ -282,7 +288,8 @@ class ConnectorBaseTool:
         if not logger:
             if use_default_logger:
                 self.logger = get_logger(logfile_path=os.path.join(self.default_logger_dirpath, LOGFILE_DEFAULT_NAME), 
-                                         logger_name=DEFAULT_LOGGER_NAME, silent=True, level=default_logger_log_level)                
+                                         logger_name=DEFAULT_LOGGER_NAME, silent=True, level=default_logger_log_level,
+                                         rotate=default_logger_rotate)                
             else:
                 self.logger = get_logger(logfile_path=None)  #dummy logger
         else:
@@ -307,7 +314,8 @@ class ConnectorBaseTool:
                     if not logger and use_default_logger:
                         self.logger = get_logger(logfile_path=os.path.join(self.default_logger_dirpath,
                                                  LOGFILE_DEFAULT_NAME), logger_name=DEFAULT_LOGGER_NAME, 
-                                                 silent=self.silent, level=self.default_logger_log_level)                                                        
+                                                 silent=self.silent, level=self.default_logger_log_level,
+                                                 rotate=self.default_logger_rotate)                                                        
                 except Exception:
                     self.logger.exception('type(self).__name__ init config_file_path')
             else:
