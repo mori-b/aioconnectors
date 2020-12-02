@@ -2,6 +2,7 @@ import os
 import pwd,grp
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 import stat
 import subprocess
@@ -20,7 +21,7 @@ LOG_ROTATE = True
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 LOG_BK_COUNT = 5
-LOG_MAX_SIZE = 100000000 #100MB
+LOG_MAX_SIZE = 67108864 # 2**26 = 64 MB
 
 IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
 
@@ -40,7 +41,7 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
                         rotate = int(rotate)
                     except Exception:
                         rotate = LOG_MAX_SIZE
-                handlers.append(logging.RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT))
+                handlers.append(RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT))
             else:
                 handlers.append(logging.FileHandler(logfile_path))
         if not silent:
