@@ -1147,6 +1147,8 @@ class Connector:
                                 self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
                                                     f'Response to request_id {request_id} will not be sent since '
                                                     'persistence is disabled')
+                                #close writer so that client stops waiting uselessly
+                                writer.close()
                         else:
                             if len(self.messages_awaiting_response[message_type].get(peername, {})) > self.MAX_NUMBER_OF_AWAITING_REQUESTS:
                                 self.logger.error(f'{self.source_id} messages_awaiting_response dict has '
