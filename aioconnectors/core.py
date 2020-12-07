@@ -1134,38 +1134,40 @@ class Connector:
                         request_id = uuid.uuid4().hex
                     if request_id in self.messages_awaiting_response[message_type].get(peername, {}):
                         self.logger.warning(f'Request id {request_id} for type {message_type} for peer {peername} '
-                                            'already in self.messages_awaiting_response, ignoring')
-                        send_to_queue = False
-                    else:
-                        if not send_to_queue:
-                            if self.disk_persistence or self.ram_persistence:
-                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
-                                                    f'Response to request_id {request_id} will be sent when peer goes up'
-                                                    ', since persistence is enabled')
-                                await_response = True                        
-                            else:
-                                self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
-                                                    f'Response to request_id {request_id} will not be sent since '
-                                                    'persistence is disabled')
-                                #close writer so that client stops waiting uselessly
-                                writer.close()
+                                            'already in self.messages_awaiting_response, overriding it !')                       
+#                        self.logger.warning(f'Request id {request_id} for type {message_type} for peer {peername} '
+#                                            'already in self.messages_awaiting_response, ignoring')
+#                        send_to_queue = False
+#                    else:
+                    if not send_to_queue:
+                        if self.disk_persistence or self.ram_persistence:
+                            self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
+                                                f'Response to request_id {request_id} will be sent when peer goes up'
+                                                ', since persistence is enabled')
+                            await_response = True                        
                         else:
-                            if len(self.messages_awaiting_response[message_type].get(peername, {})) > self.MAX_NUMBER_OF_AWAITING_REQUESTS:
-                                self.logger.error(f'{self.source_id} messages_awaiting_response dict has '
-                                                  f'{len(self.messages_awaiting_response[message_type].get(peername,{}))}'
-                                                  f' entries for message type {message_type} and peername {peername}. '
-                                                  'Stop adding entries until it goes '
-                                                  f'below {self.MAX_NUMBER_OF_AWAITING_REQUESTS}')
-                            else:
-                                self.logger.info(f'{self.source_id} Adding request {request_id} to '
-                                                 f'messages_awaiting_response dict for type {message_type} and '
-                                                 f'peer {peername}')
-                                await_response = True
-                        if await_response:
-                            if peername not in self.messages_awaiting_response[message_type]:
-                                self.messages_awaiting_response[message_type][peername] = {}
-                            #2nd element will contain the response set by handle_incoming_connection
-                            self.messages_awaiting_response[message_type][peername][request_id] = [asyncio.Event(),None]    
+                            self.logger.warning(f'{self.source_id} Connector is currently disconnected. '
+                                                f'Response to request_id {request_id} will not be sent since '
+                                                'persistence is disabled')
+                            #close writer so that client stops waiting uselessly
+                            writer.close()
+                    else:
+                        if len(self.messages_awaiting_response[message_type].get(peername, {})) > self.MAX_NUMBER_OF_AWAITING_REQUESTS:
+                            self.logger.error(f'{self.source_id} messages_awaiting_response dict has '
+                                              f'{len(self.messages_awaiting_response[message_type].get(peername,{}))}'
+                                              f' entries for message type {message_type} and peername {peername}. '
+                                              'Stop adding entries until it goes '
+                                              f'below {self.MAX_NUMBER_OF_AWAITING_REQUESTS}')
+                        else:
+                            self.logger.info(f'{self.source_id} Adding request {request_id} to '
+                                             f'messages_awaiting_response dict for type {message_type} and '
+                                             f'peer {peername}')
+                            await_response = True
+                    if await_response:
+                        if peername not in self.messages_awaiting_response[message_type]:
+                            self.messages_awaiting_response[message_type][peername] = {}
+                        #2nd element will contain the response set by handle_incoming_connection
+                        self.messages_awaiting_response[message_type][peername][request_id] = [asyncio.Event(),None]    
                             
                 if send_to_queue:            
                     queue_send = self.queue_send[peername]
