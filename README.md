@@ -147,7 +147,8 @@ In case the server and client run on different machines, you should run the prer
                                                        file_recv_config={'any': {'target_directory':connector_files_dirpath}},
                                                        client_name=client_name)
     
-    loop.create_task(connector_manager.start_connector())
+    task_manager =  loop.create_task(connector_manager.start_connector())
+    loop.run_until_complete(task_manager)
     
     #create api
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
@@ -261,7 +262,8 @@ Just a client with subscribe\_message\_types = [topic1, topic2, ...]
                                                        file_recv_config={'type1': {'target_directory':connector_files_dirpath}},
                                                        client_name=client_name, subscribe_message_types=["type1"])
 
-    loop.create_task(connector_manager.start_connector())
+    task_manager =  loop.create_task(connector_manager.start_connector())
+    loop.run_until_complete(task_manager)
 
     #create api
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
@@ -323,7 +325,8 @@ Just a client which uses publish\_message instead of send\_message
                                                        file_recv_config={'any': {'target_directory':connector_files_dirpath}},
                                                        client_name=client_name, disk_persistence_send=True)
 
-    loop.create_task(connector_manager.start_connector())
+    task_manager =  loop.create_task(connector_manager.start_connector())
+    loop.run_until_complete(task_manager)
 
     #create api
     connector_api = aioconnectors.ConnectorAPI(is_server=False, server_sockaddr=server_sockaddr,
@@ -456,7 +459,7 @@ If you want to test messages sending/receiving, you should also set a client\_na
 To create and start a connector :
 
     connector_manager = aioconnectors.ConnectorManager(config_file_path=config_file_path)
-    task_manager = loop.create_task(connector_manager.start_connector())
+    await connector_manager.start_connector()
 
 To stop a connector :
 
@@ -501,7 +504,7 @@ More details in <a href="#send">5-</a>.
 
 3.4.To register to receive messages of a specific message\_type : 
 
-    loop.create_task(connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False))
+    await connector_api.start_waiting_for_messages(message_type='', message_received_cb=message_received_cb, reuse_uds_path=False)
 
 -**message\_received\_cb** is an async def coroutine that you must provide, receiving and processing the message quadruplet (logger, transport\_json, data, binary).  
 -**transport\_json** is a json with keys related to the "transport layer" of our message protocol : these are the kwargs sent in send_message. They are detailed in <a href="#send">5-</a>. The main arguments are source\_id, destination\_id, request\_id, response\_id, etc.  
