@@ -740,7 +740,7 @@ class Connector:
         #elif self.queue_send:
         #    res = list(sorted(self.queue_send.keys()))            
         if dump_result:
-            return str(res)
+            return json.dumps(res)
         return res
 
     def manage_ignore_peer_traffic(self, show=False, enable=False, disable=False, unique_peer=False):
