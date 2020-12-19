@@ -17,13 +17,14 @@
 *<a href="#cli">7.Command line interface management tools</a>*  
 *<a href="#testing">8.Testing tools</a>*  
 *<a href="#chat">9.Embedded chat</a>*  
+*<a href="#containers">Containers</a>*  
 *<a href="#windows">Windows</a>*  
 
 
 <a name="features"></a>
 ## FEATURES
 
-aioconnectors is an easy to set up broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
+aioconnectors is an easy to set up message broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss.  
 It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
 Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
@@ -640,7 +641,7 @@ These arguments must be filled on the application layer by the user
 -**request\_id** and **response\_id** are optional : they are helpful to keep track of asynchronous messages on the application layer. At the application level, the remote peer should answer with response\_id equal to the request\_id of the request. The request sender can then associate the received response with the request sent.  
 -**await\_response** is False by default, set it to True if your coroutine calling send\_message expects a response value.  
 In such a case, the remote peer has to answer with response\_id equal to the request\_id of the request. (This is shown in aioconnectors\_test.py).  
--**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of more than a thousand messages per second in the point to point approach (and more than a hundred per second in the publish/subscribe approach).  
+-**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of a few thousands messages per second in the point to point approach (and a few hundreds per second in the slower publish/subscribe approach).  
 Not a benchmark, but some point-to-point trials showed that up until 4000 messages (with data of 100 bytes) per second could be received by a server without delay, and from that point the receive queue started to be non empty. This test gave the same result with 100 clients sending each 40 events per second, and with 1 client sending 4000 events per second.  
 -**await_response_timeout** is None by default. If set to a number, and if await\_response is true, the method waits up to this timeout for the peer response, and if timeout is exceeded it returns False.  
 
@@ -742,6 +743,14 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 -If you don't want your server to use the default port (10673), use --port on both peers : 
 
     python3 -m aioconnectors chat --port <port> [--target <server_ip>]
+
+
+<a name="containers"></a>
+## Containers
+
+Connector client and server, as well as connector api, can run in a Docker container, you just need to pip install aioconnectors in a Python image.  
+A connector and its connector api must run on the same host, or on the same Kubernetes pod.  
+A connector and its connector api can run in the same container, or in different containers. In case you choose to run them in different containers, you must configure their connector_files_dirpath path as a shared volume, in order to let them share their UDS sockets.
 
 
 <a name="windows"></a>
