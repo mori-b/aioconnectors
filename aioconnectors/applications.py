@@ -385,7 +385,7 @@ def chat(args, logger=None):
         logger = aioconnectors.get_logger(logger_name='chat', first_run=True)
     custom_prompt = 'aioconnectors>> '        
     chat_client_name = 'chat_client'
-    CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
+    CONNECTOR_FILES_DIRPATH = aioconnectors.get_tmp_dir()
     delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
     is_server = not args.target
     accept_all_clients = args.accept
@@ -423,7 +423,7 @@ def chat(args, logger=None):
             listening_ip = aioconnectors.iface_to_ip(listening_ip)
         server_sockaddr = (listening_ip, int(args.port or 0) or aioconnectors.core.Connector.SERVER_ADDR[1])
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
-        aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)            
+        aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)           
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 
                                                            use_ssl=True, ssl_allow_all=True,
                                                            connector_files_dirpath=connector_files_dirpath, 

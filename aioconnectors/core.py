@@ -12,7 +12,7 @@ from time import time
 from base64 import b64encode
 
 from .connection import FullDuplex, DEBUG_SHOW_DATA, MessageFields, Structures
-from .helpers import full_path, chown_nobody_permissions, iface_to_ip
+from .helpers import full_path, chown_nobody_permissions, iface_to_ip, get_tmp_dir
 from .ssl_helper import SSL_helper
 
 
@@ -21,7 +21,7 @@ class Connector:
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
     USE_SSL = True
-    CONNECTOR_FILES_DIRPATH = '/tmp/aioconnectors'
+    CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
     #however the code still exists partially, in case of future change

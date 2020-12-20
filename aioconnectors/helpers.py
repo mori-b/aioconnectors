@@ -25,6 +25,18 @@ LOG_MAX_SIZE = 67108864 # 2**26 = 64 MB
 
 IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
 
+def full_path(the_path):
+    if the_path is not None:
+        return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
+
+def get_tmp_dir():
+    if os.path.exists('/tmp'):
+        return '/tmp/aioconnectors'
+    else:
+        candidate1 = full_path('~/aioconnectors_tmp')
+        candidate2 = full_path('aioconnectors_tmp')
+        return min(candidate1, candidate2, key=lambda x:len(x))
+
 def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
                log_format=LOG_FORMAT, level=LOG_LEVEL, rotate=LOG_ROTATE):
     logger = logging.getLogger(logger_name)
@@ -63,11 +75,6 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
         logger.addHandler(logging.NullHandler())    
     
     return logger
-
-
-def full_path(the_path):
-    if the_path is not None:
-        return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
 
 def chown_file(filepath, username, groupname, logger=None):
     try:

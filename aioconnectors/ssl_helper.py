@@ -5,6 +5,7 @@ import subprocess
 import uuid
 import shutil
 
+from .helpers import get_tmp_dir
 
 def update_conf(conf_template, conf, replacement_dict):
     shutil.copy(conf_template, conf)
@@ -13,7 +14,7 @@ def update_conf(conf_template, conf, replacement_dict):
             fd.write(str(key)+' = '+str(value)+'\n')
         
 class SSL_helper:
-    DEFAULT_BASE_PATH = '/tmp/aioconnectors' #os.getcwd()
+    DEFAULT_BASE_PATH = get_tmp_dir() #os.getcwd()
     CLIENT_DEFAULT_CERT_NAME = 'default'    
     SOURCE_ID_2_CERT = 'source_id_2_cert.json'
     CERT_NAME_EXTENSION = "pem"

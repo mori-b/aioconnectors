@@ -31,10 +31,10 @@ The command line tool can be called by "python3 -m aioconnectors --help"
 Usage examples can be found in applications.py
 '''
 
-__version__ = '1.0.30'
+__version__ = '1.0.31'
 __author__ = 'Mori Benech'
 
 from .api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool
 from .connection import MessageFields
-from .helpers import get_logger, iface_to_ip
+from .helpers import get_logger, iface_to_ip, get_tmp_dir
 from . import applications
