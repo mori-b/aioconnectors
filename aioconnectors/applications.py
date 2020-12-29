@@ -7,6 +7,7 @@ import zipfile
 import subprocess
 import sys
 import json
+import re
 
 import aioconnectors
 
@@ -422,6 +423,12 @@ def chat(args, logger=None):
         if '.' not in listening_ip:
             listening_ip = aioconnectors.iface_to_ip(listening_ip)
         server_sockaddr = (listening_ip, int(args.port or 0) or aioconnectors.core.Connector.SERVER_ADDR[1])
+        if listening_ip == '0.0.0.0':
+            listening_addresses = show_up_ips()
+        else:
+            listening_addresses = [listening_ip]
+            
+        print(f'Chat Server listening on addresses {listening_addresses[:5]}, and port {server_sockaddr[1]}\n')
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
         aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)           
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 
@@ -627,3 +634,18 @@ def chat(args, logger=None):
     if delete_connector_dirpath_later and os.path.exists(connector_files_dirpath):
         shutil.rmtree(connector_files_dirpath)
     
+def show_up_ips():
+    #tries to return list of up ipv4 ips (just for display)
+    try:
+        IPADDR_REGEX = re.compile('(?P<ipaddr>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)')
+        cmd = ['ip', '-4', '-br', '-f', 'inet', 'addr', 'show']
+        ifconfig_lines = subprocess.check_output(cmd, encoding='utf8', timeout=5).splitlines()
+        addresses = []
+        for line in ifconfig_lines:
+            if 'UP' in line:
+                res = IPADDR_REGEX.search(line)
+                if res:
+                    addresses.append(res.group('ipaddr'))
+        return addresses
+    except Exception:
+        return []
