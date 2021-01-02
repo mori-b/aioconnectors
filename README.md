@@ -409,7 +409,9 @@ A comfortable approach would be to share the certificates directories created in
 <a name="usage"></a>
 ## USAGE
 
-aioconnectors provides the ConnectorManager class which runs the connectors, and the ConnectorAPI class which sends and receives messages. It also provides a command line tool accessible by typing
+aioconnectors provides the ConnectorManager class which runs the connectors, and the ConnectorAPI class which sends and receives messages. It provides as well the ConnectorRemoteTool class which can lightly manage the connector outside of the ConnectorManager.  
+The ConnectorManager client and server can run on different machines. However, ConnectorAPI and ConnectorRemoteTool communicate internally with their ConnectorManager, and the three must run on the same machine.  
+aioconnectors also provides a command line tool accessible by typing
 
     python3 -m aioconnectors --help
 
