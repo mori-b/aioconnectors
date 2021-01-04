@@ -411,7 +411,7 @@ class ConnectorAPI(ConnectorBaseTool):
                 if number_of_chunks:
                     #divide file in chunks of max size MAX_SIZE_CHUNK_UPLOAD, and send each chunk one after the other                    
                     dst_name = with_file.get('dst_name')
-                    chunk_basepath = os.path.dirname(src_path)
+                    chunk_basepath = self.connector_files_dirpath #os.path.dirname(src_path)
                     chunk_basename = f'{dst_name}{Misc.CHUNK_INDICATOR}' #f'{dst_name}__aioconnectors_chunk'
                     try:
                         override_src_file_sizes = number_of_chunks * [Connector.MAX_SIZE_CHUNK_UPLOAD]
@@ -421,9 +421,8 @@ class ConnectorAPI(ConnectorBaseTool):
                         chunk_names = []
                         fd = open(src_path, 'rb')
                         for index, chunk_size in enumerate(override_src_file_sizes):
-                            chunk_file = fd.read(chunk_size)
                             chunk_name = f'{chunk_basename}_{index+1}_{len_override_src_file_sizes}'
-                            #chunking requires permissions to write to src_path base directory
+                            chunk_file = fd.read(chunk_size)                            
                             with open(os.path.join(chunk_basepath, chunk_name), 'wb') as fw:
                                 fw.write(chunk_file)
                             self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
