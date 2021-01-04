@@ -28,9 +28,10 @@ class Connector:
     PERSISTENCE_SEND_FILE_NAME = 'connector_disk_persistence_send_from_{}_to_peer'
     DISK_PERSISTENCE_RECV = False
     PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
+    MAX_SIZE_FILE_UPLOAD = 8_000_000_000 #8gb
+    MAX_SIZE_CHUNK_UPLOAD = 1_000_000_000 #1gb    
     MAX_SIZE_PERSISTENCE_PATH = 1_000_000_000 #1gb
-    MAX_SIZE_FILE_UPLOAD = 1_000_000_000 #1gb
-    READ_CHUNK_SIZE = 1024
+    READ_PERSISTENCE_CHUNK_SIZE = 1024
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
     SILENT=True    
@@ -914,7 +915,7 @@ class Connector:
                 else:
                     while True:
                         #read file in chunks
-                        chunk = fd.read(self.READ_CHUNK_SIZE)
+                        chunk = fd.read(self.READ_PERSISTENCE_CHUNK_SIZE)
                         if not chunk:
                             last_iteration = True                    
                         chunk = last_element + chunk
@@ -1275,7 +1276,7 @@ class Connector:
                 else:
                     while True:
                         #read file in chunks
-                        chunk = fd.read(self.READ_CHUNK_SIZE)
+                        chunk = fd.read(self.READ_PERSISTENCE_CHUNK_SIZE)
                         if not chunk:
                             last_iteration = True                    
                         chunk = last_element + chunk

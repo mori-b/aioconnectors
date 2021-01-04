@@ -51,6 +51,8 @@ class Structures:
     MSG_2_STRUCT = Struct('H')    #2
 #MSG_LENGTH_STRUCT = Struct('Q')    #8
     
+class Misc:
+    CHUNK_INDICATOR = '__aioconnectors_chunk'
     
 class FullDuplex:
 
@@ -488,9 +490,53 @@ class FullDuplex:
                                     with open(dst_fullpath, 'wb') as fd:
                                         fd.write(binary[binary_offset:])
                                     if self.connector.pubsub_central_broker:
-                                        with_file['src_path'] = dst_fullpath    #get ready to resend file to subscribers                                       
-                                    elif file_owner:
-                                        chown_file(dst_fullpath, *file_owner, self.logger)                                        
+                                        with_file['src_path'] = dst_fullpath    #get ready to resend file to subscribers
+                                    else:
+                                        if file_owner:
+                                            chown_file(dst_fullpath, *file_owner, self.logger)
+                                        try:
+                                            chunked = with_file.get('chunked')
+                                            if chunked:
+                                                self.logger.debug(f'{self.connector.source_id} handle_incoming_connection from '
+                                                                f'peer {self.peername} received with_file with chunked '
+                                                                f'{chunked}')
+                                                #chunked looks like : [chunk_basename, index+1, len_override_src_file_sizes]
+                                                chunk_basename, chunk_index, number_of_chunks = chunked
+                                                dst_dir_files = [thefile for thefile in os.listdir(dir_to_test) if \
+                                                                 thefile.startswith(chunk_basename)]
+                                                if len(dst_dir_files) == number_of_chunks:
+                                                    files_to_unify = sorted([os.path.join(dir_to_test, thefile) for thefile \
+                                                                       in dst_dir_files])                                                    
+                                                    dst_filename = chunk_basename.split(Misc.CHUNK_INDICATOR)[0]
+                                                    dst_filename_fullpath = full_path(os.path.join(dst_dirpath, dst_filename))
+                                                    unify_chunks = True
+                                                    if os.path.exists(dst_filename_fullpath):
+                                                        if not override_existing:
+                                                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
+                                                                            f'peer {self.peername} trying to override existing file '
+                                                                            f'{dst_filename_fullpath}, ignoring...')
+                                                            unify_chunks = False
+                                                    if unify_chunks:
+                                                        self.logger.info(f'{self.connector.source_id} handle_incoming_connection from '
+                                                                        f'peer {self.peername} unifying chunks {files_to_unify} '
+                                                                        f'into file {dst_filename_fullpath}')                                                    
+                                                        fdunify = open(dst_filename_fullpath, 'wb')                                            
+                                                        for thefile in files_to_unify:
+                                                            with open(thefile, 'rb') as fdread:
+                                                                ffread = fdread.read()
+                                                            fdunify.write(ffread)
+                                                        ffread = None
+                                                        fdunify.close()
+                                                    #delete chunks
+                                                    for thefile in files_to_unify:
+                                                        self.logger.info(f'{self.connector.source_id} handle_incoming_connection from '
+                                                                        f'peer {self.peername} deleting chunk {thefile}')
+                                                        os.remove(thefile)
+                                                    
+                                        except Exception:
+                                            self.logger.exception(f'{self.connector.source_id} from peer {self.peername} '
+                                                                  'chunked exception')
+                                            
                                 #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
                                 binary = binary[:binary_offset]
                                 if len(binary) == 0:

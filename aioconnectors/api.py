@@ -6,7 +6,7 @@ import uuid
 
 from .helpers import get_logger, chown_nobody_permissions
 from .core import Connector
-from .connection import Structures, MessageFields
+from .connection import Structures, MessageFields, Misc
 
 DEFAULT_LOGGER_NAME = 'aioconnectors'
 LOGFILE_DEFAULT_NAME = 'aioconnectors.log'
@@ -401,7 +401,66 @@ class ConnectorAPI(ConnectorBaseTool):
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None, check_chunk_file=True):
+
+        if with_file:
+            src_path = with_file.get('src_path')
+            if src_path and check_chunk_file:
+                file_size = os.path.getsize(src_path)
+                number_of_chunks, last_bytes_size = divmod(file_size, Connector.MAX_SIZE_CHUNK_UPLOAD)
+                if number_of_chunks:
+                    #divide file in chunks of max size MAX_SIZE_CHUNK_UPLOAD, and send each chunk one after the other                    
+                    dst_name = with_file.get('dst_name')
+                    chunk_basepath = os.path.dirname(src_path)
+                    chunk_basename = f'{dst_name}{Misc.CHUNK_INDICATOR}' #f'{dst_name}__aioconnectors_chunk'
+                    try:
+                        override_src_file_sizes = number_of_chunks * [Connector.MAX_SIZE_CHUNK_UPLOAD]
+                        if last_bytes_size:
+                            override_src_file_sizes += [last_bytes_size]
+                        len_override_src_file_sizes = len(override_src_file_sizes)
+                        chunk_names = []
+                        fd = open(src_path, 'rb')
+                        for index, chunk_size in enumerate(override_src_file_sizes):
+                            chunk_file = fd.read(chunk_size)
+                            chunk_name = f'{chunk_basename}_{index+1}_{len_override_src_file_sizes}'
+                            #chunking requires permissions to write to src_path base directory
+                            with open(os.path.join(chunk_basepath, chunk_name), 'wb') as fw:
+                                fw.write(chunk_file)
+                            self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
+                              f'request_id {request_id}, response_id {response_id} creating chunk {chunk_name}')                            
+                            chunk_names.append(chunk_name)
+                        chunk_file = None
+                    except Exception:
+                        self.logger.exception('send_message chunks')
+                        return False
+                    for index, chunk_name in enumerate(chunk_names):
+                        chunk_name_path = os.path.join(chunk_basepath, chunk_name)                        
+                        with_file['src_path'] = chunk_name_path
+                        with_file['dst_name'] = chunk_name
+                        with_file['chunked'] = [chunk_basename, index+1, len_override_src_file_sizes]
+                        res = await self.send_message(message_type=message_type, destination_id=destination_id,
+                                                      request_id=request_id, response_id=response_id,
+                                                      data=data, data_is_json=data_is_json, binary=binary,
+                                                      await_response=await_response, with_file=with_file, 
+                                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish,
+                                                      await_response_timeout=await_response_timeout, check_chunk_file=False)
+                        if os.path.exists(chunk_name_path):
+                            if await_response or wait_for_ack:
+                                try:
+                                    self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} deleting chunk {chunk_name_path}')
+                                    
+                                    os.remove(chunk_name_path)
+                                except Exception:
+                                    self.logger.exception(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} deleting chunk {chunk_name_path}')
+                            else:
+                                self.logger.warning(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} leaving undeleted chunk {chunk_name_path}')                                
+                                
+                        if not res:
+                            return res
+                    return res                       
 
         try:  
             
