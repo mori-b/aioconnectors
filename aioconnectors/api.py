@@ -422,12 +422,19 @@ class ConnectorAPI(ConnectorBaseTool):
                         fd = open(src_path, 'rb')
                         for index, chunk_size in enumerate(override_src_file_sizes):
                             chunk_name = f'{chunk_basename}_{index+1}_{len_override_src_file_sizes}'
-                            chunk_file = fd.read(chunk_size)                            
                             with open(os.path.join(chunk_basepath, chunk_name), 'wb') as fw:
+                                number_of_read_chunks, last_size = divmod(chunk_size, Connector.READ_CHUNK_SIZE)
+                                while number_of_read_chunks:                                    
+                                    number_of_read_chunks -= 1                                    
+                                    chunk_file = fd.read(Connector.READ_CHUNK_SIZE)    
+                                    fw.write(chunk_file)
+                                chunk_file = fd.read(last_size)
                                 fw.write(chunk_file)
+
                             self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
                               f'request_id {request_id}, response_id {response_id} creating chunk {chunk_name}')                            
                             chunk_names.append(chunk_name)
+                            await asyncio.sleep(0)
                         chunk_file = None
                     except Exception:
                         self.logger.exception('send_message chunks')

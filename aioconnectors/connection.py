@@ -523,8 +523,11 @@ class FullDuplex:
                                                         fdunify = open(dst_filename_fullpath, 'wb')                                            
                                                         for thefile in files_to_unify:
                                                             with open(thefile, 'rb') as fdread:
-                                                                ffread = fdread.read()
-                                                            fdunify.write(ffread)
+                                                                ffread = True
+                                                                while ffread:
+                                                                    ffread = fdread.read(self.connector.READ_CHUNK_SIZE)
+                                                                    fdunify.write(ffread)
+                                                            await asyncio.sleep(0)
                                                         ffread = None
                                                         fdunify.close()
                                                     #delete chunks
