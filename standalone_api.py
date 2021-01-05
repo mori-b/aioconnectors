@@ -24,6 +24,10 @@ class Structures:
     MSG_4_STRUCT = Struct('I')    #4
     MSG_2_STRUCT = Struct('H')    #2
     
+class Misc:
+    CHUNK_INDICATOR = '__aioconnectors_chunk'
+
+    
 class ConnectorAPI:
 
     ASYNC_TIMEOUT = 10        
@@ -34,6 +38,8 @@ class ConnectorAPI:
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
     MAX_LENGTH_UDS_PATH = 104
     RECEIVE_FROM_ANY_CONNECTOR_OWNER = True
+    MAX_SIZE_CHUNK_UPLOAD = 1_073_741_824 #1gb
+    READ_CHUNK_SIZE = 104_857_600 #100mb
     
     def __init__(self, config_file_path=None, connector_files_dirpath='/tmp/aioconnectors', 
                  is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
@@ -206,8 +212,72 @@ class ConnectorAPI:
 
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None): #, reuse_uds_connection=True):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None, check_chunk_file=True): #, reuse_uds_connection=True):
 
+        if with_file:
+            src_path = with_file.get('src_path')
+            if src_path and check_chunk_file:
+                file_size = os.path.getsize(src_path)
+                number_of_chunks, last_bytes_size = divmod(file_size, self.MAX_SIZE_CHUNK_UPLOAD)
+                if number_of_chunks:
+                    #divide file in chunks of max size MAX_SIZE_CHUNK_UPLOAD, and send each chunk one after the other                    
+                    dst_name = with_file.get('dst_name')
+                    chunk_basepath = self.connector_files_dirpath #os.path.dirname(src_path)
+                    chunk_basename = f'{dst_name}{Misc.CHUNK_INDICATOR}' #f'{dst_name}__aioconnectors_chunk'
+                    try:
+                        override_src_file_sizes = number_of_chunks * [self.MAX_SIZE_CHUNK_UPLOAD]
+                        if last_bytes_size:
+                            override_src_file_sizes += [last_bytes_size]
+                        len_override_src_file_sizes = len(override_src_file_sizes)
+                        chunk_names = []
+                        fd = open(src_path, 'rb')
+                        for index, chunk_size in enumerate(override_src_file_sizes):
+                            chunk_name = f'{chunk_basename}_{index+1}_{len_override_src_file_sizes}'
+                            with open(os.path.join(chunk_basepath, chunk_name), 'wb') as fw:
+                                number_of_read_chunks, last_size = divmod(chunk_size, self.READ_CHUNK_SIZE)
+                                while number_of_read_chunks:                                    
+                                    number_of_read_chunks -= 1                                    
+                                    chunk_file = fd.read(self.READ_CHUNK_SIZE)    
+                                    fw.write(chunk_file)
+                                chunk_file = fd.read(last_size)
+                                fw.write(chunk_file)
+
+                            self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
+                              f'request_id {request_id}, response_id {response_id} creating chunk {chunk_name}')                            
+                            chunk_names.append(chunk_name)
+                            await asyncio.sleep(0)
+                        chunk_file = None
+                    except Exception:
+                        self.logger.exception('send_message chunks')
+                        return False
+                    for index, chunk_name in enumerate(chunk_names):
+                        chunk_name_path = os.path.join(chunk_basepath, chunk_name)                        
+                        with_file['src_path'] = chunk_name_path
+                        with_file['dst_name'] = chunk_name
+                        with_file['chunked'] = [chunk_basename, index+1, len_override_src_file_sizes]
+                        res = await self.send_message(message_type=message_type, destination_id=destination_id,
+                                                      request_id=request_id, response_id=response_id,
+                                                      data=data, data_is_json=data_is_json, binary=binary,
+                                                      await_response=await_response, with_file=with_file, 
+                                                      wait_for_ack=wait_for_ack, message_type_publish=message_type_publish,
+                                                      await_response_timeout=await_response_timeout, check_chunk_file=False)
+                        if os.path.exists(chunk_name_path):
+                            if await_response or wait_for_ack:
+                                try:
+                                    self.logger.info(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} deleting chunk {chunk_name_path}')
+                                    
+                                    os.remove(chunk_name_path)
+                                except Exception:
+                                    self.logger.exception(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} deleting chunk {chunk_name_path}')
+                            else:
+                                self.logger.warning(f'send_message of type {message_type}, destination_id {destination_id}, '
+                                  f'request_id {request_id}, response_id {response_id} leaving undeleted chunk {chunk_name_path}')                                
+                                
+                        if not res:
+                            return res
+                    return res                       
         try:  
             
             if data_is_json:
@@ -501,6 +571,16 @@ class ConnectorRemoteTool(ConnectorAPI):
     async def delete_previous_persistence_remains(self):
         self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
         response = await self.send_command(cmd='delete_previous_persistence_remains__sync', kwargs={})        
+        return response
+    
+    async def show_subscribe_message_types(self):
+        self.logger.info(f'{self.source_id} show_subscribe_message_types')         
+        response = await self.send_command(cmd='show_subscribe_message_types__sync', kwargs={})        
+        return response
+    
+    async def set_subscribe_message_types(self, *message_types):
+        self.logger.info(f'{self.source_id} set_subscribe_message_types {message_types}')         
+        response = await self.send_command(cmd='set_subscribe_message_types', kwargs={'message_types':message_types})
         return response
     
     async def show_connected_peers(self):
