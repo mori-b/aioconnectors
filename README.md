@@ -545,14 +545,16 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "everybody_can_send_messages": true,
         "file_recv_config": {},
         "is_server": true,
-        "max_size_file_upload": 1000000000,
-        "max_size_persistence_path": 1000000000,
+        "max_size_file_upload": 8589930194,
+        "max_size_persistence_path": 1073741824,
         "proxy": {},
         "pubsub_central_broker": false,
         "recv_message_types": [
             "any"
         ],
         "reuse_server_sockaddr": false,
+        "reuse_uds_path_commander_server": false,
+        "reuse_uds_path_send_to_connector": false,
         "send_message_types": [
             "any"
         ],
