@@ -430,15 +430,25 @@ def chat(args, logger=None):
             
         print(f'Chat Server listening on addresses {listening_addresses[:5]}, and port {server_sockaddr[1]}\n')
         connector_files_dirpath = CONNECTOR_FILES_DIRPATH
-        aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)           
+        aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=connector_files_dirpath)
+        
+        def hook_target_directory_any(transport_json):
+            #this is just for testing the hook feature
+            #this hook is simple and not really needed, we could have used instead :
+            #{'target_directory':os.path.join(cwd,'{source_id')})}
+            source_id = transport_json['source_id']
+            return source_id      
+        
         connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, 
                                                            use_ssl=True, ssl_allow_all=True,
                                                            connector_files_dirpath=connector_files_dirpath, 
                                                            certificates_directory_path=connector_files_dirpath,
                                                            send_message_types=['any'], recv_message_types=['any'], 
                                                            file_recv_config={'any': {'target_directory':cwd}},
+                                                           #file_recv_config={'any': {'target_directory':os.path.join(cwd,'{source_id}')}},                                                           
                                                            hook_server_auth_client=None if accept_all_clients else \
-                                                           AuthClient.authenticate_client)
+                                                           AuthClient.authenticate_client, #)
+                                                           hook_target_directory={'any':hook_target_directory_any})
                     
         connector_api = aioconnectors.ConnectorAPI(is_server=True, server_sockaddr=server_sockaddr, 
                                                    connector_files_dirpath=connector_files_dirpath,

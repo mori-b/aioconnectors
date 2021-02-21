@@ -428,9 +428,20 @@ class FullDuplex:
                     #dict {'src_path':, 'dst_name':, 'dst_type':, 'binary_offset':, 'owner':'user:group'}
                     if with_file:
                         file_recv_config = self.connector.file_recv_config.get(with_file.get('dst_type'))
-                        dst_dirpath = file_recv_config['target_directory'].format(**transport_json)
                         file_owner = file_recv_config.get('owner')
                         override_existing = file_recv_config.get('override_existing', False)
+
+                        dst_dirpath = file_recv_config['target_directory'].format(**transport_json)
+                        try:
+                            if self.connector.hook_target_directory:
+                                hook_target_directory = self.connector.hook_target_directory.get(with_file['dst_type'])                                
+                                #user should have manually defined hook_target_directory(transport_json) beforehand
+                                if hook_target_directory:
+                                    dst_dirpath = os.path.join(dst_dirpath, hook_target_directory(transport_json))
+                        except Exception:
+                            self.logger.exception('hook_target_directory')
+                        self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                        f'{self.peername} storing file into {dst_dirpath}')
                         
                         if dst_dirpath:
                             binary_offset = 0

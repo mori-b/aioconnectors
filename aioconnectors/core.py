@@ -77,7 +77,7 @@ class Connector:
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
-                 hook_server_auth_client=None, enable_client_try_reconnect=True,
+                 hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
@@ -113,12 +113,16 @@ class Connector:
             self.reuse_server_sockaddr = reuse_server_sockaddr
             self.reuse_uds_path_send_to_connector = reuse_uds_path_send_to_connector
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
-            
+            self.hook_target_directory = hook_target_directory
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
                 self.hook_server_auth_client = hook_server_auth_client
+                if hook_server_auth_client:
+                    self.logger.info(f'Connector Server {self.source_id} has a hook_server_auth_client')
+                if hook_target_directory:
+                    self.logger.info(f'Connector Server {self.source_id} has a hook_target_directory')
 
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
@@ -143,6 +147,8 @@ class Connector:
                 self.client_bind_ip = client_bind_ip
                 self.source_id = client_name
                 self.logger.info('Client has source id : '+self.source_id)   
+                if hook_target_directory:
+                    self.logger.info(f'Connector Client {self.source_id} has a hook_target_directory')                
                 self.alnum_source_id = self.alnum_name(self.source_id)                            
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}

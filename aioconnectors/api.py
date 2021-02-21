@@ -27,7 +27,7 @@ class ConnectorManager:
                  file_recv_config=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
-                 hook_server_auth_client=None, enable_client_try_reconnect=True,
+                 hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES,
@@ -68,7 +68,8 @@ class ConnectorManager:
         self.file_recv_config, self.debug_msg_counts, self.silent = file_recv_config, debug_msg_counts, silent
         self.uds_path_receive_preserve_socket, self.uds_path_send_preserve_socket = \
                             uds_path_receive_preserve_socket, uds_path_send_preserve_socket
-        self.hook_server_auth_client, self.enable_client_try_reconnect = hook_server_auth_client, enable_client_try_reconnect
+        self.hook_server_auth_client, self.hook_target_directory = hook_server_auth_client, hook_target_directory
+        self.enable_client_try_reconnect = enable_client_try_reconnect
         self.reuse_server_sockaddr, self.reuse_uds_path_send_to_connector, self.reuse_uds_path_commander_server = \
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
 
@@ -129,7 +130,8 @@ class ConnectorManager:
                                    connector_files_dirpath=self.connector_files_dirpath, #use_ack=use_ack,
                                    uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, 
                                    uds_path_send_preserve_socket=self.uds_path_send_preserve_socket,
-                                   hook_server_auth_client=self.hook_server_auth_client, 
+                                   hook_server_auth_client=self.hook_server_auth_client,
+                                   hook_target_directory=self.hook_target_directory,
                                    enable_client_try_reconnect=self.enable_client_try_reconnect,
                                    reuse_server_sockaddr=self.reuse_server_sockaddr,
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
