@@ -33,6 +33,7 @@ class Connector:
     MAX_SIZE_PERSISTENCE_PATH = 1_073_741_824 #1gb
     READ_CHUNK_SIZE = 104_857_600 #100mb    
     READ_PERSISTENCE_CHUNK_SIZE = 1024
+    DELAY_TIMER_LOAD_PERSISTENCE_COUNT = 4000 #sleep 1s every 4000 messages when loading persistence
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
     SILENT=True    
@@ -920,6 +921,7 @@ class Connector:
                 if fd.read(len(self.PERSISTENCE_SEPARATOR)) != self.PERSISTENCE_SEPARATOR:
                     self.logger.warning(f'Invalid persistence file {persistence_path}')
                 else:
+                    delay_timer = 0
                     while True:
                         #read file in chunks
                         chunk = fd.read(self.READ_PERSISTENCE_CHUNK_SIZE)
@@ -943,9 +945,17 @@ class Connector:
                             else:
                                 await queue_send.put(message_tuple)
                             persistent_count += 1
-                            #sleep(0) is important otherwise queue_send_to_connector_put may have losses under high loads
-                            #because of this cpu intensive loop
-                            await asyncio.sleep(0)#0.001)
+                            delay_timer += 1
+                            if delay_timer == self.DELAY_TIMER_LOAD_PERSISTENCE_COUNT:
+                                #sleep 1s every 4000 messages, to release pressure off peer
+                                delay_timer = 0
+                                self.logger.info(f'{self.source_id} sleeping 1s during loading messages from'
+                                                 f' persistence file {persistence_path}')
+                                await asyncio.sleep(1)
+                            else:
+                                #sleep(0) is important otherwise queue_send_to_connector_put may have losses under high loads
+                                #because of this cpu intensive loop
+                                await asyncio.sleep(0)#0.001)
                             if self.debug_msg_counts:
                                 self.msg_counts['load_persistence_send']+=1                            
     
@@ -1281,6 +1291,7 @@ class Connector:
                 if fd.read(len(self.PERSISTENCE_SEPARATOR)) != self.PERSISTENCE_SEPARATOR:
                     self.logger.warning(f'Invalid persistence file {persistence_recv_path}')
                 else:
+                    delay_timer = 0
                     while True:
                         #read file in chunks
                         chunk = fd.read(self.READ_PERSISTENCE_CHUNK_SIZE)
@@ -1300,9 +1311,17 @@ class Connector:
                                 self.logger.debug('With data : '+str(message_tuple[1][:10]))                                       
                             await dst_queue.put(message_tuple)
                             persistent_count += 1
-                            #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
-                            #because of this cpu intensive loop
-                            await asyncio.sleep(0)#0.001)
+                            delay_timer += 1
+                            if delay_timer == self.DELAY_TIMER_LOAD_PERSISTENCE_COUNT:
+                                #sleep 1s every 4000 messages, to release pressure off peer
+                                delay_timer = 0
+                                self.logger.info(f'{self.source_id} sleeping 1s during loading messages from'
+                                                 f' persistence file {persistence_recv_path}')                                
+                                await asyncio.sleep(1)
+                            else:                            
+                                #sleep(0) is important otherwise queue_recv_from_connector may have losses under high loads
+                                #because of this cpu intensive loop                            
+                                await asyncio.sleep(0)#0.001)
                             if self.debug_msg_counts:
                                 self.msg_counts['load_persistence_recv']+=1                            
     
