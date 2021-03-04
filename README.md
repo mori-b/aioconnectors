@@ -69,7 +69,7 @@ If you run server and client on different machines, this command should be run o
 3.Encryption with authentication  
 In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated. In case you want to run this example with authentication too, you should set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
 If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
-In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /tmp/aioconnectors/certificates/client to your client.  
+In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
 
 
 ### Server example
@@ -79,7 +79,7 @@ In case the server and client run on different machines, you should run the prer
     
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
-    connector_files_dirpath = '/tmp/aioconnectors'
+    connector_files_dirpath = '/var/tmp/aioconnectors'
     
     #create connector
     connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
@@ -137,7 +137,7 @@ In case the server and client run on different machines, you should run the prer
     
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
-    connector_files_dirpath = '/tmp/aioconnectors'
+    connector_files_dirpath = '/var/tmp/aioconnectors'
     client_name = 'client1'
     
     #create connector
@@ -204,7 +204,7 @@ Just a server with pubsub\_central\_broker=True
 
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
-    connector_files_dirpath = '/tmp/aioconnectors'
+    connector_files_dirpath = '/var/tmp/aioconnectors'
 
     #create connector
     connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
@@ -252,7 +252,7 @@ Just a client with subscribe\_message\_types = [topic1, topic2, ...]
 
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
-    connector_files_dirpath = '/tmp/aioconnectors'
+    connector_files_dirpath = '/var/tmp/aioconnectors'
     client_name = 'client2'
 
     #create connector
@@ -315,7 +315,7 @@ Just a client which uses publish\_message instead of send\_message
 
     loop = asyncio.get_event_loop()
     server_sockaddr = ('127.0.0.1',10673)
-    connector_files_dirpath = '/tmp/aioconnectors'
+    connector_files_dirpath = '/var/tmp/aioconnectors'
     client_name = 'client1'
 
     #create connector
@@ -423,7 +423,7 @@ aioconnectors also provides a command line tool accessible by typing
 
     python3 -m aioconnectors create_certificates <optional_directory_path>
 
-A directory called "certificates" will be created under your optional\_directory\_path, or under /tmp/aioconnectors if not specified.
+A directory called "certificates" will be created under your optional\_directory\_path, or under /var/tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
 Encryption mode is, as everything else, configurable through the ConnectorManager kwargs or config file, as explained later in 4. The relevant parameters are use_ssl and ssl_allow_all.  
 The default mode is the most secure : use_ssl is enabled and ssl\_allow\_all is disabled, both on server and client.  
@@ -531,12 +531,12 @@ You can use both kwargs and config_file_path : if there are shared items, the on
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
-        "certificates_directory_path": "/tmp/aioconnectors",
+        "certificates_directory_path": "/var/tmp/aioconnectors",
         "client_bind_ip": null,
         "client_name": null,
-        "connector_files_dirpath": "/tmp/aioconnectors",
+        "connector_files_dirpath": "/var/tmp/aioconnectors",
         "debug_msg_counts": true,
-        "default_logger_dirpath": "/tmp/aioconnectors",
+        "default_logger_dirpath": "/var/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
         "default_logger_rotate": true,
         "disk_persistence_recv": false,
@@ -577,8 +577,8 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
     {
         "client_name": null,
-        "connector_files_dirpath": "/tmp/aioconnectors",
-        "default_logger_dirpath": "/tmp/aioconnectors",
+        "connector_files_dirpath": "/var/tmp/aioconnectors",
+        "default_logger_dirpath": "/var/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
         "default_logger_rotate": true,
         "is_server": true,
@@ -606,7 +606,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
 -**use\_ssl** and **ssl\_allow\_all** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
--**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
+-**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /var/tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -**pubsub\_central\_broker** : set to True if you need your server to be the broker. Used in the publish/subscribe approach, not necessary in the point to point approach.  
 -**send\_message\_types** : the list of message types that can be sent from connector. Default is ["any"] if you don't care to differentiate between message types on your application level.  
 -**recv\_message\_types** : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  

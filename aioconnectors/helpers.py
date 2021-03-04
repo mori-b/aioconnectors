@@ -30,8 +30,8 @@ def full_path(the_path):
         return os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
 
 def get_tmp_dir():
-    if os.path.exists('/tmp'):
-        return '/tmp/aioconnectors'
+    if os.path.exists('/var/tmp'):
+        return '/var/tmp/aioconnectors'
     else:
         candidate1 = full_path('~/aioconnectors_tmp')
         candidate2 = full_path('aioconnectors_tmp')

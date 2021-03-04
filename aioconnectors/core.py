@@ -53,7 +53,7 @@ class Connector:
     DEFAULT_MESSAGE_TYPES = ['any']   
     PERSISTENCE_SEPARATOR = b'@@@PERSISTENCE_SEPARATOR@@@'
     PERSISTENCE_SEPARATOR_REPLACEMENT = b'#@@PERSISTENCE_SEPARATOR@@#'    
-    #FILE_RECV_CONFIG example : {'any': {'target_directory':'/tmp/aioconnectors/{message_type}/{source_id}/',
+    #FILE_RECV_CONFIG example : {'any': {'target_directory':'/var/tmp/aioconnectors/{message_type}/{source_id}/',
     #'owner':'user:user', 'override_existing':False}}
     FILE_RECV_CONFIG = {}    
     DELETE_CLIENT_PRIVATE_KEY_ON_SERVER = False

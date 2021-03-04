@@ -41,7 +41,7 @@ class ConnectorAPI:
     MAX_SIZE_CHUNK_UPLOAD = 1_073_741_824 #1gb
     READ_CHUNK_SIZE = 104_857_600 #100mb
     
-    def __init__(self, config_file_path=None, connector_files_dirpath='/tmp/aioconnectors', 
+    def __init__(self, config_file_path=None, connector_files_dirpath='/var/tmp/aioconnectors', 
                  is_server=False, server_sockaddr=('127.0.0.1',10673), client_name=None, 
                  send_message_types=("event","command"), recv_message_types=("event","command"),
                  uds_path_receive_preserve_socket=True, uds_path_send_preserve_socket=True,
