@@ -12,7 +12,7 @@ from time import time
 from base64 import b64encode
 
 from .connection import FullDuplex, DEBUG_SHOW_DATA, MessageFields, Structures
-from .helpers import full_path, chown_nobody_permissions, iface_to_ip, get_tmp_dir
+from .helpers import full_path, chown_nobody_permissions, iface_to_ip, get_tmp_dir, PYTHON_GREATER_37
 from .ssl_helper import SSL_helper
 
 
@@ -1588,7 +1588,16 @@ class Connector:
         self.full_duplex_connections[str(writer.get_extra_info("peername"))] = full_duplex
         await full_duplex.start()
 
-    def build_server_ssl_context(self):    #, client_socket=False):
+
+    def override_server_ssl_context(self, ssl_socket, server_name, ssl_context):
+        try:
+            self.logger.debug(f'{self.source_id} overriding server ssl context at new connection')
+            new_context = self.build_server_ssl_context()
+            ssl_socket.context = new_context
+        except Exception:
+            self.logger.exception('override_server_ssl_context')
+        
+    def build_server_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         if self.ssl_allow_all:
             context.verify_mode = ssl.CERT_NONE
@@ -1596,23 +1605,24 @@ class Connector:
             
         else:
             context.verify_mode = ssl.CERT_REQUIRED
-            #OBSOLETE sni_callback : happens at each new connection. But this is necessary only for new clients connecting with newly created personal certs
+            # sni_callback : happens at each new connection.
             #the override enables to create a new and updated server ssl context each time a new client connects
-            #this is necessary because after the new client certificate has been generated and written into SERVER_SYMLINKS_PATH, it
+            #necessary when deleting a client certificate on server : in order to remove it also from the context (ram)
+            #OBSOLETE : this is necessary because after the new client certificate has been generated and written into SERVER_SYMLINKS_PATH, it
             #is not yet loaded automatically into the current context : so when the client reconnects to the server with its new
             #certificate, the context needs to be rebuilt in order to call again load_verify_locations(capath, which will
             #take into account the new certificate.
-            #if not client_socket:
-            #    context.sni_callback = self.overide_server_ssl_context
             context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
-            #for first client connection : the server ssl socket accepts new clients (using default cert)
-            #and also already authenticated clients (using client certs)
             context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
+            try:
+                if PYTHON_GREATER_37:
+                    context.sni_callback = self.override_server_ssl_context
+                else:
+                    context.set_servername_callback(self.override_server_ssl_context)            
+            except Exception:
+                self.logger.exception('build_server_ssl_context')
         return context
     
-    #def overide_server_ssl_context(self, ssl_obj, sn, ssl_context):
-    #    #rebuild ssl context by searching client cert inside capath, and using only it for this connection
-    #    ssl_obj.context = self.build_server_ssl_context(client_socket=True)
 
     def build_client_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
