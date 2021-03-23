@@ -530,16 +530,31 @@ class FullDuplex:
                                                     if unify_chunks:
                                                         self.logger.info(f'{self.connector.source_id} handle_incoming_connection from '
                                                                         f'peer {self.peername} unifying chunks {files_to_unify} '
-                                                                        f'into file {dst_filename_fullpath}')                                                    
-                                                        fdunify = open(dst_filename_fullpath, 'wb')                                            
-                                                        for thefile in files_to_unify:
-                                                            with open(thefile, 'rb') as fdread:
-                                                                ffread = True
-                                                                while ffread:
-                                                                    ffread = fdread.read(self.connector.READ_CHUNK_SIZE)
-                                                                    fdunify.write(ffread)
-                                                            await asyncio.sleep(0)
-                                                        ffread = None
+                                                                        f'into file {dst_filename_fullpath}')   
+                                                        fdunify = open(dst_filename_fullpath, 'wb')
+                                                        stderr_data = fallback_manual_cat = None
+                                                        try:
+                                                            cat_proc = await asyncio.create_subprocess_exec('cat',
+                                                                    *files_to_unify, stdout=fdunify, stderr=asyncio.subprocess.PIPE)
+                                                            stdout_data, stderr_data = await cat_proc.communicate()
+                                                            if stderr_data:
+                                                                self.logger.info(f'{self.connector.source_id} Error using cat : '
+                                                                             f'{stderr_data[:100]}, fallback to manual cat')                                                                
+                                                                fallback_manual_cat = True
+                                                        except Exception as excu:
+                                                            self.logger.warning(f'{self.connector.source_id} Error unifying : '
+                                                                                 f'{excu}, fallback to manual cat')
+                                                            fallback_manual_cat = True
+                                                            
+                                                        if fallback_manual_cat:                                                                                                       
+                                                            for thefile in files_to_unify:
+                                                                with open(thefile, 'rb') as fdread:
+                                                                    ffread = True
+                                                                    while ffread:
+                                                                        ffread = fdread.read(self.connector.READ_CHUNK_SIZE)
+                                                                        fdunify.write(ffread)
+                                                                await asyncio.sleep(0)
+                                                            ffread = None
                                                         fdunify.close()
                                                     #delete chunks
                                                     for thefile in files_to_unify:
