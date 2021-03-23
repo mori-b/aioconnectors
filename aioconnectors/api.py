@@ -29,7 +29,8 @@ class ConnectorManager:
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=Connector.MAX_SIZE_FILE_UPLOAD,
+                 max_size_file_upload=None,
+                 max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
         
@@ -58,7 +59,11 @@ class ConnectorManager:
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
         self.subscribe_message_types = subscribe_message_types
-        self.max_size_file_upload = max_size_file_upload
+        if max_size_file_upload:
+            self.logger.warning(f'Obsolete config param max_size_file_upload, use _send and _recv instead')
+            max_size_file_upload_send = max_size_file_upload_recv = max_size_file_upload
+        self.max_size_file_upload_send = max_size_file_upload_send
+        self.max_size_file_upload_recv = max_size_file_upload_recv        
         self.everybody_can_send_messages = everybody_can_send_messages
         self.send_message_types_priorities = send_message_types_priorities
         self.proxy = proxy
@@ -82,6 +87,11 @@ class ConnectorManager:
                         config_json = json.load(fd)
                         self.logger.info(f'Overriding ConnectorManager attributes {list(config_json.keys())} from '
                                         f'config file {self.config_file_path}')
+                        if 'max_size_file_upload' in config_json:
+                            self.logger.warning(f'Obsolete config param max_size_file_upload, use _send and _recv instead')
+                            max_size_file_upload = config_json.pop('max_size_file_upload')
+                            config_json['max_size_file_upload_send'] = max_size_file_upload
+                            config_json['max_size_file_upload_recv'] = max_size_file_upload
                         for key,val in config_json.items():                            
                             setattr(self, key, val)
                     #update logger according to config
@@ -136,7 +146,8 @@ class ConnectorManager:
                                    reuse_server_sockaddr=self.reuse_server_sockaddr,
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
                                    reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
-                                   max_size_file_upload=self.max_size_file_upload,
+                                   max_size_file_upload_send=self.max_size_file_upload_send,
+                                   max_size_file_upload_recv=self.max_size_file_upload_recv,
                                    everybody_can_send_messages=self.everybody_can_send_messages,
                                    send_message_types_priorities=self.send_message_types_priorities,
                                    pubsub_central_broker=self.pubsub_central_broker, proxy=self.proxy)        

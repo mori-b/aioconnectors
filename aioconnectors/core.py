@@ -28,7 +28,8 @@ class Connector:
     PERSISTENCE_SEND_FILE_NAME = 'connector_disk_persistence_send_from_{}_to_peer'
     DISK_PERSISTENCE_RECV = False
     PERSISTENCE_RECV_FILE_NAME = 'connector_disk_persistence_recv_by_{}'    
-    MAX_SIZE_FILE_UPLOAD = 8_589_930_194 #8gb
+    MAX_SIZE_FILE_UPLOAD_SEND = 8_589_930_194 #8gb
+    MAX_SIZE_FILE_UPLOAD_RECV = 8_589_930_194 #8gb    
     MAX_SIZE_CHUNK_UPLOAD = 1_073_741_824 #1gb    
     MAX_SIZE_PERSISTENCE_PATH = 1_073_741_824 #1gb
     READ_CHUNK_SIZE = 104_857_600 #100mb    
@@ -79,7 +80,8 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=MAX_SIZE_FILE_UPLOAD, everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
+                 max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
+                 everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
         
         self.logger = logger.getChild('server' if is_server else 'client')
@@ -215,7 +217,8 @@ class Connector:
                 if not self.send_message_types_priorities:
                     self.send_message_types_priorities = {}
                 self.pubsub_central_broker = pubsub_central_broker if self.is_server else False
-                self.max_size_file_upload = max_size_file_upload
+                self.max_size_file_upload_send = max_size_file_upload_send
+                self.max_size_file_upload_recv = max_size_file_upload_recv
                 self.disk_persistence = disk_persistence_send
                 self.persistence_path = os.path.join(self.connector_files_dirpath,
                                             self.PERSISTENCE_SEND_FILE_NAME.format(self.alnum_source_id) + '_') #peer name will be appended

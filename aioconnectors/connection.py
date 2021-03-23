@@ -494,7 +494,7 @@ class FullDuplex:
                                     #                        'fcreating directory {dir_dst_fullpath}')
                                     #    os.makedirs(dir_dst_fullpath)
                                     
-                                    if len(binary[binary_offset:]) > self.connector.max_size_file_upload:
+                                    if len(binary[binary_offset:]) > self.connector.max_size_file_upload_recv:
                                         raise CustomException(f'{self.connector.source_id} cannot receive too large file of size'
                                                         f' {len(binary[binary_offset:])}')                                    
                                                                         
@@ -528,6 +528,13 @@ class FullDuplex:
                                                                             f'{dst_filename_fullpath}, ignoring...')
                                                             unify_chunks = False
                                                     if unify_chunks:
+                                                        total_file_size = sum([os.path.getsize(chunk) for chunk in files_to_unify])
+                                                        if total_file_size > self.connector.max_size_file_upload_recv:
+                                                            self.logger.warning(f'{self.connector.source_id} cannot receive too large file of size'
+                                                                            f' {total_file_size}')
+                                                            unify_chunks = False
+                                                            
+                                                    if unify_chunks:                                                        
                                                         self.logger.info(f'{self.connector.source_id} handle_incoming_connection from '
                                                                         f'peer {self.peername} unifying chunks {files_to_unify} '
                                                                         f'into file {dst_filename_fullpath}')   
@@ -693,7 +700,7 @@ class FullDuplex:
                     try:
                         with open(file_src_path, 'rb') as fd:
                             binary_file = fd.read()
-                        if len(binary_file) > self.connector.max_size_file_upload:
+                        if len(binary_file) > self.connector.max_size_file_upload_send:
                             raise Exception(f'{self.connector.source_id} cannot send too large file of size {len(binary_file)}')
                     except Exception as exc:
                         self.logger.exception('handle_outgoing_connection handling file : '+str(file_src_path))
