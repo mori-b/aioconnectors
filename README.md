@@ -754,8 +754,8 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 <a name="containers"></a>
 ## Containers
 
-Connector client and server, as well as connector api, can run in a Docker container, you just need to pip install aioconnectors in a Python image (which has openssl).  
-A connector and its connector api must run on the same host, or on the same Kubernetes pod.  
+Connector client and server, as well as connector api, can run in a Docker container, you just need to pip install aioconnectors in a Python image (or any image having Python >= 3.6 and openssl).  
+A connector and its connector api must run on the same host, or in the same Kubernetes pod.  
 A connector and its connector api can run in the same container, or in different containers. In case you choose to run them in different containers, you must configure their connector_files_dirpath path as a shared volume, in order to let them share their UDS sockets.
 
 
