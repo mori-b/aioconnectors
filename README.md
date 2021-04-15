@@ -56,11 +56,11 @@ In this example we are running server and client on the same machine since serve
 To run server and client on different machines, you should modify server_sockaddr value in both server and client code, with the ip address of the server.  
 You can run multiple clients, just set a different client\_name for each client.  
 
-1.No encryption  
+<u>1.No encryption</u>  
 You can run the following example code directly, the encryption is disabled.  
 In case you want to use this example with encryption, you should read 2. and 3., otherwise you can skip to the code.  
 
-2.Encryption without authentication  
+<u>2.Encryption without authentication</u>  
 In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
 A directory containing certificates must be created before running the example, which is done by a single command :
 
@@ -68,7 +68,7 @@ A directory containing certificates must be created before running the example, 
 
 If you run server and client on different machines, this command should be run on both machines.  
 
-3.Encryption with authentication  
+<u>3.Encryption with authentication</u>  
 In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated. In case you want to run this example with authentication too, you should set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
 If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
 In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
@@ -427,7 +427,7 @@ aioconnectors also provides a command line tool accessible by typing
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /var/tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
-Encryption mode is, as everything else, configurable through the ConnectorManager kwargs or config file, as explained later in 4. The relevant parameters are use_ssl and ssl_allow_all.  
+Encryption mode is, as everything else, configurable through the ConnectorManager kwargs or config file, as explained later in <a href="#classes">4-</a>. The relevant parameters are use_ssl and ssl_allow_all.  
 The default mode is the most secure : use_ssl is enabled and ssl\_allow\_all is disabled, both on server and client.  
 In such a case, you need to copy certificates/server to your server (preserving symlinks), and certificates/client to your client. That's all you have to do.  
 This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.  
