@@ -437,7 +437,9 @@ class FullDuplex:
                                 hook_target_directory = self.connector.hook_target_directory.get(with_file['dst_type'])                                
                                 #user should have manually defined hook_target_directory(transport_json) beforehand
                                 if hook_target_directory:
-                                    dst_dirpath = os.path.join(dst_dirpath, hook_target_directory(transport_json))
+                                    hooked_target_directory = hook_target_directory(transport_json)
+                                    if hooked_target_directory:
+                                        dst_dirpath = os.path.join(dst_dirpath, hooked_target_directory)
                         except Exception:
                             self.logger.exception('hook_target_directory')
                         self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
