@@ -440,12 +440,19 @@ class FullDuplex:
                                     hooked_target_directory = hook_target_directory(transport_json)
                                     if hooked_target_directory:
                                         dst_dirpath = os.path.join(dst_dirpath, hooked_target_directory)
+                                    elif hooked_target_directory is False:
+                                        #hook_target_directory returning False means refuse this file
+                                        self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                                    f'{self.peername} tried to create file in directory refused by hooked_target_directory'
+                                                    f' {dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')                                    
+                                        dst_dirpath = False
+                                    #else, hook_target_directory returning None means no change to dst_dirpath                                        
                         except Exception:
                             self.logger.exception('hook_target_directory')
-                        self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
-                                        f'{self.peername} storing file into {dst_dirpath}')
                         
                         if dst_dirpath:
+                            self.logger.info(f'{self.connector.source_id} handle_incoming_connection from peer '
+                                        f'{self.peername} storing file into {dst_dirpath}')                            
                             binary_offset = 0
                             try:
                                 if not binary:
@@ -598,9 +605,18 @@ class FullDuplex:
                                                       'handle_incoming_connection with_file removal')
                                     
                         else:
-                            self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
+                            if dst_dirpath is not False:
+                                self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from peer '
                                                 f'{self.peername} tried to create file in non existing directory '
                                                 f'{dst_dirpath} for type {with_file.get("dst_type")}, ignoring...')
+                            if binary:
+                                binary_offset = with_file.get('binary_offset', 0)                            
+                                #remove file from binary, whether having written it to dst_fullpath or not. To prevent bloating
+                                binary = binary[:binary_offset]
+                                if len(binary) == 0:
+                                    if MessageFields.WITH_BINARY in transport_json:
+                                        del transport_json[MessageFields.WITH_BINARY]
+                            
                     
                     #check if this message is a response to an awaiting request, and update put_msg_to_queue_recv
                     response_id = transport_json.get(MessageFields.RESPONSE_ID)                                
