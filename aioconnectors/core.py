@@ -37,6 +37,7 @@ class Connector:
     UDS_PATH_RECEIVE_PRESERVE_SOCKET = True
     UDS_PATH_SEND_PRESERVE_SOCKET = True    
     SILENT=True    
+    MAX_CERTS = 1024
     #USE_ACK = False  #or can be a list of message_types like ['type1']    
     DEBUG_MSG_COUNTS = True
     
@@ -81,7 +82,7 @@ class Connector:
                  hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
-                 everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES,
+                 everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
         
         self.logger = logger.getChild('server' if is_server else 'client')
@@ -116,6 +117,7 @@ class Connector:
             self.reuse_uds_path_send_to_connector = reuse_uds_path_send_to_connector
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
             self.hook_target_directory = hook_target_directory
+            self.max_certs = max_certs            
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
@@ -144,7 +146,7 @@ class Connector:
                     if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
                         raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                            f'than {self.MAX_LENGTH_UDS_PATH}')
-                        
+                
             else:
                 self.client_bind_ip = client_bind_ip
                 self.source_id = client_name
@@ -196,7 +198,7 @@ class Connector:
                     self.client_certificate_name = None                         
                 
                 if self.use_ssl:                    
-                    self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path)
+                    self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
                     self.logger.info('Connector will use ssl, with certificates directory '+self.ssl_helper.certificates_base_path)
 
                     if self.is_server:                

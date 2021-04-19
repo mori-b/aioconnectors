@@ -20,7 +20,7 @@ class SSL_helper:
     CERT_NAME_EXTENSION = "pem"
     KEY_NAME_EXTENSION = "key"
     
-    def __init__(self, logger, is_server, certificates_directory_path=None):
+    def __init__(self, logger, is_server, certificates_directory_path=None, max_certs=None):
         self.logger = logger.getChild('ssl')
         try:
             self.is_server, self.certificates_directory_path = is_server, certificates_directory_path
@@ -63,6 +63,7 @@ class SSL_helper:
                                             self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
                 hash_name, serial = stdout.decode().splitlines()
                 self.default_client_serial = serial.split('=')[1]
+                self.max_certs = max_certs
 
         except Exception:
             self.logger.exception('init')
@@ -96,6 +97,10 @@ class SSL_helper:
             if os.path.exists(crt_path):
                 raise Exception(f'A certificate already exists for client {source_id}. '
                                 f'Use delete_client_certificate to delete it')
+                
+            if len(self.source_id_2_cert['source_id_2_cert']) >= self.max_certs:
+                raise Exception(f'Too many certificates : {self.max_certs}, failed creating certificate for {source_id}')
+                
             if common_name:
                 update_conf(self.CSR_TEMPLATE_CONF, self.CSR_CONF, {'O':common_name, 'CN':common_name})
                 create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout "\
