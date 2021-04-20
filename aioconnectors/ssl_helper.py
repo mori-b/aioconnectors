@@ -87,7 +87,7 @@ class SSL_helper:
             certificate = x509.load_pem_x509_certificate(content, default_backend())
     '''
     
-    async def create_client_certificate(self, source_id=None, common_name=None):
+    async def create_client_certificate(self, source_id=None, common_name=None, hook_allow_certificate_creation=None):
         #Only called by server
         #Generates self signed certificate for a client_id
         #returns paths of cert and key
@@ -98,6 +98,11 @@ class SSL_helper:
                 raise Exception(f'A certificate already exists for client {source_id}. '
                                 f'Use delete_client_certificate to delete it')
                 
+            if hook_allow_certificate_creation:
+                allow_certificate_creation = await hook_allow_certificate_creation(source_id)
+                if not allow_certificate_creation:
+                    raise Exception(f'Not allowing certificate creation for {source_id}')
+                    
             if len(self.source_id_2_cert['source_id_2_cert']) >= self.max_certs:
                 raise Exception(f'Too many certificates : {self.max_certs}, failed creating certificate for {source_id}')
                 

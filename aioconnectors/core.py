@@ -79,7 +79,8 @@ class Connector:
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
-                 hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
+                 hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
+                 enable_client_try_reconnect=True,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
@@ -117,6 +118,7 @@ class Connector:
             self.reuse_uds_path_send_to_connector = reuse_uds_path_send_to_connector
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
             self.hook_target_directory = hook_target_directory
+            self.hook_allow_certificate_creation = hook_allow_certificate_creation
             self.max_certs = max_certs            
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
@@ -127,6 +129,8 @@ class Connector:
                     self.logger.info(f'Connector Server {self.source_id} has a hook_server_auth_client')
                 if hook_target_directory:
                     self.logger.info(f'Connector Server {self.source_id} has a hook_target_directory')
+                if hook_allow_certificate_creation:
+                    self.logger.info(f'Connector Server {self.source_id} has a hook_allow_certificate_creation')
 
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES

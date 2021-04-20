@@ -941,7 +941,8 @@ class FullDuplex:
                     #common_name = cert_der["subject"][1][0][1]
                     #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:                         
                     crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=\
-                                                            transport_json[MessageFields.SOURCE_ID], common_name=None)
+                                            transport_json[MessageFields.SOURCE_ID], common_name=None,
+                                            hook_allow_certificate_creation=self.connector.hook_allow_certificate_creation)
                     with open(crt_path, 'r') as fd:
                         crt = fd.read()
                     with open(key_path, 'r') as fd:
