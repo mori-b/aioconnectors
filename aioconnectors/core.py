@@ -1154,6 +1154,7 @@ class Connector:
                         #if no application level request_id has been set, we create a dummy unique request_id to be able to detect response
                         #in case peer's application responds smartly, otherwise AWAIT_RESPONSE_TIMEOUT will stop the waiting
                         request_id = uuid.uuid4().hex
+                        transport_json[MessageFields.REQUEST_ID] = request_id
                     if request_id in self.messages_awaiting_response[message_type].get(peername, {}):
                         self.logger.warning(f'Request id {request_id} for type {message_type} for peer {peername} '
                                             'already in self.messages_awaiting_response, overriding it !')                       
