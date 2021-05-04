@@ -7,6 +7,8 @@ import sys
 import stat
 import subprocess
 import re
+import gzip
+
 
 PYTHON_VERSION = (sys.version_info.major,sys.version_info.minor)
 if PYTHON_VERSION < (3,6):
@@ -39,6 +41,18 @@ def get_tmp_dir():
 
 def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
                log_format=LOG_FORMAT, level=LOG_LEVEL, rotate=LOG_ROTATE):
+    
+    def namer(name):
+        return name + '.gz'
+    
+    def rotator(source, dest):
+        with open(source, 'rb') as sf:
+            data = sf.read()
+            compressed = gzip.compress(data)
+            with open(dest, 'wb') as df:
+                df.write(compressed)
+        os.remove(source)
+    
     logger = logging.getLogger(logger_name)
     logger.handlers = []
     if not first_run:
@@ -53,7 +67,10 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
                         rotate = int(rotate)
                     except Exception:
                         rotate = LOG_MAX_SIZE
-                handlers.append(RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT))
+                fh = RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT)
+                fh.rotator = rotator
+                fh.namer = namer                
+                handlers.append(fh)
             else:
                 handlers.append(logging.FileHandler(logfile_path))
         if not silent:
