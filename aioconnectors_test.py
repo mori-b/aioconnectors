@@ -235,7 +235,7 @@ if __name__ == '__main__':
                     messages_per_second = 1
                     with_file_template={'src_path':FILE_SRC_PATH,'dst_type':'file1', 'dst_name':os.path.basename(FILE_SRC_PATH)+'_from_client_'+own_source_id+'_index_{}', 'delete':False} #default is delete=True
                 elif TEST_TRAFFIC_CLIENT:
-                    duration_test = 5 #seconds
+                    duration_test = 15 #seconds
                     messages_per_second = 1000  #10000
                     if TEST_WITH_ACK:
                         messages_per_second = 10

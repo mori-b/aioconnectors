@@ -640,7 +640,7 @@ class ConnectorAPI(ConnectorBaseTool):
         except asyncio.CancelledError:
             raise        
         except asyncio.IncompleteReadError:
-            self.logger.warning('recv_message : peer disconnected')
+            self.logger.info('recv_message : peer disconnected')
             return None, None, None
         except ConnectionResetError as exc:
             self.logger.warning('recv_message : peer disconnected '+str(exc))

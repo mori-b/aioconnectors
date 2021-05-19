@@ -630,7 +630,7 @@ application level.
 -**send\_message\_types\_priorities** : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
--**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages.  
+-**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -**use\_ssl** and **ssl\_allow\_all** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced.  
 

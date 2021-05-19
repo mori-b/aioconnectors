@@ -1,5 +1,5 @@
 '''
-   Copyright 2020 Mori Benech
+   Copyright 2021 Mori Benech
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ The command line tool can be called by "python3 -m aioconnectors --help"
 Usage examples can be found in applications.py
 '''
 
-__version__ = '1.0.47'
+__version__ = '1.0.48'
 __author__ = 'Mori Benech'
 
 from .api import ConnectorManager, ConnectorAPI, ConnectorRemoteTool

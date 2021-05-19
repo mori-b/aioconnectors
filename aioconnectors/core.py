@@ -1380,6 +1380,9 @@ class Connector:
         persistence_recv_enabled = []    #list of msg_types
         transition_queues = {}    #key=msg_type, value=Queue of message_bytes
         ignore_redundant_log = False
+        MAX_RESET_SOCKET = 100
+        counter_reset_socket = 0
+        
         while True:
             try:
                 if persistence_recv_enabled:
@@ -1473,18 +1476,28 @@ class Connector:
                     #this requires start_waiting_for_messages in api to have a 
                     #client_connected_cb in a while loop, not a simple callback
                     use_existing_connection = False
+                    counter_reset_socket += 1
                     #try to reuse connection to uds
                     if uds_path_receive in self.reader_writer_uds_path_receive:
-                        try:
+                        if counter_reset_socket >= MAX_RESET_SOCKET:
+                            #in case the api listener message_received_cb is very slow, the writer.drain may
+                            #start blocking, so we workaround this by resetting the socket
+                            counter_reset_socket = 0
+                            self.logger.debug(f'Resetting reader_writer_uds_path_receive after {MAX_RESET_SOCKET} times')
                             writer = self.reader_writer_uds_path_receive[uds_path_receive][1]
-                            writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])    
-                            writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])                        
-                            await writer.drain()                                        
-                            use_existing_connection = True
-                            self.logger.debug(f'{self.source_id} queue_recv_from_connector reusing existing connection')
-                        except Exception:
+                            writer.close()
                             del self.reader_writer_uds_path_receive[uds_path_receive]
-                            self.logger.exception('queue_recv_from_connector')
+                        else:
+                            try:
+                                writer = self.reader_writer_uds_path_receive[uds_path_receive][1]
+                                writer.write(message_bytes[:Structures.MSG_4_STRUCT.size])    
+                                writer.write(message_bytes[Structures.MSG_4_STRUCT.size:])                        
+                                await writer.drain()                                        
+                                use_existing_connection = True
+                                self.logger.debug(f'{self.source_id} queue_recv_from_connector reusing existing connection')
+                            except Exception:
+                                del self.reader_writer_uds_path_receive[uds_path_receive]
+                                self.logger.exception('queue_recv_from_connector')
                             
                     if not use_existing_connection:
                         self.logger.debug(f'{self.source_id} queue_recv_from_connector creating new connection')
