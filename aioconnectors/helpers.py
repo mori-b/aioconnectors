@@ -48,10 +48,10 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
     def rotator(source, dest):
         with open(source, 'rb') as sf:
             data = sf.read()
-            compressed = gzip.compress(data)
-            with open(dest, 'wb') as df:
-                df.write(compressed)
-        os.remove(source)
+        compressed = gzip.compress(data)
+        with open(dest, 'wb') as df:
+            df.write(compressed)
+        os.truncate(source, 0)
     
     logger = logging.getLogger(logger_name)
     logger.handlers = []
