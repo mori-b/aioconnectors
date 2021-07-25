@@ -72,6 +72,7 @@ class FullDuplex:
         self.MAX_TRANSPORT_ID = self.connector.MAX_TRANSPORT_ID
         self.MAX_RETRIES_BEFORE_ACK = self.connector.MAX_RETRIES_BEFORE_ACK
         self.ack_dict = {}
+        self.keep_alive_event_received = asyncio.Event()    #client only
 
     def stop_nowait_for_persistence(self, message_tuple=None):
         #at disconnection, this functions stores queue_send remainings into persistence
@@ -386,10 +387,15 @@ class FullDuplex:
                     #if _ping is received without await_response, it is a ping reply, that we forward as usual
                     if transport_json.get(MessageFields.AWAIT_RESPONSE):
                         transport_json_ping_reply = {MessageFields.MESSAGE_TYPE:'_ping', 
-                                                     MessageFields.RESPONSE_ID:transport_json[MessageFields.REQUEST_ID]}                        
+                                                     MessageFields.RESPONSE_ID:transport_json[MessageFields.REQUEST_ID]}   
                         await self.send_message(transport_json=transport_json_ping_reply, data=data, binary=binary)
                         transport_json, data, binary = None, None, None
                         continue
+                    else:
+                        if transport_json.get(MessageFields.RESPONSE_ID) == self.connector.KEEP_ALIVE_CLIENT_REQUEST_ID:
+                            transport_json, data, binary = None, None, None
+                            self.keep_alive_event_received.set()
+                            continue
                 
                 #at this stage, the message received is never an ACK                
                 transport_id = transport_json.pop(MessageFields.TRANSPORT_ID, None)                    

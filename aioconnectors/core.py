@@ -70,6 +70,11 @@ class Connector:
     MAX_LENGTH_UDS_PATH = 104
     SUPPORT_PRIORITIES = True
     
+    #client only
+    KEEP_ALIVE_TIMEOUT = 5  
+    MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE = 2
+    KEEP_ALIVE_CLIENT_REQUEST_ID = 'keep_alive_client_check'
+    
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
                  disk_persistence_send=DISK_PERSISTENCE_SEND,
@@ -81,6 +86,7 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
                  enable_client_try_reconnect=True,
+                 keep_alive_period=None, max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
@@ -199,7 +205,10 @@ class Connector:
                 self.active_connectors_path = os.path.join(self.connector_files_dirpath, self.DEFAULT_ACTIVE_CONNECTORS_NAME)                
                 self.full_duplex_connections = {}
                 if not self.is_server:
-                    self.client_certificate_name = None                         
+                    self.client_certificate_name = None
+                    self.keep_alive_period = keep_alive_period
+                    self.max_number_of_unanswered_keep_alive = max_number_of_unanswered_keep_alive 
+                    self.keep_alive_timeout = self.KEEP_ALIVE_TIMEOUT                    
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
@@ -370,7 +379,12 @@ class Connector:
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
                     
-                self.tasks['run_client'] = self.loop.create_task(self.run_client())    
+                self.tasks['run_client'] = self.loop.create_task(self.run_client())
+
+                if self.keep_alive_period:
+                    if not isinstance(self.tasks['run_client'], list):
+                        self.tasks['run_client'] = [self.tasks['run_client']]
+                    self.tasks['run_client'].append(self.loop.create_task(self.keep_alive_client_check()))
                 #self.logger.info('ALL TASKS : '+str(self.tasks['run_client'].all_tasks()))            
               
             try:
@@ -404,6 +418,52 @@ class Connector:
                 await self.stop(shutdown=True, enable_delete_files=False)
                 raise
             return
+
+    async def keep_alive_client_check(self):
+        self.logger.info('Starting task keep_alive_client_check')
+        server_sockaddr = str(self.server_sockaddr)
+        try:
+            while server_sockaddr not in self.full_duplex_connections:
+                await asyncio.sleep(self.keep_alive_period)
+            
+            self.logger.info('Starting to send keep_alive_client_check')
+            full_duplex = self.full_duplex_connections[server_sockaddr]
+        except asyncio.CancelledError:
+            raise                            
+        except Exception:
+            self.logger.exception('keep_alive_client_check')
+            raise
+            
+        number_of_unanswered_keep_alive = 0
+        
+        while True:
+            try:                
+                full_duplex.keep_alive_event_received.clear()
+                #AWAIT_RESPONSE must be true event if not really used, for consistency in handle_incoming_connection _ping
+                transport_json = {MessageFields.AWAIT_RESPONSE:True, MessageFields.REQUEST_ID:self.KEEP_ALIVE_CLIENT_REQUEST_ID,
+                                   MessageFields.DESTINATION_ID:server_sockaddr, MessageFields.MESSAGE_TYPE:'_ping'}
+                await full_duplex.send_message(transport_json=transport_json, data=self.KEEP_ALIVE_CLIENT_REQUEST_ID)
+                try:
+                    await asyncio.wait_for(full_duplex.keep_alive_event_received.wait(), timeout=self.keep_alive_timeout)
+                    #transport_json, data, binary = await asyncio.wait_for(full_duplex.recv_message(), timeout=self.keep_alive_timeout)
+                except asyncio.TimeoutError:
+                    self.logger.warning(f'send_message : keep_alive_client_check error ({self.keep_alive_timeout} s)')
+                    number_of_unanswered_keep_alive += 1
+                else:
+                    number_of_unanswered_keep_alive = 0
+                finally:
+                    full_duplex.keep_alive_event_received.clear()
+
+                if number_of_unanswered_keep_alive >= self.max_number_of_unanswered_keep_alive:
+                    self.logger.warning('Restarting client because lack of keep alive responses')
+                    self.tasks['client_wait_for_reconnect'] = self.loop.create_task(self.client_wait_for_reconnect())
+                    return
+            except asyncio.CancelledError:
+                raise                
+            except Exception:
+                self.logger.exception('keep_alive_client_check')
+            await asyncio.sleep(self.keep_alive_period)
+        
         
     async def proxy_connect(self, server_sockaddr, server_sockaddr_addr=None):
         #request : CONNECT bla.com:22 HTTP/1.1

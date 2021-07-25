@@ -29,20 +29,21 @@ results = {}
 
 ########################### TEST FLAGS ##############
 TEST_WITH_SSL = True
-TEST_TRAFFIC_CLIENT = False
+TEST_TRAFFIC_CLIENT = True
 TEST_TRAFFIC_SERVER = False
-TEST_PERSISTENCE_CLIENT = True
+TEST_PERSISTENCE_CLIENT = False#True
 TEST_PERSISTENCE_SERVER = False
 TEST_SERVER_AWAITS_REPLY = False
 TEST_CLIENT_AWAITS_REPLY = False
 TEST_PERSISTENCE_CLIENT_AWAIT_REPLY = False
-TEST_MULTIPLE_CLIENTS = True
+TEST_MULTIPLE_CLIENTS = False #True
 TEST_UPLOAD_FILE = False
 TEST_UPLOAD_FILE_WITH_PERSISTENCE = False
 TEST_COMMANDER_SERVER = False    #delete_client_certificate
 TEST_COMMANDER_CLIENT = False    #delete_client_certificate
 TEST_WITH_ACK = False 
 TEST_WITH_SSL_ALLOW_ALL = False
+TEST_WITH_CLIENT_KEEP_ALIVE = False #True
 
 
 ########################### TEST VALUES ##############
@@ -58,6 +59,7 @@ PERSISTENCE_SERVER = True if TEST_PERSISTENCE_SERVER else False
 PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 PERSISTENCE_SERVER_DELETE_PREVIOUS_PERSISTENCE_FILE = True
 CLIENT_NAMES = ['client1','client2'] if TEST_MULTIPLE_CLIENTS else ['client1']
+CLIENT_KEEP_ALIVE_PERIOD = 4 if TEST_WITH_CLIENT_KEEP_ALIVE else 0
 if TEST_UPLOAD_FILE or TEST_UPLOAD_FILE_WITH_PERSISTENCE:
     FILE_RECV_CONFIG = {'file1':{'target_directory':'/tmp/file1'}, 'file2':{'target_directory':'/tmp/file2'}}    #{}
     FILE_SRC_PATH = '/tmp/file_src'    #''
@@ -157,7 +159,7 @@ if __name__ == '__main__':
                                                    send_message_types=CLIENT_MESSAGE_TYPES, recv_message_types=SERVER_MESSAGE_TYPES,                                                     
                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                                                    uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, 
-                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL,
+                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL, keep_alive_period=CLIENT_KEEP_ALIVE_PERIOD,
                                                    send_message_types_priorities={'type1':1,'type2':2})
             loop = asyncio.get_event_loop()
 
