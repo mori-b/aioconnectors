@@ -66,7 +66,7 @@ if len(sys.argv) > 1:
                         file_recv_config={}, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, 
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
-                        enable_client_try_reconnect=True, keep_alive_period=None,
+                        enable_client_try_reconnect=True, keep_alive_period=None, keep_alive_timeout=Connector.KEEP_ALIVE_TIMEOUT,
                         max_number_of_unanswered_keep_alive=Connector.MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                         max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND,
                         max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV, max_certs=Connector.MAX_CERTS,

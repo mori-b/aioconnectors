@@ -547,7 +547,10 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "everybody_can_send_messages": true,
         "file_recv_config": {},
         "is_server": true,
+        "keep_alive_period": null,
+        "keep_alive_timeout": 5,
         "max_certs": 1024,
+        "max_number_of_unanswered_keep_alive": 2,
         "max_size_file_upload_recv": 8589930194,
         "max_size_file_upload_send": 8589930194,
         "max_size_persistence_path": 1073741824,
@@ -612,6 +615,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**disk\_persistence\_recv** : In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True (applies to all message types). disk\_persistence\_recv can also be a list of message types for which to apply persistence. There will be 1 persistence file per message type.  
 -**file\_recv\_config** : In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_recv\_config, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":"", "override\_existing":False}. **target\_directory** is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". **owner** is optional, it is the owner of the uploaded file. It must be of the form "user:group". **override\_existing** is optional and false by default : when receiving a file with an already existing destination path, it decides whether to override the existing file or not.  
 -**enable\_client\_try\_reconnect** is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  
+-**keep\_alive\_period** is null by default. If an integer then the client periodically sends a ping keep-alive to the server. If **max\_number\_of\_unanswered\_keep\_alive** (default is 2) keep-alive responses are not received by the client, each after **keep\_alive\_timeout** (default is 5s), then the client disconnects and tries to reconnect with the same mechanism used by enable\_client\_try\_reconnect.  
 -**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
 -**hook\_allow\_certificate\_creation** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client_name and returning a boolean, to let the server accept or block the client_name certificate creation.  
 -**hook\_server\_auth\_client** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  

@@ -86,7 +86,8 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
                  enable_client_try_reconnect=True,
-                 keep_alive_period=None, max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
+                 keep_alive_period=None, keep_alive_timeout=KEEP_ALIVE_TIMEOUT,
+                 max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
@@ -207,8 +208,8 @@ class Connector:
                 if not self.is_server:
                     self.client_certificate_name = None
                     self.keep_alive_period = keep_alive_period
+                    self.keep_alive_timeout = keep_alive_timeout
                     self.max_number_of_unanswered_keep_alive = max_number_of_unanswered_keep_alive 
-                    self.keep_alive_timeout = self.KEEP_ALIVE_TIMEOUT                    
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
