@@ -161,6 +161,8 @@ if len(sys.argv) > 1:
         parser.add_argument('--port', nargs='?', default=None, help="server port, optional for server and client")
         parser.add_argument('--bind_server_ip', nargs='?', default=None, help="bind to ip, optional for server")        
         parser.add_argument('--upload', nargs='?', default=False, help="path of directory or file to upload")
+        parser.add_argument('--nowrap', action='store_true', help="disable tab completion")        
+        
         args = parser.parse_args()
         aioconnectors.applications.chat(args)
                         

@@ -384,15 +384,41 @@ def chat(args, logger=None):
     #chat supports sending messages and files/directories between 2 connectors
     if not logger:
         logger = aioconnectors.get_logger(logger_name='chat', first_run=True)
+
+    if not args.nowrap:        
+        try:    
+            import readline
+            readline.parse_and_bind('tab:complete')
+        except Exception:
+            logger.info('Running without tab completion')
+        else:    
+            proc = subprocess.Popen(
+                    [sys.executable, '-m', 'aioconnectors'] + sys.argv[1:] + ['--nowrap'],
+                    bufsize=0,
+                    stdin=subprocess.PIPE, stdout=None, stderr=None)
+            while True:
+                try:
+                    user_input = input('')                    
+                    proc.stdin.write((user_input + os.linesep).encode())
+                    if user_input == '!exit':
+                        return 
+                except KeyboardInterrupt:
+                    proc.kill()
+                    return
+        
     custom_prompt = 'aioconnectors>> '        
     chat_client_name = 'chat_client'
     CONNECTOR_FILES_DIRPATH = aioconnectors.get_tmp_dir()
+    if os.path.exists(CONNECTOR_FILES_DIRPATH):
+        res = input(f'May I delete the content of {CONNECTOR_FILES_DIRPATH} ? y/n\n')
+        if res == 'y':
+            shutil.rmtree(CONNECTOR_FILES_DIRPATH)
+    
     delete_connector_dirpath_later = not os.path.exists(CONNECTOR_FILES_DIRPATH)
     is_server = not args.target
     accept_all_clients = args.accept
     loop = asyncio.get_event_loop()
     cwd = os.getcwd()
-    
         
     class AuthClient:
         #helper for client authentication on server connector

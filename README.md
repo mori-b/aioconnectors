@@ -758,6 +758,8 @@ You can simply unzip a zip file by using \"\!dezip \<file name\>\".
 -If you don't want your server to use the default port (10673), use --port on both peers : 
 
     python3 -m aioconnectors chat --port <port> [--target <server_ip>]
+    
+-By default the chat has tab completion, you can disable it with --nowrap.
 
 
 <a name="containers"></a>
