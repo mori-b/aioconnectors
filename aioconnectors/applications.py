@@ -385,7 +385,7 @@ def chat(args, logger=None):
     if not logger:
         logger = aioconnectors.get_logger(logger_name='chat', first_run=True)
 
-    if not args.nowrap:        
+    if not args.nowrap and not args.upload:        
         try:    
             import readline
             readline.parse_and_bind('tab:complete')
