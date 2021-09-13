@@ -40,7 +40,7 @@ class Connector:
     MAX_CERTS = 1024
     #USE_ACK = False  #or can be a list of message_types like ['type1']    
     DEBUG_MSG_COUNTS = True
-    
+
     ############################################    
     #default values of internals (not configurable at __init__)
     SLEEP_BETWEEN_START_FAILURES = 5 #10
@@ -74,6 +74,7 @@ class Connector:
     KEEP_ALIVE_TIMEOUT = 5  
     MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE = 2
     KEEP_ALIVE_CLIENT_REQUEST_ID = 'keep_alive_client_check'
+    ALTERNATE_CLIENT_DEFAULT_CERT = False    
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
@@ -91,7 +92,8 @@ class Connector:
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
-                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
+                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
+                 alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT):
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -210,20 +212,24 @@ class Connector:
                     self.keep_alive_period = keep_alive_period
                     self.keep_alive_timeout = keep_alive_timeout
                     self.max_number_of_unanswered_keep_alive = max_number_of_unanswered_keep_alive 
+                    self.alternate_client_default_cert = alternate_client_default_cert
+                    self.alternate_client_cert_toggle_default = False
+                    self.client_reconnect_last_timestamp = 0
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
                     self.logger.info('Connector will use ssl, with certificates directory '+self.ssl_helper.certificates_base_path)
-
-                    if self.is_server:                
-                        pass
-                    elif not self.ssl_allow_all:
-                        if os.path.exists(self.ssl_helper.CLIENT_PEM_PATH.format(self.source_id)):
-                            self.client_certificate_name = self.source_id
-                            self.logger.info('Client will use a unique certificate : '+self.client_certificate_name)                
-                        else:
-                            self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
-                            self.logger.info('Client will use the default certificate : '+self.client_certificate_name)
+                    
+                    #this code is used instead in run_client since the alternate_client_cert_toggle_default mechanism
+                    #if self.is_server:                
+                    #    pass
+                    #elif not self.ssl_allow_all:
+                    #    if os.path.exists(self.ssl_helper.CLIENT_PEM_PATH.format(self.source_id)):
+                    #        self.client_certificate_name = self.source_id
+                    #        self.logger.info('Client will use a unique certificate : '+self.client_certificate_name)                
+                    #    else:
+                    #        self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
+                    #        self.logger.info('Client will use the default certificate : '+self.client_certificate_name)
                             
                 else:                        
                     self.logger.info('Connector will not use ssl')
@@ -318,8 +324,9 @@ class Connector:
         return ''.join([str(letter) for letter in name if str(letter).isalnum()])
                 
     
-    async def start(self, connector_socket_only=False):
+    async def start(self, connector_socket_only=False, alternate_client_cert_toggle_default=False):
         #connector_socket_only is used by client_wait_for_reconnect
+        #alternate_client_cert_toggle_default is used only by client_wait_for_reconnect
         if self.is_running:
             self.logger.warning('Connector is already running, ignoring start...')
             return
@@ -380,7 +387,8 @@ class Connector:
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
                     
-                self.tasks['run_client'] = self.loop.create_task(self.run_client())
+                self.tasks['run_client'] = self.loop.create_task(self.run_client(\
+                                              alternate_client_cert_toggle_default=alternate_client_cert_toggle_default))
 
                 if self.keep_alive_period:
                     if not isinstance(self.tasks['run_client'], list):
@@ -758,7 +766,18 @@ class Connector:
             
             self.logger.info(f'{self.source_id} client_wait_for_reconnect connectivity was reestablished !')
             
-            await self.start(connector_socket_only=True)
+            if self.alternate_client_default_cert:    #this comes from configuration, changed only at restart
+                client_reconnect_now_timestamp = time()
+                delta = client_reconnect_now_timestamp - self.client_reconnect_last_timestamp
+                self.client_reconnect_last_timestamp = client_reconnect_now_timestamp
+                #if failures every 5s, 1st is private, 2nd is default, 3rd private, 4th default, etc
+                if delta < (self.SLEEP_BETWEEN_START_FAILURES + 1):
+                    self.alternate_client_cert_toggle_default = not self.alternate_client_cert_toggle_default
+                else:
+                    self.alternate_client_cert_toggle_default = False
+                
+            await self.start(connector_socket_only=True, alternate_client_cert_toggle_default=self.alternate_client_cert_toggle_default)
+                       
             self.logger.info(f'{self.source_id} client_wait_for_reconnect client entering back Connected mode')                        
             return
         
@@ -1636,13 +1655,27 @@ class Connector:
             
         return self.server
     
-    async def run_client(self):
+    async def run_client(self, alternate_client_cert_toggle_default=False):
+        #alternate_client_cert_toggle_default is used only by start() called by client_wait_for_reconnect
         if self.use_ssl:
             if self.ssl_allow_all:
+                self.client_certificate_name = None
                 self.logger.info(f'{self.source_id} Running client with certificate {self.client_certificate_name}, allow all')
             else:
+                if os.path.exists(self.ssl_helper.CLIENT_PEM_PATH.format(self.source_id)):
+                    if alternate_client_cert_toggle_default:
+                        self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
+                        self.logger.info('Client alternating with the default certificate : '+self.client_certificate_name)
+                    else:                        
+                        self.client_certificate_name = self.source_id
+                        self.logger.info('Client will use a unique certificate : '+self.client_certificate_name)                
+                else:
+                    self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
+                    self.logger.info('Client will use the default certificate : '+self.client_certificate_name)
+                
                 self.logger.info(f'{self.source_id} Running client with certificate {self.client_certificate_name}')
         else:
+            self.client_certificate_name = None
             self.logger.info(f'{self.source_id} Running client without ssl')
         try:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        

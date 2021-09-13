@@ -71,7 +71,7 @@ if len(sys.argv) > 1:
                         max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND,
                         max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV, max_certs=Connector.MAX_CERTS,
                         everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, send_message_types_priorities={},
-                        proxy={})
+                        proxy={}, alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT)
         print('\n- MANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))
         file_recv_config = {'any': {'target_directory':'/var/tmp/aioconnectors/{message_type}/{source_id}/',

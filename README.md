@@ -533,6 +533,7 @@ You can use both kwargs and config_file_path : if there are shared items, the on
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
+        "alternate_client_default_cert": false,
         "certificates_directory_path": "/var/tmp/aioconnectors",
         "client_bind_ip": null,
         "client_name": null,
@@ -606,6 +607,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     }
 
 
+-**alternate\_client\_default\_cert** is false by default : if true it lets the client try to connect alternatively with the default certificate, in case of failure with the private certificate. This can save the hassle of having to delete manually your client certificate when the certificate was already deleted on server side.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  

@@ -34,7 +34,8 @@ class ConnectorManager:
                  max_size_file_upload=None, hook_allow_certificate_creation=None,
                  max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, max_certs=Connector.MAX_CERTS,
-                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None):
+                 send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
+                 alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -70,6 +71,7 @@ class ConnectorManager:
         self.send_message_types_priorities = send_message_types_priorities
         self.proxy = proxy
         self.max_certs = max_certs
+        self.alternate_client_default_cert = alternate_client_default_cert
 
         self.disk_persistence_send, self.disk_persistence_recv, self.max_size_persistence_path = \
                             disk_persistence_send, disk_persistence_recv, max_size_persistence_path
@@ -160,7 +162,7 @@ class ConnectorManager:
                                    everybody_can_send_messages=self.everybody_can_send_messages,
                                    send_message_types_priorities=self.send_message_types_priorities,
                                    pubsub_central_broker=self.pubsub_central_broker, proxy=self.proxy,
-                                   max_certs=self.max_certs)        
+                                   max_certs=self.max_certs, alternate_client_default_cert=self.alternate_client_default_cert)        
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
