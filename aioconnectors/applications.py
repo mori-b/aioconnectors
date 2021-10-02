@@ -45,7 +45,16 @@ def cli(logger=None):
             print(str(the_key)+')    '+str(value))
     
     if not logger:
-        logger = aioconnectors.get_logger(logger_name='cli', first_run=True)    
+        logger = aioconnectors.get_logger(logger_name='cli', first_run=True)
+    running_with_tab_completion = True
+    try:    
+        import readline
+        readline.set_completer_delims('\t\n=')
+        readline.parse_and_bind('tab:complete')
+    except Exception:
+        running_with_tab_completion = False
+        logger.info('Running without tab completion')
+        
     print('\nWelcome to aioconnectors CLI')
     Connector = aioconnectors.core.Connector    
     the_path = input('\nPlease type your connector_files_dirpath, or Enter if it is '
@@ -103,10 +112,14 @@ def cli(logger=None):
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
         display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
-        def show_connected_peers():
+
+        def show_connected_peers(return_peers=False):
             task = loop.create_task(connector_remote_tool.show_connected_peers())
             loop.run_until_complete(task)
-            print(f'\nConnected peers : {task.result().decode()}')
+            peers_list = task.result().decode()
+            print(f'\nConnected peers : {peers_list}')
+            if return_peers:
+                return json.loads(peers_list)
             
         while True:
             clearscreen()
@@ -116,24 +129,30 @@ def cli(logger=None):
                 print('Invalid number : '+str(res))
             else:
                 the_cmd = dict_cmds[res]
+                
                 if the_cmd == 'start':
                     task = loop.create_task(connector_remote_tool.start_connector())
                     loop.run_until_complete(task)
-                    print(task.result().decode())                        
+                    print(task.result().decode())           
+                    
                 elif the_cmd == 'stop gracefully':
                     task = loop.create_task(connector_remote_tool.stop_connector(client_wait_for_reconnect=False, hard=False))
                     loop.run_until_complete(task)
                     print(task.result().decode())
+                    
                 elif the_cmd == 'stop hard':
                     task = loop.create_task(connector_remote_tool.stop_connector(client_wait_for_reconnect=False, hard=True))
                     loop.run_until_complete(task)
-                    print(task.result().decode())                    
+                    print(task.result().decode())          
+                    
                 elif the_cmd == 'restart':
                     task = loop.create_task(connector_remote_tool.restart_connector(sleep_between=2, hard=False))
                     loop.run_until_complete(task)
                     print(task.result().decode())
+                    
                 elif the_cmd == 'show_connected_peers':
-                    show_connected_peers()                     
+                    show_connected_peers()             
+                    
                 elif the_cmd == 'ignore_peer_traffic':
                     while True:
                         task = loop.create_task(connector_remote_tool.ignore_peer_traffic_show())
@@ -161,47 +180,72 @@ def cli(logger=None):
                                 loop.run_until_complete(task)
                                 continue
                             else:
-                                break                                
+                                break       
+                            
                 elif the_cmd == 'peek_queues':
                     task = loop.create_task(connector_remote_tool.peek_queues())
                     loop.run_until_complete(task)
                     print(json.dumps(json.loads(task.result().decode()), indent=4, sort_keys=True))
+                    
                 elif the_cmd == 'delete_client_certificate':
                     if is_server:
-                        show_connected_peers()
+                        peers_list = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_list if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
                         client_name = input('\nPlease type the client name whose certificate you would '
                                             'like to delete, or q to quit\n')
-                        res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
-                        if res =='y':
-                            task = loop.create_task(connector_remote_tool.delete_client_certificate(client_id=client_name, 
-                                                                                            remove_only_symlink=False))
-                            loop.run_until_complete(task)
-                            print(task.result().decode())                            
-                            task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
-                            loop.run_until_complete(task)
-                            print(task.result().decode())                            
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                        
+                        if client_name != 'q':
+                            res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
+                            if res =='y':
+                                task = loop.create_task(connector_remote_tool.delete_client_certificate(client_id=client_name, 
+                                                                                                remove_only_symlink=False))
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                            
+                                task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                            
                     else:
                         res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
                         if res =='y':                            
                             task = loop.create_task(connector_remote_tool.delete_client_certificate())
                             loop.run_until_complete(task)
                             print(task.result().decode())
+                            
                 elif the_cmd == 'disconnect_client':
                     if is_server:
-                        show_connected_peers()
+                        peers_list = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_list if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
                         client_name = input('\nPlease type the client name you would '
                                             'like to disconnect, or q to quit\n')
-                        res = input('\nAre you sure you want to disconnect '+client_name+' ? y/n\n')
-                        if res =='y':
-                            task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
-                            loop.run_until_complete(task)
-                            print(task.result().decode())                          
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                            
+                        if client_name != 'q':                        
+                            res = input('\nAre you sure you want to disconnect '+client_name+' ? y/n\n')
+                            if res =='y':
+                                task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                          
                     else:
-                        print('A client cannot use this functionality')                        
+                        print('A client cannot use this functionality')         
+                        
                 elif the_cmd == 'show_log_level':
                     task = loop.create_task(connector_remote_tool.show_log_level())
                     loop.run_until_complete(task)
-                    print(task.result().decode())                                   
+                    print(task.result().decode())      
+                             
                 elif the_cmd == 'set_log_level':
                     list_levels = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
                     dict_levels = {str(index):level for index,level in enumerate(list_levels)}
@@ -217,6 +261,7 @@ def cli(logger=None):
                     task = loop.create_task(connector_remote_tool.set_log_level(new_level))
                     loop.run_until_complete(task)
                     print(task.result().decode())       
+                    
                 elif the_cmd == 'show_subscribe_message_types':
                     if is_server:
                         print('Only available for clients')
@@ -224,6 +269,7 @@ def cli(logger=None):
                         task = loop.create_task(connector_remote_tool.show_subscribe_message_types())
                         loop.run_until_complete(task)
                         print(task.result().decode())     
+                        
                 elif the_cmd == 'set_subscribe_message_types':
                     if is_server:
                         print('Only available for clients')
@@ -388,6 +434,7 @@ def chat(args, logger=None):
     if not args.nowrap and not args.upload:        
         try:    
             import readline
+            readline.set_completer_delims('\t\n=')            
             readline.parse_and_bind('tab:complete')
         except Exception:
             logger.info('Running without tab completion')
