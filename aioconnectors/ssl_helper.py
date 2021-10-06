@@ -5,7 +5,7 @@ import subprocess
 import uuid
 import shutil
 
-from .helpers import get_tmp_dir
+from .helpers import get_tmp_dir, validate_source_id
 
 def update_conf(conf_template, conf, replacement_dict):
     shutil.copy(conf_template, conf)
@@ -92,6 +92,7 @@ class SSL_helper:
         #Generates self signed certificate for a client_id
         #returns paths of cert and key
         try:
+            validate_source_id(source_id)
             crt_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
             key_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.KEY_NAME_EXTENSION}'
             if os.path.exists(crt_path):
@@ -159,6 +160,7 @@ class SSL_helper:
     
     async def remove_client_cert_on_client(self, source_id):
         try:
+            validate_source_id(source_id)
             cert_path = self.CLIENT_PEM_PATH.format(source_id)
             key_path = self.CLIENT_KEY_PATH.format(source_id)
             if not os.path.exists(cert_path):
@@ -180,6 +182,7 @@ class SSL_helper:
         #symlink pointing to f'../{source_id}.{self.CERT_NAME_EXTENSION}' should be removed
         #example : <hash>.2 -> source_id.pem : we need to remove <hash>.2, and then rename all <hash>.i where i>2, to <hash>.i-1 
         try:
+            validate_source_id(source_id)
             cert_path = self.SERVER_CERTS_PEM_PATH.format(source_id)
             key_path = self.SERVER_CERTS_KEY_PATH.format(source_id)
             

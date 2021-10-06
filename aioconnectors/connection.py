@@ -27,7 +27,7 @@ import json
 import os
 import ssl
 
-from .helpers import full_path, chown_file, CustomException, PYTHON_GREATER_37
+from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
 
 DEBUG_SHOW_DATA = False
@@ -975,6 +975,7 @@ class FullDuplex:
                 self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
                 old_peername = self.peername
                 new_peername = transport_json[MessageFields.SOURCE_ID]
+                validate_source_id(new_peername)
                 self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
                 self.peername = new_peername                
                 self.connector.queue_send[new_peername] = self.connector.queue_send.pop(old_peername)
@@ -1053,6 +1054,7 @@ class FullDuplex:
             self.logger.info('Received handshake_no_ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
             old_peername = self.peername    #str(self.writer.get_extra_info('peername'))
             new_peername = transport_json[MessageFields.SOURCE_ID]
+            validate_source_id(new_peername)
             self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
             self.peername = new_peername
             #self.logger.info('yomo self.connector.tasks : '+str(self.connector.tasks))

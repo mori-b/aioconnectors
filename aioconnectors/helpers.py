@@ -124,5 +124,10 @@ def iface_to_ip(iface, logger=None):
             logger.exception('iface_to_ip')
         return iface
 
+def validate_source_id(source_id):
+    if '.' in source_id or '/' in source_id:
+        #protect against path traversal
+        raise Exception(f'Invalid source_id : {source_id}')
+    
 class CustomException(Exception):
     pass
