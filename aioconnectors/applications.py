@@ -49,7 +49,7 @@ def cli(logger=None):
     running_with_tab_completion = True
     try:    
         import readline
-        readline.set_completer_delims('\t\n=')
+        readline.set_completer_delims('\t\n= ')
         readline.parse_and_bind('tab:complete')
     except Exception:
         running_with_tab_completion = False
@@ -434,7 +434,7 @@ def chat(args, logger=None):
     if not args.nowrap and not args.upload:        
         try:    
             import readline
-            readline.set_completer_delims('\t\n=')            
+            readline.set_completer_delims('\t\n= ')            
             readline.parse_and_bind('tab:complete')
         except Exception:
             logger.info('Running without tab completion')
