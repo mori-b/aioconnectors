@@ -207,7 +207,9 @@ class Connector:
             if not tool_only:
                 self.active_connectors_path = os.path.join(self.connector_files_dirpath, self.DEFAULT_ACTIVE_CONNECTORS_NAME)                
                 self.full_duplex_connections = {}
-                if not self.is_server:
+                if self.is_server:
+                    self.blacklisted_peers = []
+                else:
                     self.client_certificate_name = None
                     self.keep_alive_period = keep_alive_period
                     self.keep_alive_timeout = keep_alive_timeout
@@ -830,8 +832,11 @@ class Connector:
         return res
 
     def show_connected_peers(self, dump_result=True):
-        res = []
-        res = list(sorted(self.full_duplex_connections.keys()))
+        #res = list(sorted(self.full_duplex_connections.keys()))
+        
+        res = {thekey:self.full_duplex_connections[thekey].extra_info for thekey in \
+               list(sorted(self.full_duplex_connections.keys()))}
+        
         #if self.is_server:
         #    res = list(sorted(self.full_duplex_connections.keys()))
         #elif self.queue_send:
@@ -863,6 +868,21 @@ class Connector:
         if not full_duplex:
             self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
             return f'Non existing client {client_id}'
+        await full_duplex.stop()
+        return True     
+
+    async def blacklist_client(self, client_id):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot blacklist a client {client_id}'
+            self.logger.warning(msg)
+            return False
+        self.logger.info(f'{self.source_id} disconnecting client {client_id}')        
+        full_duplex = self.full_duplex_connections.pop(client_id, None)
+        if not full_duplex:
+            self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
+            return f'Non existing client {client_id}'
+        self.logger.info(f'{self.source_id} blacklisting client {client_id}')
+        self.blacklisted_peers.append(client_id)        
         await full_duplex.stop()
         return True     
     

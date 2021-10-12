@@ -251,6 +251,7 @@ class FullDuplex:
                 self.connector.cancel_tasks(task_names=[peername+'_incoming', peername+'_outgoing'])
                 
             self.peername = peername
+            self.extra_info = str(self.writer.get_extra_info('peername'))
 
             if self.connector.is_server and self.connector.hook_server_auth_client:
                 accept = await self.connector.hook_server_auth_client(self.peername)
@@ -260,6 +261,13 @@ class FullDuplex:
                     self.logger.info(f'{self.connector.source_id} blocking client {self.peername}')
                     await self.stop()
                     return
+
+            if self.connector.is_server and self.connector.blacklisted_peers:
+                if self.peername in self.connector.blacklisted_peers:
+                    self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                     from {self.extra_info}')
+                    await self.stop()
+                    return                    
 
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}'
@@ -940,12 +948,15 @@ class FullDuplex:
                         self.stop_task() 
                         return
                     
-                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate, and calling '
-                                     'create_client_certificate')                    
+                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate for {self.extra_info}, '
+                                     'and calling create_client_certificate')                    
                     #we could have check if client current certificate is default, but is seems limiting, code would be like :
                     #cert_der = self.writer.get_extra_info("ssl_object").getpeercert()
                     #common_name = cert_der["subject"][1][0][1]
-                    #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:                         
+                    #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:       
+                    
+                    #Here maybe hook to ask for confirmation before creating a cert for this ip self.extra_info
+                    
                     crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=\
                                             transport_json[MessageFields.SOURCE_ID], common_name=None,
                                             hook_allow_certificate_creation=self.connector.hook_allow_certificate_creation)

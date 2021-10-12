@@ -671,7 +671,7 @@ Not a benchmark, but some point-to-point trials showed that up until 4000 messag
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in <a href="#cli">7-</a>.  
--**delete\_client\_certificate**, **disconnect\_client**  
+-**delete\_client\_certificate**, **disconnect\_client**, **blacklist_client**  
 -**delete\_previous\_persistence\_remains**  
 -**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
 -**show\_connected\_peers**  
@@ -695,6 +695,7 @@ to run several interesting commands like :
 -**show\_connected\_peers** : show currently connected peers.  
 -**delete\_client\_certificate** enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate.  
 -**disconnect_client** enables your server to disconnect a specific client.  
+-**blacklist_client** enables your server to blacklist and disconnect a specific client at runtime.  
 -**peek\_queues** to show the internal queues sizes.  
 -**ignore\_peer\_traffic** can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
 -**show\_log\_level** to show the current log level.  
