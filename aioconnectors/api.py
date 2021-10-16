@@ -38,7 +38,8 @@ class ConnectorManager:
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
                  alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
-                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None):
+                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None
+                 hook_whitelist_clients=None):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -92,7 +93,7 @@ class ConnectorManager:
         self.blacklisted_clients_id, self.blacklisted_clients_ip = blacklisted_clients_id, blacklisted_clients_ip
         self.blacklisted_clients_subnet, self.whitelisted_clients_id = blacklisted_clients_subnet, whitelisted_clients_id
         self.whitelisted_clients_ip, self.whitelisted_clients_subnet = whitelisted_clients_ip, whitelisted_clients_subnet
-        
+        self.hook_whitelist_clients = hook_whitelist_clients
         
         self.config_file_path = config_file_path
         if self.config_file_path:
@@ -173,7 +174,8 @@ class ConnectorManager:
                                    max_certs=self.max_certs, alternate_client_default_cert=self.alternate_client_default_cert,
                                    blacklisted_clients_id=self.blacklisted_clients_id, blacklisted_clients_ip=self.blacklisted_clients_ip,
                                    blacklisted_clients_subnet=self.blacklisted_clients_subnet, whitelisted_clients_id=self.whitelisted_clients_id,
-                                   whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet)
+                                   whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet,
+                                   hook_whitelist_clients=self.hook_whitelist_clients)
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        

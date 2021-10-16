@@ -293,6 +293,11 @@ class FullDuplex:
                         self.logger.info(f'{self.connector.source_id} blocking non whitelisted client {self.peername} \
                                          from ip {self.extra_info}')                        
                         await self.stop()
+                        if self.connector.hook_whitelist_clients:
+                            #here the hook might update some db that might in return send add_whitelist_client
+                            #to let this client connect successfully next try (5s)
+                            await self.connector.hook_whitelist_clients(self.extra_info, self.peername,
+                                                                        peer_identification_finished)
                         return                    
                         
                 else:

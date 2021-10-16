@@ -96,7 +96,8 @@ class Connector:
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
                  alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
-                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None):                 
+                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
+                 hook_whitelist_clients=None):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -217,7 +218,7 @@ class Connector:
                     self.whitelisted_clients_id = set(whitelisted_clients_id or [])
                     self.whitelisted_clients_ip = set(whitelisted_clients_ip or [])      
                     self.whitelisted_clients_subnet = set(whitelisted_clients_subnet or [])
-                    
+                    self.hook_whitelist_clients = hook_whitelist_clients
                 else:
                     self.client_certificate_name = None
                     self.keep_alive_period = keep_alive_period
