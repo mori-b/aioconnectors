@@ -26,6 +26,7 @@ from struct import Struct
 import json
 import os
 import ssl
+import ipaddress
 
 from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
@@ -262,12 +263,30 @@ class FullDuplex:
                     await self.stop()
                     return
 
-            if self.connector.is_server and self.connector.blacklisted_peers:
-                if self.extra_info[0] in self.connector.blacklisted_peers:
-                    self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
-                                     from {self.extra_info}')
-                    await self.stop()
-                    return                    
+            if self.connector.is_server:
+                if self.connector.blacklisted_clients_id:
+                    if self.peername in self.connector.blacklisted_clients_id:
+                        self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                         from ip {self.extra_info}')
+                        await self.stop()
+                        return                    
+                
+                if self.connector.blacklisted_clients_ip:
+                    if self.extra_info[0] in self.connector.blacklisted_clients_ip:
+                        self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                         because of ip {self.extra_info}')
+                        await self.stop()
+                        return             
+
+                if self.connector.blacklisted_clients_subnet:
+                    for subnet in self.connector.blacklisted_clients_subnet:
+                        if ipaddress.IPv4Address(self.extra_info[0]) in subnet:
+                            self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                             because of ip subnet {self.extra_info}')
+                            await self.stop()
+                            return             
+                    
+                    
 
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}'

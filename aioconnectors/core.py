@@ -7,6 +7,7 @@ import os
 import ssl
 import uuid
 import re
+import ipaddress
 from copy import deepcopy
 from time import time
 from base64 import b64encode
@@ -208,7 +209,9 @@ class Connector:
                 self.active_connectors_path = os.path.join(self.connector_files_dirpath, self.DEFAULT_ACTIVE_CONNECTORS_NAME)                
                 self.full_duplex_connections = {}
                 if self.is_server:
-                    self.blacklisted_peers = []
+                    self.blacklisted_clients_id = set()
+                    self.blacklisted_clients_ip = set()      
+                    self.blacklisted_clients_subnet = set()
                 else:
                     self.client_certificate_name = None
                     self.keep_alive_period = keep_alive_period
@@ -872,21 +875,25 @@ class Connector:
         return True     
 
     async def blacklist_client(self, client_ip=None, client_id=None):
-        #disconnect and add to blacklisted_peers list
+        #disconnect and add to blacklisted_ list
         if not self.is_server:
-            msg = f'{self.source_id} client cannot blacklist a client {client_id}'
+            msg = f'{self.source_id} client cannot blacklist a client {client_id} {client_ip}'
             self.logger.warning(msg)
             return False
         if client_id:
-            self.logger.info(f'{self.source_id} disconnecting client {client_id}')        
-            full_duplex = self.full_duplex_connections.pop(client_id, None)
-            if not full_duplex:
-                self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
-                return f'Non existing client {client_id}'
-            client_ip = full_duplex.extra_info[0]
-        self.logger.info(f'{self.source_id} blacklisting client {client_ip}')
-        self.blacklisted_peers.append(client_ip)        
-        await full_duplex.stop()
+            self.logger.info(f'{self.source_id} blacklisting client {client_id}')            
+            self.blacklisted_clients_id.add(client_id)
+            full_duplex = self.full_duplex_connections.pop(client_id, None)            
+            client_ip = full_duplex.extra_info[0]   
+            full_duplex = None
+            await self.delete_client_certificate_on_server(client_id=client_id)
+        elif client_ip:
+            self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
+            if '/' in client_ip:
+                self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+            else:
+                self.blacklisted_clients_ip.add(client_ip)
+            
         return True     
     
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):

@@ -261,8 +261,8 @@ def cli(logger=None):
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        the_client = input('\nPlease type the client name you would like to blacklist and disconnect,'
-                                            ' or the client IP address you would like to blacklist, or q to quit\n')
+                        the_client = input('\nPlease type the client name you would like to blacklist (and disconnect),'
+                                            ' or the client IP address/subnet you would like to blacklist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
                             
