@@ -113,16 +113,13 @@ def cli(logger=None):
         display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
 
-        def show_connected_peers(return_peers=False, return_only_list=True):
+        def show_connected_peers(return_peers=False):
             task = loop.create_task(connector_remote_tool.show_connected_peers())
             loop.run_until_complete(task)
             peers_dict = task.result().decode()
             print(f'\nConnected peers : {peers_dict}')
             if return_peers:
-                if return_only_list:
-                    return list(json.loads(peers_dict).keys())
-                else:
-                    return peers_dict
+                return json.loads(peers_dict)
             
         while True:
             clearscreen()
@@ -163,14 +160,25 @@ def cli(logger=None):
                         status = task.result().decode()
                         print('\nignore_peer_traffic current status : ', status)
                         if status == 'False':
-                            show_connected_peers()
+                            
+                            peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
+                            if running_with_tab_completion:
+                                def complete(text,state):
+                                    results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
+                                    return results[state]
+                                readline.set_completer(complete)                        
+
                             res = input('\nType "y" to ignore peer traffic, or <peer name> to ignore a unique peer '
-                                        'traffic, or Enter to quit\n')
+                                        'traffic, or q to quit\n')
+                            
+                            if running_with_tab_completion:
+                                readline.set_completer(None) 
+                            
                             if res == 'y':
                                 task = loop.create_task(connector_remote_tool.ignore_peer_traffic_enable())
                                 loop.run_until_complete(task)
                                 continue
-                            elif res == '':
+                            elif res == 'q':
                                 break
                             else:
                                 task = loop.create_task(connector_remote_tool.ignore_peer_traffic_enable_unique(res))
@@ -192,10 +200,10 @@ def cli(logger=None):
                     
                 elif the_cmd == 'delete_client_certificate':
                     if is_server:
-                        peers_list = show_connected_peers(return_peers=running_with_tab_completion)
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
-                                results = [peer for peer in peers_list if peer.startswith(text)] + [None]
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
                                 return results[state]
                             readline.set_completer(complete)                        
                         
@@ -221,12 +229,12 @@ def cli(logger=None):
                             loop.run_until_complete(task)
                             print(task.result().decode())
                             
-                elif the_cmd == 'blacklist_client':
+                elif the_cmd == 'disconnect_client':
                     if is_server:
-                        peers_list = show_connected_peers(return_peers=running_with_tab_completion)
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
-                                results = [peer for peer in peers_list if peer.startswith(text)] + [None]
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
                                 return results[state]
                             readline.set_completer(complete)                        
                         
@@ -246,22 +254,25 @@ def cli(logger=None):
 
                 elif the_cmd == 'blacklist_client':
                     if is_server:
-                        peers_list = show_connected_peers(return_peers=running_with_tab_completion)
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
-                                results = [peer for peer in peers_list if peer.startswith(text)] + [None]
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        client_name = input('\nPlease type the client name you would '
-                                            'like to blacklist, or q to quit\n')
+                        the_client = input('\nPlease type the client name you would like to blacklist and disconnect,'
+                                            ' or the client IP address you would like to blacklist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
                             
-                        if client_name != 'q':                        
-                            res = input('\nAre you sure you want to blacklist '+client_name+' ? y/n\n')
+                        if the_client != 'q':                        
+                            res = input('\nAre you sure you want to blacklist '+the_client+' ? y/n\n')
                             if res =='y':
-                                task = loop.create_task(connector_remote_tool.blacklist_client(client_id=client_name))
+                                if '.' in the_client:
+                                    task = loop.create_task(connector_remote_tool.blacklist_client(client_ip=client_name))
+                                else:
+                                    task = loop.create_task(connector_remote_tool.blacklist_client(client_id=client_name))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -695,7 +706,7 @@ def chat(args, logger=None):
 
             while True:
                 await asyncio.sleep(1)                
-                if connector_manager.show_connected_peers():
+                if connector_manager.show_connected_peers(return_peers=True):
                     print('Connected !')
                     break                  
         

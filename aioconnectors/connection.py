@@ -251,7 +251,7 @@ class FullDuplex:
                 self.connector.cancel_tasks(task_names=[peername+'_incoming', peername+'_outgoing'])
                 
             self.peername = peername
-            self.extra_info = str(self.writer.get_extra_info('peername'))
+            self.extra_info = self.writer.get_extra_info('peername')
 
             if self.connector.is_server and self.connector.hook_server_auth_client:
                 accept = await self.connector.hook_server_auth_client(self.peername)
@@ -263,7 +263,7 @@ class FullDuplex:
                     return
 
             if self.connector.is_server and self.connector.blacklisted_peers:
-                if self.peername in self.connector.blacklisted_peers:
+                if self.extra_info[0] in self.connector.blacklisted_peers:
                     self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
                                      from {self.extra_info}')
                     await self.stop()

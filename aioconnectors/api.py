@@ -255,11 +255,10 @@ class ConnectorManager:
             res = False
         return res
 
-    async def blacklist_client(self, client_id):
-        self.logger.info(f'{self.source_id} disconnect_client {client_id}')
+    async def blacklist_client(self, client_ip=None, client_id=None):
+        self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            self.connector.blacklisted_peers.append(client_id)
-            res = await self.connector.disconnect_client(client_id)
+            res = await self.connector.blacklist_client(client_ip=client_ip, client_id=client_id)
         else:
             res = False
         return res
@@ -621,7 +620,7 @@ class ConnectorAPI(ConnectorBaseTool):
             return False
         except ConnectionResetError as exc:
             self.logger.warning('ConnectionResetError : '+str(exc))
-        except Exception as exc:
+        except Exception:
             self.logger.exception('send_data')
             return False
 
@@ -662,7 +661,7 @@ class ConnectorAPI(ConnectorBaseTool):
         except ConnectionResetError as exc:
             self.logger.warning('recv_message : peer disconnected '+str(exc))
             return None, None, None            
-        except Exception as exc:
+        except Exception:
             self.logger.exception('recv_message')
             raise            
 
@@ -710,7 +709,7 @@ class ConnectorAPI(ConnectorBaseTool):
             return server
         except asyncio.CancelledError:
             raise        
-        except Exception as exc:
+        except Exception:
             self.logger.exception('start_waiting_for_messages')
             raise
 
@@ -806,10 +805,10 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def blacklist_client(self, client_id=None):
-        self.logger.info(f'{self.source_id} blacklist_client {client_id}')                         
+    async def blacklist_client(self, client_ip=None, client_id=None):
+        self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            response = await self.send_command(cmd='blacklist_client', kwargs={'client_id':client_id})
+            response = await self.send_command(cmd='blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
@@ -829,9 +828,9 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='set_subscribe_message_types', kwargs={'message_types':message_types})
         return response
     
-    async def show_connected_peers(self):
+    async def show_connected_peers(self, dump_result=False):
         self.logger.info(f'{self.source_id} show_connected_peers')         
-        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={})        
+        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={'dump_result':False})        
         return response
 
     async def peek_queues(self):
@@ -869,10 +868,4 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='set_log_level__sync', kwargs={'level':level})        
         return response
     
-      
-
-            
-            
-            
-            
-            
+    

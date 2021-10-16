@@ -834,7 +834,7 @@ class Connector:
     def show_connected_peers(self, dump_result=True):
         #res = list(sorted(self.full_duplex_connections.keys()))
         
-        res = {thekey:self.full_duplex_connections[thekey].extra_info for thekey in \
+        res = {thekey:list(self.full_duplex_connections[thekey].extra_info) for thekey in \
                list(sorted(self.full_duplex_connections.keys()))}
         
         #if self.is_server:
@@ -871,18 +871,21 @@ class Connector:
         await full_duplex.stop()
         return True     
 
-    async def blacklist_client(self, client_id):
+    async def blacklist_client(self, client_ip=None, client_id=None):
+        #disconnect and add to blacklisted_peers list
         if not self.is_server:
             msg = f'{self.source_id} client cannot blacklist a client {client_id}'
             self.logger.warning(msg)
             return False
-        self.logger.info(f'{self.source_id} disconnecting client {client_id}')        
-        full_duplex = self.full_duplex_connections.pop(client_id, None)
-        if not full_duplex:
-            self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
-            return f'Non existing client {client_id}'
-        self.logger.info(f'{self.source_id} blacklisting client {client_id}')
-        self.blacklisted_peers.append(client_id)        
+        if client_id:
+            self.logger.info(f'{self.source_id} disconnecting client {client_id}')        
+            full_duplex = self.full_duplex_connections.pop(client_id, None)
+            if not full_duplex:
+                self.logger.info(f'{self.source_id} cannot disconnect non existing client {client_id}')
+                return f'Non existing client {client_id}'
+            client_ip = full_duplex.extra_info[0]
+        self.logger.info(f'{self.source_id} blacklisting client {client_ip}')
+        self.blacklisted_peers.append(client_ip)        
         await full_duplex.stop()
         return True     
     
