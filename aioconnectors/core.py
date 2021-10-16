@@ -886,38 +886,89 @@ class Connector:
             msg = f'{self.source_id} client cannot blacklist a client {client_id} {client_ip}'
             self.logger.warning(msg)
             return False
-        if client_id:
-            self.logger.info(f'{self.source_id} blacklisting client {client_id}')            
-            self.blacklisted_clients_id.add(client_id)
-            #full_duplex = self.full_duplex_connections.pop(client_id, None)            
-            #client_ip = full_duplex.extra_info[0]   
-            #full_duplex = None
-            await self.delete_client_certificate_on_server(client_id=client_id)
-        elif client_ip:
-            self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
-            if '/' in client_ip:
-                self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-            else:
-                self.blacklisted_clients_ip.add(client_ip)
-            
-        return True     
+        try:
+            if client_id:
+                self.logger.info(f'{self.source_id} blacklisting client {client_id}')            
+                self.blacklisted_clients_id.add(client_id)
+                #full_duplex = self.full_duplex_connections.pop(client_id, None)            
+                #client_ip = full_duplex.extra_info[0]   
+                #full_duplex = None
+                await self.delete_client_certificate_on_server(client_id=client_id)
+            elif client_ip:
+                self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
+                if '/' in client_ip:
+                    self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+                else:
+                    self.blacklisted_clients_ip.add(client_ip)            
+            return True     
+        except Exception:
+            msg = f'{self.source_id} client could not blacklist a client {client_id} {client_ip}'
+            self.logger.exception(msg)
+            return False
+
+    async def remove_blacklist_client(self, client_ip=None, client_id=None):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot remove blacklisted client {client_id} {client_ip}'
+            self.logger.warning(msg)
+            return False
+        try:
+            if client_id:
+                self.logger.info(f'{self.source_id} removing blacklisted client {client_id}')            
+                self.blacklisted_clients_id.remove(client_id)
+            elif client_ip:
+                self.logger.info(f'{self.source_id} removing blacklisted client {client_ip}')        
+                if '/' in client_ip:
+                    self.blacklisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
+                else:
+                    self.blacklisted_clients_ip.remove(client_ip)            
+            return True     
+        except Exception:
+            msg = f'{self.source_id} client could not remove blacklisted client {client_id} {client_ip}'
+            self.logger.exception(msg)
+            return False
+
 
     async def add_whitelist_client(self, client_ip=None, client_id=None):
         if not self.is_server:
             msg = f'{self.source_id} client cannot whitelist a client {client_id} {client_ip}'
             self.logger.warning(msg)
             return False
-        if client_id:
-            self.logger.info(f'{self.source_id} whitelisting client {client_id}')            
-            self.whitelisted_clients_id.add(client_id)
-        elif client_ip:
-            self.logger.info(f'{self.source_id} whitelisting client {client_ip}')        
-            if '/' in client_ip:
-                self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-            else:
-                self.whitelisted_clients_ip.add(client_ip)
-            
-        return True     
+        try:
+            if client_id:
+                self.logger.info(f'{self.source_id} whitelisting client {client_id}')            
+                self.whitelisted_clients_id.add(client_id)
+            elif client_ip:
+                self.logger.info(f'{self.source_id} whitelisting client {client_ip}')        
+                if '/' in client_ip:
+                    self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+                else:
+                    self.whitelisted_clients_ip.add(client_ip)            
+            return True     
+        except Exception:
+            msg = f'{self.source_id} client could not whitelist a client {client_id} {client_ip}'
+            self.logger.exception(msg)
+            return False
+
+    async def remove_whitelist_client(self, client_ip=None, client_id=None):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot remove whitelisted client {client_id} {client_ip}'
+            self.logger.warning(msg)
+            return False
+        try:
+            if client_id:
+                self.logger.info(f'{self.source_id} removing whitelisted client {client_id}')            
+                self.whitelisted_clients_id.remove(client_id)
+            elif client_ip:
+                self.logger.info(f'{self.source_id} removing whitelisted client {client_ip}')        
+                if '/' in client_ip:
+                    self.whitelisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
+                else:
+                    self.whitelisted_clients_ip.remove(client_ip)            
+            return True     
+        except Exception:
+            msg = f'{self.source_id} client could not remove whitelisted client {client_id} {client_ip}'
+            self.logger.exception(msg)
+            return False
     
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):
         try:

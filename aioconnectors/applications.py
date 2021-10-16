@@ -109,7 +109,7 @@ def cli(logger=None):
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
                      'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'disconnect_client',
                      'show_log_level', 'set_log_level', 'show_subscribe_message_types', 'set_subscribe_message_types',
-                     'add_blacklist_client', 'add_whitelist_client']
+                     'add_blacklist_client', 'remove_blacklist_client', 'add_whitelist_client', 'remove_whitelist_client']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
         display_dict(dict_cmds, connector=server_sockaddr or client_name)        
         res = input('\nPlease type the command number you would like to run, or q to quit\n')
@@ -279,6 +279,32 @@ def cli(logger=None):
                     else:
                         print('A client cannot use this functionality')         
 
+                elif the_cmd == 'remove_blacklist_client':
+                    if is_server:
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
+                        the_client = input('\nPlease type the client name you would like to remove from blacklist,'
+                                            ' or the client IP address/subnet you would like to remove from blacklist, or q to quit\n')
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                            
+                        if the_client != 'q':                        
+                            res = input('\nAre you sure you want to remove from blacklist '+the_client+' ? y/n\n')
+                            if res =='y':
+                                if '.' in the_client:
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=client_name))
+                                else:
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=client_name))                                    
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                          
+                    else:
+                        print('A client cannot use this functionality')         
+
                 elif the_cmd == 'add_whitelist_client':
                     if is_server:
                         peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
@@ -300,6 +326,32 @@ def cli(logger=None):
                                     task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=client_name))
                                 else:
                                     task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=client_name))                                    
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                          
+                    else:
+                        print('A client cannot use this functionality')         
+
+                elif the_cmd == 'remove_whitelist_client':
+                    if is_server:
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
+                        the_client = input('\nPlease type the client name you would like to remove from whitelist,'
+                                            ' or the client IP address/subnet you would like to remove from whitelist, or q to quit\n')
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                            
+                        if the_client != 'q':                        
+                            res = input('\nAre you sure you want to remove from whitelist '+the_client+' ? y/n\n')
+                            if res =='y':
+                                if '.' in the_client:
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=client_name))
+                                else:
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=client_name))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
