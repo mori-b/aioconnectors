@@ -265,8 +265,8 @@ class FullDuplex:
 
             if self.connector.is_server:
                 
-                if self.connector.whitelisted_clients_id or self.connector.whitelisted_clients_ip or \
-                                        self.connector.whitelisted_clients_subnet:
+                if self.connector.whitelisted_clients_id is not None or self.connector.whitelisted_clients_ip is not None \
+                                        or self.connector.whitelisted_clients_subnet is not None:
                     allow_client = False
                     
                     if peer_identification_finished:
