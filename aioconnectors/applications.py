@@ -277,6 +277,32 @@ def cli(logger=None):
                                 print(task.result().decode())                          
                     else:
                         print('A client cannot use this functionality')         
+
+                elif the_cmd == 'whitelist_client':
+                    if is_server:
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
+                        the_client = input('\nPlease type the client name you would like to whitelist,'
+                                            ' or the client IP address/subnet you would like to whitelist, or q to quit\n')
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                            
+                        if the_client != 'q':                        
+                            res = input('\nAre you sure you want to whitelist '+the_client+' ? y/n\n')
+                            if res =='y':
+                                if '.' in the_client:
+                                    task = loop.create_task(connector_remote_tool.whitelist_client(client_ip=client_name))
+                                else:
+                                    task = loop.create_task(connector_remote_tool.whitelist_client(client_id=client_name))                                    
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                          
+                    else:
+                        print('A client cannot use this functionality')         
                         
                 elif the_cmd == 'show_log_level':
                     task = loop.create_task(connector_remote_tool.show_log_level())

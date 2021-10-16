@@ -264,29 +264,60 @@ class FullDuplex:
                     return
 
             if self.connector.is_server:
-                if self.connector.blacklisted_clients_id:
-                    if self.peername in self.connector.blacklisted_clients_id:
-                        self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
-                                         from ip {self.extra_info}')
+                
+                if self.connector.whitelisted_clients_id or self.connector.whitelisted_clients_ip or \
+                                        self.connector.whitelisted_clients_subnet:
+                    allow_client = False
+                    
+                    if peer_identification_finished:
+                        if self.connector.whitelisted_clients_id:                                            
+                            if self.peername in self.connector.whiteisted_clients_id:
+                                self.logger.info(f'{self.connector.source_id} allowing whitelisted client {self.peername} \
+                                                 from ip {self.extra_info}')
+                                allow_client = True
+                    
+                    if self.connector.whitelisted_clients_ip:
+                        if self.extra_info[0] in self.connector.blacklisted_clients_ip:
+                            self.logger.info(f'{self.connector.source_id} allowing whitelisted client {self.peername} \
+                                             because of ip {self.extra_info}')
+                            allow_client = True
+
+                    elif self.connector.whitelisted_clients_subnet:
+                        for subnet in self.connector.blacklisted_clients_subnet:
+                            if ipaddress.IPv4Address(self.extra_info[0]) in subnet:
+                                self.logger.info(f'{self.connector.source_id} allowing whitelisted client {self.peername} \
+                                                 because of ip subnet {self.extra_info}')
+                                allow_client = True
+                                break
+                    if not allow_client:
+                        self.logger.info(f'{self.connector.source_id} blocking non whitelisted client {self.peername} \
+                                         from ip {self.extra_info}')                        
                         await self.stop()
                         return                    
-                
-                if self.connector.blacklisted_clients_ip:
-                    if self.extra_info[0] in self.connector.blacklisted_clients_ip:
-                        self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
-                                         because of ip {self.extra_info}')
-                        await self.stop()
-                        return             
-
-                if self.connector.blacklisted_clients_subnet:
-                    for subnet in self.connector.blacklisted_clients_subnet:
-                        if ipaddress.IPv4Address(self.extra_info[0]) in subnet:
+                        
+                else:
+                    if peer_identification_finished:                    
+                        if self.connector.blacklisted_clients_id:
+                            if self.peername in self.connector.blacklisted_clients_id:
+                                self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                                 from ip {self.extra_info}')
+                                await self.stop()
+                                return                    
+                    
+                    if self.connector.blacklisted_clients_ip:
+                        if self.extra_info[0] in self.connector.blacklisted_clients_ip:
                             self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
-                                             because of ip subnet {self.extra_info}')
+                                             because of ip {self.extra_info}')
                             await self.stop()
                             return             
-                    
-                    
+    
+                    if self.connector.blacklisted_clients_subnet:
+                        for subnet in self.connector.blacklisted_clients_subnet:
+                            if ipaddress.IPv4Address(self.extra_info[0]) in subnet:
+                                self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername} \
+                                                 because of ip subnet {self.extra_info}')
+                                await self.stop()
+                                return             
 
             if peer_identification_finished:
                 self.logger.info(f'{self.connector.source_id} start FullDuplex peer_identification_finished for {self.peername}'

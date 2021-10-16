@@ -212,6 +212,10 @@ class Connector:
                     self.blacklisted_clients_id = set()
                     self.blacklisted_clients_ip = set()      
                     self.blacklisted_clients_subnet = set()
+                    self.whitelisted_clients_id = set()
+                    self.whitelisted_clients_ip = set()      
+                    self.whitelisted_clients_subnet = set()
+                    
                 else:
                     self.client_certificate_name = None
                     self.keep_alive_period = keep_alive_period
@@ -893,6 +897,23 @@ class Connector:
                 self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
             else:
                 self.blacklisted_clients_ip.add(client_ip)
+            
+        return True     
+
+    async def whitelist_client(self, client_ip=None, client_id=None):
+        if not self.is_server:
+            msg = f'{self.source_id} client cannot whitelist a client {client_id} {client_ip}'
+            self.logger.warning(msg)
+            return False
+        if client_id:
+            self.logger.info(f'{self.source_id} whitelisting client {client_id}')            
+            self.whitelisted_clients_id.add(client_id)
+        elif client_ip:
+            self.logger.info(f'{self.source_id} whitelisting client {client_ip}')        
+            if '/' in client_ip:
+                self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+            else:
+                self.whitelisted_clients_ip.add(client_ip)
             
         return True     
     

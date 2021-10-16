@@ -576,6 +576,14 @@ class ConnectorRemoteTool(ConnectorAPI):
         else:
             return False
         
+    async def whitelist_client(self, client_ip=None, client_id=None):
+        self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
+        if self.is_server:
+            response = await self.send_command(cmd='whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
+            return response
+        else:
+            return False
+        
     async def delete_previous_persistence_remains(self):
         self.logger.info(f'{self.source_id} delete_previous_persistence_remains')         
         response = await self.send_command(cmd='delete_previous_persistence_remains__sync', kwargs={})        

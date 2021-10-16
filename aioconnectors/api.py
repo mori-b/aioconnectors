@@ -262,6 +262,14 @@ class ConnectorManager:
         else:
             res = False
         return res
+
+    async def whitelist_client(self, client_ip=None, client_id=None):
+        self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
+        if self.connector.is_server:
+            res = await self.connector.whitelist_client(client_ip=client_ip, client_id=client_id)
+        else:
+            res = False
+        return res
     
     async def delete_client_certificate(self, client_id, remove_only_symlink=False):
         self.logger.info(f'{self.source_id} delete_client_certificate {client_id} with'
@@ -809,6 +817,14 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
             response = await self.send_command(cmd='blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
+            return response
+        else:
+            return False
+
+    async def whitelist_client(self, client_ip=None, client_id=None):
+        self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
+        if self.is_server:
+            response = await self.send_command(cmd='whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
