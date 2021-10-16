@@ -883,9 +883,9 @@ class Connector:
         if client_id:
             self.logger.info(f'{self.source_id} blacklisting client {client_id}')            
             self.blacklisted_clients_id.add(client_id)
-            full_duplex = self.full_duplex_connections.pop(client_id, None)            
-            client_ip = full_duplex.extra_info[0]   
-            full_duplex = None
+            #full_duplex = self.full_duplex_connections.pop(client_id, None)            
+            #client_ip = full_duplex.extra_info[0]   
+            #full_duplex = None
             await self.delete_client_certificate_on_server(client_id=client_id)
         elif client_ip:
             self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
