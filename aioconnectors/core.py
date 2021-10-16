@@ -94,7 +94,9 @@ class Connector:
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=EVERYBODY_CAN_SEND_MESSAGES, max_certs=MAX_CERTS,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
-                 alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT):
+                 alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT,
+                 blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
+                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -209,12 +211,12 @@ class Connector:
                 self.active_connectors_path = os.path.join(self.connector_files_dirpath, self.DEFAULT_ACTIVE_CONNECTORS_NAME)                
                 self.full_duplex_connections = {}
                 if self.is_server:
-                    self.blacklisted_clients_id = set()
-                    self.blacklisted_clients_ip = set()      
-                    self.blacklisted_clients_subnet = set()
-                    self.whitelisted_clients_id = set()
-                    self.whitelisted_clients_ip = set()      
-                    self.whitelisted_clients_subnet = set()
+                    self.blacklisted_clients_id = set(blacklisted_clients_id or [])
+                    self.blacklisted_clients_ip = set(blacklisted_clients_ip or [])      
+                    self.blacklisted_clients_subnet = set(blacklisted_clients_subnet or [])
+                    self.whitelisted_clients_id = set(whitelisted_clients_id or [])
+                    self.whitelisted_clients_ip = set(whitelisted_clients_ip or [])      
+                    self.whitelisted_clients_subnet = set(whitelisted_clients_subnet or [])
                     
                 else:
                     self.client_certificate_name = None
@@ -878,7 +880,7 @@ class Connector:
         await full_duplex.stop()
         return True     
 
-    async def blacklist_client(self, client_ip=None, client_id=None):
+    async def add_blacklist_client(self, client_ip=None, client_id=None):
         #disconnect and add to blacklisted_ list
         if not self.is_server:
             msg = f'{self.source_id} client cannot blacklist a client {client_id} {client_ip}'
@@ -900,7 +902,7 @@ class Connector:
             
         return True     
 
-    async def whitelist_client(self, client_ip=None, client_id=None):
+    async def add_whitelist_client(self, client_ip=None, client_id=None):
         if not self.is_server:
             msg = f'{self.source_id} client cannot whitelist a client {client_id} {client_ip}'
             self.logger.warning(msg)

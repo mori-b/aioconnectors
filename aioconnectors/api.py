@@ -35,7 +35,9 @@ class ConnectorManager:
                  max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, max_certs=Connector.MAX_CERTS,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
-                 alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT):
+                 alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT,
+                 blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
+                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -85,6 +87,11 @@ class ConnectorManager:
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
         self.keep_alive_period, self.keep_alive_timeout, self.max_number_of_unanswered_keep_alive = \
                     keep_alive_period, keep_alive_timeout, max_number_of_unanswered_keep_alive
+        
+        self.blacklisted_clients_id, self.blacklisted_clients_ip = blacklisted_clients_id, blacklisted_clients_ip
+        self.blacklisted_clients_subnet, self.whitelisted_clients_id = blacklisted_clients_subnet, whitelisted_clients_id
+        self.whitelisted_clients_ip, self.whitelisted_clients_subnet = whitelisted_clients_ip, whitelisted_clients_subnet
+        
         
         self.config_file_path = config_file_path
         if self.config_file_path:
@@ -162,7 +169,10 @@ class ConnectorManager:
                                    everybody_can_send_messages=self.everybody_can_send_messages,
                                    send_message_types_priorities=self.send_message_types_priorities,
                                    pubsub_central_broker=self.pubsub_central_broker, proxy=self.proxy,
-                                   max_certs=self.max_certs, alternate_client_default_cert=self.alternate_client_default_cert)        
+                                   max_certs=self.max_certs, alternate_client_default_cert=self.alternate_client_default_cert,
+                                   blacklisted_clients_id=self.blacklisted_clients_id, blacklisted_clients_ip=self.blacklisted_clients_ip,
+                                   blacklisted_clients_subnet=self.blacklisted_clients_subnet, whitelisted_clients_id=self.whitelisted_clients_id,
+                                   whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet)
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        
@@ -255,18 +265,18 @@ class ConnectorManager:
             res = False
         return res
 
-    async def blacklist_client(self, client_ip=None, client_id=None):
+    async def add_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            res = await self.connector.blacklist_client(client_ip=client_ip, client_id=client_id)
+            res = await self.connector.add_blacklist_client(client_ip=client_ip, client_id=client_id)
         else:
             res = False
         return res
 
-    async def whitelist_client(self, client_ip=None, client_id=None):
+    async def add_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            res = await self.connector.whitelist_client(client_ip=client_ip, client_id=client_id)
+            res = await self.connector.add_whitelist_client(client_ip=client_ip, client_id=client_id)
         else:
             res = False
         return res
@@ -813,18 +823,53 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def blacklist_client(self, client_ip=None, client_id=None):
+    async def add_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            response = await self.send_command(cmd='blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
+            if os.path.exists(self.config_file_path):
+                #update blacklist in config
+                try:
+                    with open(self.config_file_path, 'r') as fd:
+                        config_json = json.load(fd)
+                    if client_ip:
+                        if '/'in client_ip:
+                            config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).add(client_ip)
+                        else:
+                            config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).add(client_ip)
+                    elif client_id:
+                        config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).add(client_id)
+                    with open(self.config_file_path, 'w') as fd:
+                        json.dump(config_json, fd, indent=4, sort_keys=True)
+                except Exception:
+                    self.logger.exception(f'Could not update blacklist in {self.config_file_path}')
+                    
+            response = await self.send_command(cmd='add_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
 
-    async def whitelist_client(self, client_ip=None, client_id=None):
+    async def add_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            response = await self.send_command(cmd='whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
+            
+            if os.path.exists(self.config_file_path):
+                #update whitelist in config
+                try:
+                    with open(self.config_file_path, 'r') as fd:
+                        config_json = json.load(fd)
+                    if client_ip:
+                        if '/'in client_ip:
+                            config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).add(client_ip)
+                        else:
+                            config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).add(client_ip)
+                    elif client_id:
+                        config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).add(client_id)
+                    with open(self.config_file_path, 'w') as fd:
+                        json.dump(config_json, fd, indent=4, sort_keys=True)
+                except Exception:
+                    self.logger.exception(f'Could not update whitelist in {self.config_file_path}')
+            
+            response = await self.send_command(cmd='add_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
