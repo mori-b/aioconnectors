@@ -271,9 +271,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to blacklist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=client_name))
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=client_name))                                    
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=the_client))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -297,9 +297,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from blacklist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=client_name))
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=client_name))                                    
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=the_client))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -323,9 +323,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=client_name))
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=client_name))                                    
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=the_client))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -349,9 +349,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=client_name))
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=client_name))                                    
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=the_client))                                    
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:

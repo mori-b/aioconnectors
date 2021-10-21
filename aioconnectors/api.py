@@ -38,8 +38,8 @@ class ConnectorManager:
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
                  alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
-                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None
-                 hook_whitelist_clients=None):
+                 whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
+                 hook_whitelist_clients=None, ignore_peer_traffic=False):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -93,7 +93,7 @@ class ConnectorManager:
         self.blacklisted_clients_id, self.blacklisted_clients_ip = blacklisted_clients_id, blacklisted_clients_ip
         self.blacklisted_clients_subnet, self.whitelisted_clients_id = blacklisted_clients_subnet, whitelisted_clients_id
         self.whitelisted_clients_ip, self.whitelisted_clients_subnet = whitelisted_clients_ip, whitelisted_clients_subnet
-        self.hook_whitelist_clients = hook_whitelist_clients
+        self.hook_whitelist_clients, self.ignore_peer_traffic = hook_whitelist_clients, ignore_peer_traffic
         
         self.config_file_path = config_file_path
         if self.config_file_path:
@@ -931,102 +931,104 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def add_blacklist_client(self, client_ip=None, client_id=None):
+    async def add_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            if os.path.exists(self.config_file_path):
-                #update blacklist in config
-                try:
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    if client_ip:
-                        if '/'in client_ip:
-                            config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).add(client_ip)
-                        else:
-                            config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).add(client_ip)
-                    elif client_id:
-                        config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).add(client_id)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update blacklist in {self.config_file_path}')
+            if config_file_path:
+                if os.path.exists(config_file_path):
+                    #update blacklist in config
+                    try:
+                        with open(config_file_path, 'r') as fd:
+                            config_json = json.load(fd)
+                        if client_ip:
+                            if '/'in client_ip:
+                                config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).add(client_ip)
+                            else:
+                                config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).add(client_ip)
+                        elif client_id:
+                            config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).add(client_id)
+                        with open(config_file_path, 'w') as fd:
+                            json.dump(config_json, fd, indent=4, sort_keys=True)
+                    except Exception:
+                        self.logger.exception(f'Could not update blacklist in {config_file_path}')
                     
             response = await self.send_command(cmd='add_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
 
-    async def remove_blacklist_client(self, client_ip=None, client_id=None):
+    async def remove_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} remove_blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            if os.path.exists(self.config_file_path):
-                #update blacklist in config
-                try:
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    if client_ip:
-                        if '/'in client_ip:
-                            config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).remove(client_ip)
-                        else:
-                            config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).remove(client_ip)
-                    elif client_id:
-                        config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).remove(client_id)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update blacklist in {self.config_file_path}')
+            if config_file_path:            
+                if os.path.exists(config_file_path):
+                    #update blacklist in config
+                    try:
+                        with open(config_file_path, 'r') as fd:
+                            config_json = json.load(fd)
+                        if client_ip:
+                            if '/'in client_ip:
+                                config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).remove(client_ip)
+                            else:
+                                config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).remove(client_ip)
+                        elif client_id:
+                            config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).remove(client_id)
+                        with open(config_file_path, 'w') as fd:
+                            json.dump(config_json, fd, indent=4, sort_keys=True)
+                    except Exception:
+                        self.logger.exception(f'Could not update blacklist in {config_file_path}')
                     
             response = await self.send_command(cmd='remove_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
 
-    async def add_whitelist_client(self, client_ip=None, client_id=None):
+    async def add_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
-        if self.is_server:
-            
-            if os.path.exists(self.config_file_path):
-                #update whitelist in config
-                try:
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    if client_ip:
-                        if '/'in client_ip:
-                            config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).add(client_ip)
-                        else:
-                            config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).add(client_ip)
-                    elif client_id:
-                        config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).add(client_id)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update whitelist in {self.config_file_path}')
+        if self.is_server:      
+            if config_file_path:
+                if os.path.exists(config_file_path):                
+                    #update whitelist in config
+                    try:
+                        with open(config_file_path, 'r') as fd:
+                            config_json = json.load(fd)
+                        if client_ip:
+                            if '/'in client_ip:
+                                config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).add(client_ip)
+                            else:
+                                config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).add(client_ip)
+                        elif client_id:
+                            config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).add(client_id)
+                        with open(config_file_path, 'w') as fd:
+                            json.dump(config_json, fd, indent=4, sort_keys=True)
+                    except Exception:
+                        self.logger.exception(f'Could not update whitelist in {config_file_path}')
             
             response = await self.send_command(cmd='add_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
             return False
 
-    async def remove_whitelist_client(self, client_ip=None, client_id=None):
+    async def remove_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} remove_whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            
-            if os.path.exists(self.config_file_path):
-                #update whitelist in config
-                try:
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    if client_ip:
-                        if '/'in client_ip:
-                            config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).remove(client_ip)
-                        else:
-                            config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).remove(client_ip)
-                    elif client_id:
-                        config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).remove(client_id)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update whitelist in {self.config_file_path}')
+            if config_file_path:
+                if os.path.exists(config_file_path):
+                    #update whitelist in config
+                    try:
+                        with open(config_file_path, 'r') as fd:
+                            config_json = json.load(fd)
+                        if client_ip:
+                            if '/'in client_ip:
+                                config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).remove(client_ip)
+                            else:
+                                config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).remove(client_ip)
+                        elif client_id:
+                            config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).remove(client_id)
+                        with open(config_file_path, 'w') as fd:
+                            json.dump(config_json, fd, indent=4, sort_keys=True)
+                    except Exception:
+                        self.logger.exception(f'Could not update whitelist in {config_file_path}')
             
             response = await self.send_command(cmd='remove_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
@@ -1048,9 +1050,9 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='set_subscribe_message_types', kwargs={'message_types':message_types})
         return response
     
-    async def show_connected_peers(self, dump_result=False):
+    async def show_connected_peers(self, dump_result=True):
         self.logger.info(f'{self.source_id} show_connected_peers')         
-        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={'dump_result':False})        
+        response = await self.send_command(cmd='show_connected_peers__sync', kwargs={'dump_result':dump_result})        
         return response
 
     async def peek_queues(self):

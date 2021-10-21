@@ -97,7 +97,7 @@ class Connector:
                  alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
-                 hook_whitelist_clients=None):                 
+                 hook_whitelist_clients=None, ignore_peer_traffic=False):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -294,7 +294,7 @@ class Connector:
                 else:
                     self.file_recv_config = file_recv_config
                     
-                self.ignore_peer_traffic = False
+                self.ignore_peer_traffic = ignore_peer_traffic
                 self.loop = asyncio.get_event_loop()
                 #commander_server lives besides start/stop
                 if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
