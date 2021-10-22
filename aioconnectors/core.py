@@ -83,7 +83,7 @@ class Connector:
                  disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
-                 tool_only=False, file_recv_config=None,
+                 tool_only=False, file_recv_config=None, config_file_path=None,
                  debug_msg_counts=DEBUG_MSG_COUNTS, silent=SILENT, connector_files_dirpath = CONNECTOR_FILES_DIRPATH,
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
@@ -133,7 +133,8 @@ class Connector:
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
             self.hook_target_directory = hook_target_directory
             self.hook_allow_certificate_creation = hook_allow_certificate_creation
-            self.max_certs = max_certs            
+            self.max_certs = max_certs
+            self.config_file_path = config_file_path
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
@@ -306,6 +307,21 @@ class Connector:
             self.logger.exception('init')
             raise
 
+    def update_config_file(self, kwargs):
+        if kwargs and self.config_file_path:
+            try:
+                with open(self.config_file_path, 'r') as fd:
+                    config_file = json.load(fd)
+                for key, value in kwargs.items():
+                    config_file[key] = value
+                with open(self.config_file_path, 'w') as fd:
+                    json.dump(config_file, fd, indent=4, sort_keys=True)
+                return True
+            except Exception:
+                self.logger.exception('update_config_file')
+                return False
+        return True
+    
     async def create_commander_server(self):
         if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
             self.logger.exception('create_commander_server!')
@@ -867,12 +883,18 @@ class Connector:
             return str(self.ignore_peer_traffic)
         if enable:
             self.ignore_peer_traffic = True
+            kwargs = {'ignore_peer_traffic': True}
+            self.update_config_file(kwargs)
             return str(self.ignore_peer_traffic)
         if disable:
             self.ignore_peer_traffic = False
+            kwargs = {'ignore_peer_traffic': False}
+            self.update_config_file(kwargs)            
             return str(self.ignore_peer_traffic)
         if unique_peer:
             self.ignore_peer_traffic = [unique_peer]
+            kwargs = {'ignore_peer_traffic': unique_peer}
+            self.update_config_file(kwargs)            
             return str(self.ignore_peer_traffic)
 
     async def disconnect_client(self, client_id):
@@ -895,9 +917,11 @@ class Connector:
             self.logger.warning(msg)
             return False
         try:
+            kwargs = {}
             if client_id:
                 self.logger.info(f'{self.source_id} blacklisting client {client_id}')            
                 self.blacklisted_clients_id.add(client_id)
+                kwargs['blacklisted_clients_id'] = list(self.blacklisted_clients_id)
                 #full_duplex = self.full_duplex_connections.pop(client_id, None)            
                 #client_ip = full_duplex.extra_info[0]   
                 #full_duplex = None
@@ -906,8 +930,11 @@ class Connector:
                 self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
                 if '/' in client_ip:
                     self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+                    kwargs['blacklisted_clients_subnet'] = list(self.blacklisted_clients_subnet)
                 else:
-                    self.blacklisted_clients_ip.add(client_ip)            
+                    self.blacklisted_clients_ip.add(client_ip)
+                    kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)    
+            self.update_config_file(kwargs)
             return True     
         except Exception:
             msg = f'{self.source_id} client could not blacklist a client {client_id} {client_ip}'
@@ -920,15 +947,20 @@ class Connector:
             self.logger.warning(msg)
             return False
         try:
+            kwargs = {}
             if client_id:
                 self.logger.info(f'{self.source_id} removing blacklisted client {client_id}')            
                 self.blacklisted_clients_id.remove(client_id)
+                kwargs['blacklisted_clients_id'] = list(self.blacklisted_clients_id)                
             elif client_ip:
                 self.logger.info(f'{self.source_id} removing blacklisted client {client_ip}')        
                 if '/' in client_ip:
                     self.blacklisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
+                    kwargs['blacklisted_clients_subnet'] = list(self.blacklisted_clients_subnet)                                    
                 else:
                     self.blacklisted_clients_ip.remove(client_ip)            
+                    kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)                
+            self.update_config_file(kwargs)                    
             return True     
         except Exception:
             msg = f'{self.source_id} client could not remove blacklisted client {client_id} {client_ip}'
@@ -942,15 +974,20 @@ class Connector:
             self.logger.warning(msg)
             return False
         try:
+            kwargs = {}
             if client_id:
                 self.logger.info(f'{self.source_id} whitelisting client {client_id}')            
                 self.whitelisted_clients_id.add(client_id)
+                kwargs['whitelisted_clients_id'] = list(self.whitelisted_clients_id)
             elif client_ip:
                 self.logger.info(f'{self.source_id} whitelisting client {client_ip}')        
                 if '/' in client_ip:
                     self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
+                    kwargs['whitelisted_clients_subnet'] = list(self.whitelisted_clients_subnet)                    
                 else:
-                    self.whitelisted_clients_ip.add(client_ip)            
+                    self.whitelisted_clients_ip.add(client_ip)
+                    kwargs['whitelisted_clients_ip'] = list(self.whitelisted_clients_ip)   
+            self.update_config_file(kwargs)                                     
             return True     
         except Exception:
             msg = f'{self.source_id} client could not whitelist a client {client_id} {client_ip}'
@@ -963,15 +1000,20 @@ class Connector:
             self.logger.warning(msg)
             return False
         try:
+            kwargs = {}
             if client_id:
                 self.logger.info(f'{self.source_id} removing whitelisted client {client_id}')            
                 self.whitelisted_clients_id.remove(client_id)
+                kwargs['whitelisted_clients_id'] = list(self.whitelisted_clients_id)                
             elif client_ip:
                 self.logger.info(f'{self.source_id} removing whitelisted client {client_ip}')        
                 if '/' in client_ip:
                     self.whitelisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
+                    kwargs['whitelisted_clients_subnet'] = list(self.whitelisted_clients_subnet)                    
                 else:
-                    self.whitelisted_clients_ip.remove(client_ip)            
+                    self.whitelisted_clients_ip.remove(client_ip)
+                    kwargs['whitelisted_clients_ip'] = list(self.whitelisted_clients_ip)  
+            self.update_config_file(kwargs)                                                         
             return True     
         except Exception:
             msg = f'{self.source_id} client could not remove whitelisted client {client_id} {client_ip}'
@@ -1008,6 +1050,10 @@ class Connector:
     def set_log_level(self, level):
         self.logger.setLevel(level)
         return level
+
+    def show_attribute(self, attribute):
+        res = str(getattr(self, attribute))
+        return res
     
     def delete_previous_persistence_remains(self):
         try:

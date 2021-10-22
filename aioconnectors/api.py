@@ -152,7 +152,7 @@ class ConnectorManager:
                                    disk_persistence_send=self.disk_persistence_send, 
                                    disk_persistence_recv=self.disk_persistence_recv,
                                    max_size_persistence_path=self.max_size_persistence_path, 
-                                   file_recv_config=self.file_recv_config,
+                                   file_recv_config=self.file_recv_config, config_file_path=self.config_file_path,
                                    debug_msg_counts=self.debug_msg_counts, silent=self.silent, 
                                    connector_files_dirpath=self.connector_files_dirpath, #use_ack=use_ack,
                                    uds_path_receive_preserve_socket=self.uds_path_receive_preserve_socket, 
@@ -271,28 +271,6 @@ class ConnectorManager:
     async def add_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            if client_id:
-                self.blacklisted_clients_id.add(client_id)
-                config_key = 'blacklisted_clients_id'                
-            elif client_ip:
-                if '/' in client_ip:
-                    self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-                    config_key = 'blacklisted_clients_subnet'
-                else:
-                    self.blacklisted_clients_ip.add(client_ip)            
-                    config_key = 'blacklisted_clients_ip'
-            
-            if os.path.exists(self.config_file_path):
-                try:
-                    #update blacklist in config                    
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    config_json[config_key] = getattr(self, config_key)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update blacklist in {self.config_file_path}')
-                    
             response = await self.connector.add_blacklist_client(client_ip=client_ip, client_id=client_id)
             return response
         else:
@@ -301,28 +279,6 @@ class ConnectorManager:
     async def remove_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} remove_blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            if client_id:
-                self.blacklisted_clients_id.remove(client_id)
-                config_key = 'blacklisted_clients_id'                
-            elif client_ip:
-                if '/' in client_ip:
-                    self.blacklisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
-                    config_key = 'blacklisted_clients_subnet'
-                else:
-                    self.blacklisted_clients_ip.remove(client_ip)            
-                    config_key = 'blacklisted_clients_ip'
-            
-            if os.path.exists(self.config_file_path):
-                try:
-                    #update blacklist in config                    
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    config_json[config_key] = getattr(self, config_key)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update blacklist in {self.config_file_path}')
-                    
             response = await self.connector.remove_blacklist_client(client_ip=client_ip, client_id=client_id)
             return response
         else:
@@ -331,28 +287,6 @@ class ConnectorManager:
     async def add_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            if client_id:
-                self.whitelisted_clients_id.add(client_id)
-                config_key = 'whitelisted_clients_id'                
-            elif client_ip:
-                if '/' in client_ip:
-                    self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-                    config_key = 'whitelisted_clients_subnet'
-                else:
-                    self.whitelisted_clients_ip.add(client_ip)            
-                    config_key = 'whitelisted_clients_ip'
-            
-            if os.path.exists(self.config_file_path):
-                try:
-                    #update whitelist in config                    
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    config_json[config_key] = getattr(self, config_key)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update whitelist in {self.config_file_path}')
-                                
             response = await self.connector.add_whitelist_client(client_ip=client_ip, client_id=client_id)
             return response
         else:
@@ -361,29 +295,6 @@ class ConnectorManager:
     async def remove_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} remove_whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.connector.is_server:
-            
-            if client_id:
-                self.whiteisted_clients_id.remove(client_id)
-                config_key = 'whitelisted_clients_id'                
-            elif client_ip:
-                if '/' in client_ip:
-                    self.whitelisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
-                    config_key = 'whitelisted_clients_subnet'
-                else:
-                    self.whitelisted_clients_ip.remove(client_ip)            
-                    config_key = 'whitelisted_clients_ip'
-            
-            if os.path.exists(self.config_file_path):
-                try:
-                    #update whitelist in config                    
-                    with open(self.config_file_path, 'r') as fd:
-                        config_json = json.load(fd)
-                    config_json[config_key] = getattr(self, config_key)
-                    with open(self.config_file_path, 'w') as fd:
-                        json.dump(config_json, fd, indent=4, sort_keys=True)
-                except Exception:
-                    self.logger.exception(f'Could not update whitelist in {self.config_file_path}')
-            
             response = await self.connector.remove_whitelist_client(client_ip=client_ip, client_id=client_id)
             return response
         else:
@@ -934,24 +845,6 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def add_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            if config_file_path:
-                if os.path.exists(config_file_path):
-                    #update blacklist in config
-                    try:
-                        with open(config_file_path, 'r') as fd:
-                            config_json = json.load(fd)
-                        if client_ip:
-                            if '/'in client_ip:
-                                config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).add(client_ip)
-                            else:
-                                config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).add(client_ip)
-                        elif client_id:
-                            config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).add(client_id)
-                        with open(config_file_path, 'w') as fd:
-                            json.dump(config_json, fd, indent=4, sort_keys=True)
-                    except Exception:
-                        self.logger.exception(f'Could not update blacklist in {config_file_path}')
-                    
             response = await self.send_command(cmd='add_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
@@ -960,24 +853,6 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def remove_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} remove_blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            if config_file_path:            
-                if os.path.exists(config_file_path):
-                    #update blacklist in config
-                    try:
-                        with open(config_file_path, 'r') as fd:
-                            config_json = json.load(fd)
-                        if client_ip:
-                            if '/'in client_ip:
-                                config_json['blacklisted_clients_subnet'] = set(config_json.get('blacklisted_clients_subnet', [])).remove(client_ip)
-                            else:
-                                config_json['blacklisted_clients_ip'] = set(config_json.get('blacklisted_clients_ip', [])).remove(client_ip)
-                        elif client_id:
-                            config_json['blacklisted_clients_id'] = set(config_json.get('blacklisted_clients_id', [])).remove(client_id)
-                        with open(config_file_path, 'w') as fd:
-                            json.dump(config_json, fd, indent=4, sort_keys=True)
-                    except Exception:
-                        self.logger.exception(f'Could not update blacklist in {config_file_path}')
-                    
             response = await self.send_command(cmd='remove_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
@@ -986,24 +861,6 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def add_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:      
-            if config_file_path:
-                if os.path.exists(config_file_path):                
-                    #update whitelist in config
-                    try:
-                        with open(config_file_path, 'r') as fd:
-                            config_json = json.load(fd)
-                        if client_ip:
-                            if '/'in client_ip:
-                                config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).add(client_ip)
-                            else:
-                                config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).add(client_ip)
-                        elif client_id:
-                            config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).add(client_id)
-                        with open(config_file_path, 'w') as fd:
-                            json.dump(config_json, fd, indent=4, sort_keys=True)
-                    except Exception:
-                        self.logger.exception(f'Could not update whitelist in {config_file_path}')
-            
             response = await self.send_command(cmd='add_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
@@ -1012,24 +869,6 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def remove_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
         self.logger.info(f'{self.source_id} remove_whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
-            if config_file_path:
-                if os.path.exists(config_file_path):
-                    #update whitelist in config
-                    try:
-                        with open(config_file_path, 'r') as fd:
-                            config_json = json.load(fd)
-                        if client_ip:
-                            if '/'in client_ip:
-                                config_json['whitelisted_clients_subnet'] = set(config_json.get('whitelisted_clients_subnet', [])).remove(client_ip)
-                            else:
-                                config_json['whitelisted_clients_ip'] = set(config_json.get('whitelisted_clients_ip', [])).remove(client_ip)
-                        elif client_id:
-                            config_json['whitelisted_clients_id'] = set(config_json.get('whitelisted_clients_id', [])).remove(client_id)
-                        with open(config_file_path, 'w') as fd:
-                            json.dump(config_json, fd, indent=4, sort_keys=True)
-                    except Exception:
-                        self.logger.exception(f'Could not update whitelist in {config_file_path}')
-            
             response = await self.send_command(cmd='remove_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
             return response
         else:
@@ -1065,18 +904,18 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'show':True})        
         return response
 
-    async def ignore_peer_traffic_enable(self):
-        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable')         
+    async def ignore_peer_traffic_enable(self, config_file_path=None):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'enable':True})        
         return response
     
-    async def ignore_peer_traffic_enable_unique(self, peername):
-        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique')         
+    async def ignore_peer_traffic_enable_unique(self, peername, config_file_path=None):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'unique_peer':peername})        
         return response
 
-    async def ignore_peer_traffic_disable(self):
-        self.logger.info(f'{self.source_id} ignore_peer_traffic_disable')         
+    async def ignore_peer_traffic_disable(self, config_file_path=None):
+        self.logger.info(f'{self.source_id} ignore_peer_traffic_disable')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'disable':True})        
         return response    
 
@@ -1088,6 +927,11 @@ class ConnectorRemoteTool(ConnectorBaseTool):
     async def set_log_level(self, level):
         self.logger.info(f'{self.source_id} set_log_level {level}')         
         response = await self.send_command(cmd='set_log_level__sync', kwargs={'level':level})        
+        return response
+
+    async def show_attribute(self, attribute):
+        self.logger.info(f'{self.source_id} show_attribute {attribute}')         
+        response = await self.send_command(cmd='show_attribute__sync', kwargs={'attribute':attribute})        
         return response
     
     

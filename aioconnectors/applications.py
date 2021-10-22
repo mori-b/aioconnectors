@@ -63,7 +63,13 @@ def cli(logger=None):
         the_path = os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
     else:
         the_path = Connector.CONNECTOR_FILES_DIRPATH
-    
+
+    config_file_path = input('\nPlease type your connector json configuration file, or Enter to ignore\n')
+    if config_file_path:
+        config_file_path = os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
+    else:
+        config_file_path = None
+        
     while True:
         active_connectors_path = os.path.join(the_path, Connector.DEFAULT_ACTIVE_CONNECTORS_NAME)
         dict_connector_names = {}
@@ -121,6 +127,13 @@ def cli(logger=None):
             print(f'\nConnected peers : {peers_dict}')
             if return_peers:
                 return json.loads(peers_dict)
+            
+        def show_attribute(attribute):
+            show_attribute            
+            task = loop.create_task(connector_remote_tool.show_attribute(attribute))
+            loop.run_until_complete(task)
+            value = task.result().decode()
+            print(f'\n{attribute.capitalize()} : {value}')
             
         while True:
             clearscreen()
@@ -255,6 +268,9 @@ def cli(logger=None):
 
                 elif the_cmd == 'add_blacklist_client':
                     if is_server:
+                        show_attribute('blacklisted_clients_id')
+                        show_attribute('blacklisted_clients_ip')
+                        show_attribute('blacklisted_clients_subnet')                        
                         peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
@@ -271,9 +287,11 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to blacklist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client))
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client,
+                                                                        config_file_path=config_file_path))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=the_client))                                    
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=the_client,
+                                                                        config_file_path=config_file_path))
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -281,6 +299,9 @@ def cli(logger=None):
 
                 elif the_cmd == 'remove_blacklist_client':
                     if is_server:
+                        show_attribute('blacklisted_clients_id')
+                        show_attribute('blacklisted_clients_ip')
+                        show_attribute('blacklisted_clients_subnet')                                                
                         peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
@@ -297,9 +318,11 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from blacklist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client))
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                          
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=the_client))                                    
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                          
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -307,6 +330,10 @@ def cli(logger=None):
 
                 elif the_cmd == 'add_whitelist_client':
                     if is_server:
+                        show_attribute('whitelisted_clients_id')
+                        show_attribute('whitelisted_clients_ip')
+                        show_attribute('whitelisted_clients_subnet')                        
+                        
                         peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
@@ -323,9 +350,11 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client))
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                       
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=the_client))                                    
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                       
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -333,6 +362,10 @@ def cli(logger=None):
 
                 elif the_cmd == 'remove_whitelist_client':
                     if is_server:
+                        show_attribute('whitelisted_clients_id')
+                        show_attribute('whitelisted_clients_ip')
+                        show_attribute('whitelisted_clients_subnet')                        
+                        
                         peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
                         if running_with_tab_completion:
                             def complete(text,state):
@@ -349,9 +382,11 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if '.' in the_client:
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client))
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                          
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=the_client))                                    
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=the_client,
+                                                                        config_file_path=config_file_path))                                                                                                          
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:

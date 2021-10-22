@@ -27,6 +27,7 @@ import json
 import os
 import ssl
 import ipaddress
+import re
 
 from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
@@ -292,6 +293,13 @@ class FullDuplex:
                                 self.logger.info(f'{self.connector.source_id} allowing whitelisted client {self.peername}'
                                                  f' from ip {self.extra_info}')
                                 allow_id = True
+                            else:
+                                for maybe_regex in self.connector.whitelisted_clients_id:
+                                    if re.match(maybe_regex, self.peername):                            
+                                        self.logger.info(f'{self.connector.source_id} allowing with regex whitelisted client'
+                                                         f' {self.peername} from ip {self.extra_info}')
+                                        allow_id = True
+                                        break
                             
                     if not all([allow_id, allow_ip, allow_subnet]):
                         self.logger.info(f'{self.connector.source_id} blocking non whitelisted client {self.peername} from'
@@ -310,7 +318,14 @@ class FullDuplex:
                             self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername}'
                                              f' from ip {self.extra_info}')
                             await self.stop()
-                            return                    
+                            return
+                        else:
+                            for maybe_regex in self.connector.blacklisted_clients_id:
+                                if re.match(maybe_regex, self.peername):
+                                    self.logger.info(f'{self.connector.source_id} blocking with regex blacklisted'
+                                                     f' client {self.peername} from ip {self.extra_info}')
+                                    await self.stop()
+                                    return
                 
                 if self.connector.blacklisted_clients_ip:
                     if self.extra_info[0] in self.connector.blacklisted_clients_ip:
