@@ -930,7 +930,7 @@ class Connector:
                 self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
                 if '/' in client_ip:
                     self.blacklisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-                    kwargs['blacklisted_clients_subnet'] = list(self.blacklisted_clients_subnet)
+                    kwargs['blacklisted_clients_subnet'] = [str(el) for el in self.blacklisted_clients_subnet]
                 else:
                     self.blacklisted_clients_ip.add(client_ip)
                     kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)    
@@ -956,7 +956,7 @@ class Connector:
                 self.logger.info(f'{self.source_id} removing blacklisted client {client_ip}')        
                 if '/' in client_ip:
                     self.blacklisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
-                    kwargs['blacklisted_clients_subnet'] = list(self.blacklisted_clients_subnet)                                    
+                    kwargs['blacklisted_clients_subnet'] = [str(el) for el in self.blacklisted_clients_subnet]                                    
                 else:
                     self.blacklisted_clients_ip.remove(client_ip)            
                     kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)                
@@ -983,7 +983,7 @@ class Connector:
                 self.logger.info(f'{self.source_id} whitelisting client {client_ip}')        
                 if '/' in client_ip:
                     self.whitelisted_clients_subnet.add(ipaddress.IPv4Network(client_ip))
-                    kwargs['whitelisted_clients_subnet'] = list(self.whitelisted_clients_subnet)                    
+                    kwargs['whitelisted_clients_subnet'] = [str(el) for el in self.whitelisted_clients_subnet]                    
                 else:
                     self.whitelisted_clients_ip.add(client_ip)
                     kwargs['whitelisted_clients_ip'] = list(self.whitelisted_clients_ip)   
@@ -1009,7 +1009,7 @@ class Connector:
                 self.logger.info(f'{self.source_id} removing whitelisted client {client_ip}')        
                 if '/' in client_ip:
                     self.whitelisted_clients_subnet.remove(ipaddress.IPv4Network(client_ip))
-                    kwargs['whitelisted_clients_subnet'] = list(self.whitelisted_clients_subnet)                    
+                    kwargs['whitelisted_clients_subnet'] = [str(el) for el in self.whitelisted_clients_subnet]
                 else:
                     self.whitelisted_clients_ip.remove(client_ip)
                     kwargs['whitelisted_clients_ip'] = list(self.whitelisted_clients_ip)  

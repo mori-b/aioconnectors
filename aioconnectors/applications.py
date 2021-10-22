@@ -11,6 +11,8 @@ import re
 
 import aioconnectors
 
+REGEX_IP = re.compile('^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+
 def create_connector(config_file_path, logger=None):
     if not logger:
         logger = aioconnectors.get_logger(logger_name='create_connector', first_run=True)    
@@ -278,7 +280,7 @@ def cli(logger=None):
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        the_client = input('\nPlease type the client name you would like to blacklist (and disconnect),'
+                        the_client = input('\nPlease type the client name (or regex) you would like to blacklist (and disconnect),'
                                             ' or the client IP address/subnet you would like to blacklist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
@@ -286,7 +288,8 @@ def cli(logger=None):
                         if the_client != 'q':                        
                             res = input('\nAre you sure you want to blacklist '+the_client+' ? y/n\n')
                             if res =='y':
-                                if '.' in the_client:
+                                #As opposed to ip, the id follows SOURCE_ID_REGEX, which excludes dots
+                                if REGEX_IP.match(the_client):
                                     task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client,
                                                                         config_file_path=config_file_path))
                                 else:
@@ -309,7 +312,7 @@ def cli(logger=None):
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        the_client = input('\nPlease type the client name you would like to remove from blacklist,'
+                        the_client = input('\nPlease type the client name (or regex) you would like to remove from blacklist,'
                                             ' or the client IP address/subnet you would like to remove from blacklist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
@@ -317,7 +320,7 @@ def cli(logger=None):
                         if the_client != 'q':                        
                             res = input('\nAre you sure you want to remove from blacklist '+the_client+' ? y/n\n')
                             if res =='y':
-                                if '.' in the_client:
+                                if REGEX_IP.match(the_client):
                                     task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client,
                                                                         config_file_path=config_file_path))                                                                                                          
                                 else:
@@ -341,7 +344,7 @@ def cli(logger=None):
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        the_client = input('\nPlease type the client name you would like to whitelist,'
+                        the_client = input('\nPlease type the client name (or regex) you would like to whitelist,'
                                             ' or the client IP address/subnet you would like to whitelist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
@@ -349,7 +352,7 @@ def cli(logger=None):
                         if the_client != 'q':                        
                             res = input('\nAre you sure you want to whitelist '+the_client+' ? y/n\n')
                             if res =='y':
-                                if '.' in the_client:
+                                if REGEX_IP.match(the_client):
                                     task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client,
                                                                         config_file_path=config_file_path))                                                                                                       
                                 else:
@@ -373,7 +376,7 @@ def cli(logger=None):
                                 return results[state]
                             readline.set_completer(complete)                        
                         
-                        the_client = input('\nPlease type the client name you would like to remove from whitelist,'
+                        the_client = input('\nPlease type the client name (or regex) you would like to remove from whitelist,'
                                             ' or the client IP address/subnet you would like to remove from whitelist, or q to quit\n')
                         if running_with_tab_completion:
                             readline.set_completer(None) 
@@ -381,7 +384,7 @@ def cli(logger=None):
                         if the_client != 'q':                        
                             res = input('\nAre you sure you want to remove from whitelist '+the_client+' ? y/n\n')
                             if res =='y':
-                                if '.' in the_client:
+                                if REGEX_IP.match(the_client):
                                     task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client,
                                                                         config_file_path=config_file_path))                                                                                                          
                                 else:

@@ -289,17 +289,12 @@ class FullDuplex:
                     if peer_identification_finished:
                         if self.connector.whitelisted_clients_id:
                             allow_id = False                                        
-                            if self.peername in self.connector.whiteisted_clients_id:
-                                self.logger.info(f'{self.connector.source_id} allowing whitelisted client {self.peername}'
-                                                 f' from ip {self.extra_info}')
-                                allow_id = True
-                            else:
-                                for maybe_regex in self.connector.whitelisted_clients_id:
-                                    if re.match(maybe_regex, self.peername):                            
-                                        self.logger.info(f'{self.connector.source_id} allowing with regex whitelisted client'
-                                                         f' {self.peername} from ip {self.extra_info}')
-                                        allow_id = True
-                                        break
+                            for maybe_regex in self.connector.whitelisted_clients_id:
+                                if re.match(maybe_regex, self.peername):                            
+                                    self.logger.info(f'{self.connector.source_id} allowing whitelisted client'
+                                                     f' {self.peername} from ip {self.extra_info}')
+                                    allow_id = True
+                                    break
                             
                     if not all([allow_id, allow_ip, allow_subnet]):
                         self.logger.info(f'{self.connector.source_id} blocking non whitelisted client {self.peername} from'
@@ -314,18 +309,12 @@ class FullDuplex:
                         
                 if peer_identification_finished:                    
                     if self.connector.blacklisted_clients_id:
-                        if self.peername in self.connector.blacklisted_clients_id:
-                            self.logger.info(f'{self.connector.source_id} blocking blacklisted client {self.peername}'
-                                             f' from ip {self.extra_info}')
-                            await self.stop()
-                            return
-                        else:
-                            for maybe_regex in self.connector.blacklisted_clients_id:
-                                if re.match(maybe_regex, self.peername):
-                                    self.logger.info(f'{self.connector.source_id} blocking with regex blacklisted'
-                                                     f' client {self.peername} from ip {self.extra_info}')
-                                    await self.stop()
-                                    return
+                        for maybe_regex in self.connector.blacklisted_clients_id:
+                            if re.match(maybe_regex, self.peername):
+                                self.logger.info(f'{self.connector.source_id} blocking blacklisted'
+                                                 f' client {self.peername} from ip {self.extra_info}')
+                                await self.stop()
+                                return
                 
                 if self.connector.blacklisted_clients_ip:
                     if self.extra_info[0] in self.connector.blacklisted_clients_ip:
