@@ -842,7 +842,7 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def add_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
+    async def add_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
             response = await self.send_command(cmd='add_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
@@ -850,7 +850,7 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def remove_blacklist_client(self, client_ip=None, client_id=None, config_file_path=None):
+    async def remove_blacklist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} remove_blacklist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
             response = await self.send_command(cmd='remove_blacklist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
@@ -858,7 +858,7 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def add_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
+    async def add_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:      
             response = await self.send_command(cmd='add_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
@@ -866,7 +866,7 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         else:
             return False
 
-    async def remove_whitelist_client(self, client_ip=None, client_id=None, config_file_path=None):
+    async def remove_whitelist_client(self, client_ip=None, client_id=None):
         self.logger.info(f'{self.source_id} remove_whitelist_client ip : {client_ip}, id : {client_ip}')
         if self.is_server:
             response = await self.send_command(cmd='remove_whitelist_client', kwargs={'client_ip':client_ip, 'client_id':client_id})
@@ -904,17 +904,17 @@ class ConnectorRemoteTool(ConnectorBaseTool):
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'show':True})        
         return response
 
-    async def ignore_peer_traffic_enable(self, config_file_path=None):
+    async def ignore_peer_traffic_enable(self):
         self.logger.info(f'{self.source_id} ignore_peer_traffic_enable')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'enable':True})        
         return response
     
-    async def ignore_peer_traffic_enable_unique(self, peername, config_file_path=None):
+    async def ignore_peer_traffic_enable_unique(self, peername):
         self.logger.info(f'{self.source_id} ignore_peer_traffic_enable_unique')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'unique_peer':peername})        
         return response
 
-    async def ignore_peer_traffic_disable(self, config_file_path=None):
+    async def ignore_peer_traffic_disable(self):
         self.logger.info(f'{self.source_id} ignore_peer_traffic_disable')
         response = await self.send_command(cmd='manage_ignore_peer_traffic__sync', kwargs={'disable':True})        
         return response    
