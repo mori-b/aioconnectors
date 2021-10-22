@@ -8,6 +8,7 @@ import ssl
 import uuid
 import re
 import ipaddress
+import stat
 from copy import deepcopy
 from time import time
 from base64 import b64encode
@@ -311,7 +312,13 @@ class Connector:
             raise Exception(f'{self.uds_path_commander} already exists. Cannot create_commander_server')  
         self.logger.info('Calling create_commander_server')
         self.commander_server = await asyncio.start_unix_server(self.commander_cb, path=self.uds_path_commander)
-        #chown_nobody_permissions(self.uds_path_commander, self.logger)   
+        #chown_nobody_permissions(self.uds_path_commander, self.logger)
+        try:
+            #only connector user/group can send commands to connector
+            os.chmod(self.uds_path_commander, stat.S_IRWXU | stat.S_IRWXG)
+        except Exception:
+            self.logger.exception(f'{self.source_id} could not set permissions for {self.uds_path_commander}')
+        
                 
     async def log_msg_counts(self):
         while True:
@@ -1253,6 +1260,11 @@ class Connector:
                                                 path=self.uds_path_send_to_connector, limit=self.MAX_SOCKET_BUFFER_SIZE)
         if self.everybody_can_send_messages:
             chown_nobody_permissions(self.uds_path_send_to_connector, self.logger)
+        else:
+            try:
+                os.chmod(self.uds_path_send_to_connector, stat.S_IRWXU | stat.S_IRWXG)
+            except Exception:
+                self.logger.exception(f'{self.source_id} could not set permissions for {self.uds_path_send_to_connector}')
         return server
 
     async def queue_send_to_connector_put(self, reader, writer):

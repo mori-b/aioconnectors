@@ -831,7 +831,7 @@ class ConnectorAPI(ConnectorBaseTool):
                                                      limit=Connector.MAX_SOCKET_BUFFER_SIZE)
             self.message_waiters[message_type] = server
             if self.receive_from_any_connector_owner:
-                chown_nobody_permissions(uds_path_receive_from_connector, self.logger)            
+                chown_nobody_permissions(uds_path_receive_from_connector, self.logger)   
             return server
         except asyncio.CancelledError:
             raise        
