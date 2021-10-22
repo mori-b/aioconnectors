@@ -303,8 +303,7 @@ class FullDuplex:
                         if self.connector.hook_whitelist_clients:
                             #here the hook might update some db that might in return send add_whitelist_client
                             #to let this client connect successfully next try (5s)
-                            await self.connector.hook_whitelist_clients(self.extra_info, self.peername,
-                                                                        peer_identification_finished)
+                            await self.connector.hook_whitelist_clients(self.extra_info, self.peername)
                         return                    
                         
                 if peer_identification_finished:                    
@@ -1010,7 +1009,7 @@ class FullDuplex:
                         self.stop_task() 
                         return
                     
-                    self.logger.info('handle_ssl_messages_server receiving get_new_certificate for {self.extra_info}, '
+                    self.logger.info(f'handle_ssl_messages_server receiving get_new_certificate for {self.extra_info}, '
                                      'and calling create_client_certificate')                    
                     #we could have check if client current certificate is default, but is seems limiting, code would be like :
                     #cert_der = self.writer.get_extra_info("ssl_object").getpeercert()
@@ -1018,6 +1017,35 @@ class FullDuplex:
                     #if common_name == ssl.DEFAULT_CLIENT_CERTIFICATE_COMMON_NAME:       
                     
                     #Here maybe hook to ask for confirmation before creating a cert for this ip self.extra_info
+                
+                    if self.connector.whitelisted_clients_id:
+                        peername = transport_json[MessageFields.SOURCE_ID]
+                        allow_id = False                                        
+                        for maybe_regex in self.connector.whitelisted_clients_id:
+                            if re.match(maybe_regex, peername):                            
+                                self.logger.info(f'{self.connector.source_id} get_new_certificate allowing whitelisted client'
+                                                 f' {peername} from ip {self.extra_info}')
+                                allow_id = True
+                                break
+                                
+                        if not allow_id:
+                            self.logger.info(f'{self.connector.source_id} get_new_certificate blocking non whitelisted '
+                                             f'client {peername} from ip {self.extra_info}')
+                            
+                            if self.connector.hook_whitelist_clients:
+                                #here the hook might update some db that might in return send add_whitelist_client
+                                #to let this client connect successfully next try (5s)
+                                await self.connector.hook_whitelist_clients(self.extra_info, peername)
+                            self.stop_task()                                
+                            return                    
+                            
+                    if self.connector.blacklisted_clients_id:
+                        for maybe_regex in self.connector.blacklisted_clients_id:
+                            if re.match(maybe_regex, peername):
+                                self.logger.info(f'{self.connector.source_id} get_new_certificate blocking blacklisted'
+                                                 f' client {peername} from ip {self.extra_info}')
+                                self.stop_task()                                
+                                return                    
                     
                     crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=\
                                             transport_json[MessageFields.SOURCE_ID], common_name=None,

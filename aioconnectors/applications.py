@@ -65,12 +65,6 @@ def cli(logger=None):
         the_path = os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
     else:
         the_path = Connector.CONNECTOR_FILES_DIRPATH
-
-    config_file_path = input('\nPlease type your connector json configuration file, or Enter to ignore\n')
-    if config_file_path:
-        config_file_path = os.path.abspath(os.path.normpath(os.path.expandvars(os.path.expanduser(the_path))))
-    else:
-        config_file_path = None
         
     while True:
         active_connectors_path = os.path.join(the_path, Connector.DEFAULT_ACTIVE_CONNECTORS_NAME)
@@ -290,11 +284,9 @@ def cli(logger=None):
                             if res =='y':
                                 #As opposed to ip, the id follows SOURCE_ID_REGEX, which excludes dots
                                 if REGEX_IP.match(the_client):
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client,
-                                                                        config_file_path=config_file_path))
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=the_client,
-                                                                        config_file_path=config_file_path))
+                                    task = loop.create_task(connector_remote_tool.add_blacklist_client(client_id=the_client))
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -321,11 +313,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from blacklist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if REGEX_IP.match(the_client):
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                          
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                          
+                                    task = loop.create_task(connector_remote_tool.remove_blacklist_client(client_id=the_client))
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -353,11 +343,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if REGEX_IP.match(the_client):
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                       
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                       
+                                    task = loop.create_task(connector_remote_tool.add_whitelist_client(client_id=the_client))
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
@@ -385,11 +373,9 @@ def cli(logger=None):
                             res = input('\nAre you sure you want to remove from whitelist '+the_client+' ? y/n\n')
                             if res =='y':
                                 if REGEX_IP.match(the_client):
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                          
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_ip=the_client))
                                 else:
-                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=the_client,
-                                                                        config_file_path=config_file_path))                                                                                                          
+                                    task = loop.create_task(connector_remote_tool.remove_whitelist_client(client_id=the_client))
                                 loop.run_until_complete(task)
                                 print(task.result().decode())                          
                     else:
