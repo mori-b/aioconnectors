@@ -15,7 +15,7 @@ DEFAULT_LOGGER_LOG_LEVEL = 'INFO'
 DEFAULT_LOGGER_ROTATE = True
 
 class ConnectorManager:
-    def __init__(self, config_file_path=None, logger=None, use_default_logger=True, 
+    def __init__(self, config_file_path=None, config_file_overrides_kwargs=True, logger=None, use_default_logger=True, 
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
@@ -95,8 +95,8 @@ class ConnectorManager:
         self.whitelisted_clients_ip, self.whitelisted_clients_subnet = whitelisted_clients_ip, whitelisted_clients_subnet
         self.hook_whitelist_clients, self.ignore_peer_traffic = hook_whitelist_clients, ignore_peer_traffic
         
-        self.config_file_path = config_file_path
-        if self.config_file_path:
+        self.config_file_path, self.config_file_overrides_kwargs = config_file_path, config_file_overrides_kwargs
+        if self.config_file_path and self.config_file_overrides_kwargs:
             self.config_file_path = str(self.config_file_path)
             if os.path.exists(self.config_file_path):
                 try:
