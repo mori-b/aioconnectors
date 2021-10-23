@@ -683,7 +683,8 @@ Not a benchmark, but some point-to-point trials showed that up until 4000 messag
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in <a href="#cli">7-</a>.  
--**delete\_client\_certificate**, **disconnect\_client**, **blacklist_client**  
+-**delete\_client\_certificate**, **disconnect\_client**  
+-**add\_blacklist_client, remove\_blacklist_client**, **add\_whitelist_client, remove\_whitelist_client**  
 -**delete\_previous\_persistence\_remains**  
 -**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
 -**show\_connected\_peers**  
