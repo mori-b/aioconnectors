@@ -1078,6 +1078,35 @@ class FullDuplex:
                 old_peername = self.peername
                 new_peername = transport_json[MessageFields.SOURCE_ID]
                 validate_source_id(new_peername)
+                
+                if self.connector.whitelisted_clients_id:
+                    allow_id = False                                        
+                    for maybe_regex in self.connector.whitelisted_clients_id:
+                        if re.match(maybe_regex, new_peername):                            
+                            self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server allowing whitelisted client'
+                                             f' {new_peername} from ip {self.extra_info}')
+                            allow_id = True
+                            break
+                            
+                    if not allow_id:
+                        self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking non whitelisted '
+                                         f'client {new_peername} from ip {self.extra_info}')
+                        
+                        if self.connector.hook_whitelist_clients:
+                            #here the hook might update some db that might in return send add_whitelist_client
+                            #to let this client connect successfully next try (5s)
+                            await self.connector.hook_whitelist_clients(self.extra_info, new_peername)
+                        self.stop_task()                                
+                        return                    
+                        
+                if self.connector.blacklisted_clients_id:
+                    for maybe_regex in self.connector.blacklisted_clients_id:
+                        if re.match(maybe_regex, new_peername):
+                            self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking blacklisted'
+                                             f' client {new_peername} from ip {self.extra_info}')
+                            self.stop_task()                                
+                            return                
+                
                 self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
                 self.peername = new_peername                
                 self.connector.queue_send[new_peername] = self.connector.queue_send.pop(old_peername)
@@ -1157,6 +1186,35 @@ class FullDuplex:
             old_peername = self.peername    #str(self.writer.get_extra_info('peername'))
             new_peername = transport_json[MessageFields.SOURCE_ID]
             validate_source_id(new_peername)
+            
+            if self.connector.whitelisted_clients_id:
+                allow_id = False                                        
+                for maybe_regex in self.connector.whitelisted_clients_id:
+                    if re.match(maybe_regex, new_peername):                            
+                        self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server allowing whitelisted client'
+                                         f' {new_peername} from ip {self.extra_info}')
+                        allow_id = True
+                        break
+                        
+                if not allow_id:
+                    self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking non whitelisted '
+                                     f'client {new_peername} from ip {self.extra_info}')
+                    
+                    if self.connector.hook_whitelist_clients:
+                        #here the hook might update some db that might in return send add_whitelist_client
+                        #to let this client connect successfully next try (5s)
+                        await self.connector.hook_whitelist_clients(self.extra_info, new_peername)
+                    self.stop_task()                                
+                    return                    
+                    
+            if self.connector.blacklisted_clients_id:
+                for maybe_regex in self.connector.blacklisted_clients_id:
+                    if re.match(maybe_regex, new_peername):
+                        self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking blacklisted'
+                                         f' client {new_peername} from ip {self.extra_info}')
+                        self.stop_task()                                
+                        return                    
+            
             self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
             self.peername = new_peername
             #self.logger.info('yomo self.connector.tasks : '+str(self.connector.tasks))

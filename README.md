@@ -528,12 +528,16 @@ transport\_json will contain a with\_file key if a file has been received, more 
     logger=None, use_default_logger=True, default_logger_log_level='INFO', default_logger_rotate=True, config_file_path=<path>
 
 config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in the basic example later on and in aioconnectors\_test.py  
-You can use both kwargs and config_file_path : if there are shared items, the ones from config_file_path will override the kwargs.  
+You can use both kwargs and config\_file\_path : if there are shared items, the ones from config_file_path will override the kwargs, unless you specify config\_file\_overrides\_kwargs=False (True by default).  
+The main use case for providing a config\_file\_path while having config\_file\_overrides\_kwargs=False is when you prefer to configure your connector only with kwargs but you also want to let the connector update its config file content on the fly (for example blacklisted\_clients\_id, whitelisted\_clients\_id, or ignore\_peer\_traffic).  
 
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
     {
         "alternate_client_default_cert": false,
+        "blacklisted_clients_id": null,
+        "blacklisted_clients_ip": null,
+        "blacklisted_clients_subnet": null,
         "certificates_directory_path": "/var/tmp/aioconnectors",
         "client_bind_ip": null,
         "client_name": null,
@@ -547,6 +551,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "enable_client_try_reconnect": true,
         "everybody_can_send_messages": true,
         "file_recv_config": {},
+        "ignore_peer_traffic": false,
         "is_server": true,
         "keep_alive_period": null,
         "keep_alive_timeout": 5,
@@ -576,8 +581,12 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "subscribe_message_types": [],
         "uds_path_receive_preserve_socket": true,
         "uds_path_send_preserve_socket": true,
-        "use_ssl": true
+        "use_ssl": true,
+        "whitelisted_clients_id": null,
+        "whitelisted_clients_ip": null,
+        "whitelisted_clients_subnet": null
     }
+
 
 Here is an example of config\_file\_path, with ConnectorAPI class arguments, used to send/receive messages.  
 These are a subset of ConnectorManager arguments : which means you can use the ConnectorManager config file also for ConnectorAPI.
@@ -608,8 +617,9 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
 
 -**alternate\_client\_default\_cert** is false by default : if true it lets the client try to connect alternatively with the default certificate, in case of failure with the private certificate. This can save the hassle of having to delete manually your client certificate when the certificate was already deleted on server side.  
+-**blacklisted\_clients\_id|ip|subnet** : a list of blacklisted clients, can be updated on the fly with the api functions add|remove\_blacklist\_client or in the cli.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
--**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI.  
+-**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI. It should match the regex \^\[0\-9a\-zA\-Z\-\_\:\]\+$  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
 -**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /var/tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -**debug_msg_counts** is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if **silent** is disabled.  
@@ -622,6 +632,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**hook\_allow\_certificate\_creation** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client_name and returning a boolean, to let the server accept or block the client_name certificate creation.  
 -**hook\_server\_auth\_client** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 -**hook\_target\_directory** : does not appear in the config file (usable as a kwargs only). A dictionary of the form {dst\_type: custom_function} where custom\_function receives transport\_json as an input and outputs a destination path to be appended to target\_directory. If custom\_function returns None, it has no effect on the target\_directory. If custom\_function returns False, the file is refused. This enables better customization of the target\_directory according to transport\_json. An example exists in the chat implementation in applications.py.  
+-**ignore_peer_traffic** to ignore a peer traffic, can be updated on the fly with the api functions ignore\_peer\_traffic\_enable, ignore\_peer\_traffic\_enable\_unique, or ignore\_peer\_traffic\_disable or in the cli.  
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**max\_certs** (integer) limits the maximum number of clients that can connect to a server using client ssl certificates.  
 -**max\_size\_file\_upload\_send** and **max\_size\_file\_upload\_recv**: Size limit of the files you send and receive, both on server and on client. Default is 8GB. However best performance is achieved until 1GB. Once you exceed 1GB, the file is divided in 1GB chunks and reassembled after reception, which is time consuming.  
@@ -639,6 +650,7 @@ application level.
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -**use\_ssl** and **ssl\_allow\_all** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced.  
+-**whitelisted\_clients\_id|ip|subnet** : a list of whitelisted clients, can be updated on the fly with the api functions add|remove\_whitelist\_client or in the cli.  
 
 
 <a name="send"></a>
@@ -695,7 +707,8 @@ to run several interesting commands like :
 -**show\_connected\_peers** : show currently connected peers.  
 -**delete\_client\_certificate** enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate.  
 -**disconnect_client** enables your server to disconnect a specific client.  
--**blacklist_client** enables your server to blacklist and disconnect a specific client at runtime.  
+-**add\_blacklist_client, remove\_blacklist_client** enables your server to blacklist a client by id, ip, or subnet at runtime. Disconnects the client if blacklisted by id, also deletes its certificate if exists. Kept in the connector config file if exists.  
+-**add\_whitelist_client, remove\_whitelist_client** enables your server to whitelist a client (id, ip, or subnet) at runtime. Kept in the connector config file if exists.   
 -**peek\_queues** to show the internal queues sizes.  
 -**ignore\_peer\_traffic** can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
 -**show\_log\_level** to show the current log level.  

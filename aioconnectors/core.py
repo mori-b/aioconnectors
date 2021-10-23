@@ -933,7 +933,9 @@ class Connector:
                     kwargs['blacklisted_clients_subnet'] = [str(el) for el in self.blacklisted_clients_subnet]
                 else:
                     self.blacklisted_clients_ip.add(client_ip)
-                    kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)    
+                    kwargs['blacklisted_clients_ip'] = list(self.blacklisted_clients_ip)
+                #cannot disconnect client by ip
+                #await self.disconnect_client(client_id?)                    
             self.update_config_file(kwargs)
             return True     
         except Exception:
@@ -1023,7 +1025,10 @@ class Connector:
     async def delete_client_certificate_on_server(self, client_id=None, remove_only_symlink=False):
         try:
             self.logger.info(f'{self.source_id} deleting client certificate {client_id}')
-            response = await self.ssl_helper.remove_client_cert_on_server(client_id, remove_only_symlink=remove_only_symlink)
+            if self.use_ssl:
+                response = await self.ssl_helper.remove_client_cert_on_server(client_id, remove_only_symlink=remove_only_symlink)
+            else:
+                response = True
             await self.disconnect_client(client_id)
             return response
         except Exception as exc:
