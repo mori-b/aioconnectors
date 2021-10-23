@@ -1040,6 +1040,7 @@ class FullDuplex:
                             return                    
                             
                     if self.connector.blacklisted_clients_id:
+                        peername = transport_json[MessageFields.SOURCE_ID]
                         for maybe_regex in self.connector.blacklisted_clients_id:
                             if re.match(maybe_regex, peername):
                                 self.logger.info(f'{self.connector.source_id} get_new_certificate blocking blacklisted'

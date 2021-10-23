@@ -26,7 +26,7 @@ LOG_BK_COUNT = 5
 LOG_MAX_SIZE = 67108864 # 2**26 = 64 MB
 
 IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
-SOURCE_ID_REGEX = re.compile('^[0-9a-zA-Z-_]+$')
+SOURCE_ID_REGEX = re.compile('^[0-9a-zA-Z-_:]+$')
 
 def full_path(the_path):
     if the_path is not None:
@@ -129,7 +129,7 @@ def validate_source_id(source_id):
     if not SOURCE_ID_REGEX.match(source_id):
     #if '.' in source_id or '/' in source_id:
         #protect against path traversal
-        raise Exception(f'Invalid source_id : {source_id} - please use only 0-9a-zA-Z-_')
+        raise Exception(f'Invalid source_id : {source_id} - please use only {SOURCE_ID_REGEX.pattern}')
     
 class CustomException(Exception):
     pass
