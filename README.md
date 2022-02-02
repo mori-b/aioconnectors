@@ -617,7 +617,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 
 
 -**alternate\_client\_default\_cert** is false by default : if true it lets the client try to connect alternatively with the default certificate, in case of failure with the private certificate. This can save the hassle of having to delete manually your client certificate when the certificate was already deleted on server side.  
--**blacklisted\_clients\_id|ip|subnet** : a list of blacklisted clients, can be updated on the fly with the api functions add|remove\_blacklist\_client or in the cli.  
+-**blacklisted\_clients\_id|ip|subnet** : a list of blacklisted clients (regex for blacklisted\_clients\_id), can be updated on the fly with the api functions add|remove\_blacklist\_client or in the cli.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI. It should match the regex \^\[0\-9a\-zA\-Z\-\_\:\]\+$  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
@@ -632,6 +632,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**hook\_allow\_certificate\_creation** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client_name and returning a boolean, to let the server accept or block the client_name certificate creation.  
 -**hook\_server\_auth\_client** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
 -**hook\_target\_directory** : does not appear in the config file (usable as a kwargs only). A dictionary of the form {dst\_type: custom_function} where custom\_function receives transport\_json as an input and outputs a destination path to be appended to target\_directory. If custom\_function returns None, it has no effect on the target\_directory. If custom\_function returns False, the file is refused. This enables better customization of the target\_directory according to transport\_json. An example exists in the chat implementation in applications.py.  
+-**hook\_whitelist\_clients** : does not appear in the config file (usable as a kwargs only). Has 2 arguments : extra_info, peername. Lets you inject some code when blocking non whitelisted client.  
 -**ignore_peer_traffic** to ignore a peer traffic, can be updated on the fly with the api functions ignore\_peer\_traffic\_enable, ignore\_peer\_traffic\_enable\_unique, or ignore\_peer\_traffic\_disable or in the cli.  
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**max\_certs** (integer) limits the maximum number of clients that can connect to a server using client ssl certificates.  
@@ -650,7 +651,7 @@ application level.
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -**use\_ssl** and **ssl\_allow\_all** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced.  
--**whitelisted\_clients\_id|ip|subnet** : a list of whitelisted clients, can be updated on the fly with the api functions add|remove\_whitelist\_client or in the cli.  
+-**whitelisted\_clients\_id|ip|subnet** : a list of whitelisted clients (regex for whitelisted\_clients\_id), can be updated on the fly with the api functions add|remove\_whitelist\_client or in the cli.  
 
 
 <a name="send"></a>
