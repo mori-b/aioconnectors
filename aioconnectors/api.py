@@ -32,7 +32,7 @@ class ConnectorManager:
                  keep_alive_period=None, keep_alive_timeout=Connector.KEEP_ALIVE_TIMEOUT,
                  max_number_of_unanswered_keep_alive=Connector.MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
-                 max_size_file_upload=None, hook_allow_certificate_creation=None,
+                 max_size_file_upload=None, hook_allow_certificate_creation=None, hook_proxy_authorization=None,
                  max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, max_certs=Connector.MAX_CERTS,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
@@ -84,6 +84,7 @@ class ConnectorManager:
                             uds_path_receive_preserve_socket, uds_path_send_preserve_socket
         self.hook_server_auth_client, self.hook_target_directory = hook_server_auth_client, hook_target_directory
         self.hook_allow_certificate_creation = hook_allow_certificate_creation
+        self.hook_proxy_authorization = hook_proxy_authorization
         self.enable_client_try_reconnect = enable_client_try_reconnect
         self.reuse_server_sockaddr, self.reuse_uds_path_send_to_connector, self.reuse_uds_path_commander_server = \
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
@@ -160,6 +161,7 @@ class ConnectorManager:
                                    hook_server_auth_client=self.hook_server_auth_client,
                                    hook_target_directory=self.hook_target_directory,
                                    hook_allow_certificate_creation=self.hook_allow_certificate_creation,
+                                   hook_proxy_authorization=self.hook_proxy_authorization,
                                    enable_client_try_reconnect=self.enable_client_try_reconnect,
                                    keep_alive_period=self.keep_alive_period, keep_alive_timeout=self.keep_alive_timeout,
                                    max_number_of_unanswered_keep_alive=self.max_number_of_unanswered_keep_alive,

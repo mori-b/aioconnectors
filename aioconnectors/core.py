@@ -88,7 +88,7 @@ class Connector:
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
-                 enable_client_try_reconnect=True,
+                 hook_proxy_authorization=None, enable_client_try_reconnect=True,
                  keep_alive_period=None, keep_alive_timeout=KEEP_ALIVE_TIMEOUT,
                  max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
@@ -133,6 +133,7 @@ class Connector:
             self.reuse_uds_path_commander_server = reuse_uds_path_commander_server
             self.hook_target_directory = hook_target_directory
             self.hook_allow_certificate_creation = hook_allow_certificate_creation
+            self.hook_proxy_authorization = hook_proxy_authorization
             self.max_certs = max_certs
             self.config_file_path = config_file_path
             if self.is_server:
@@ -181,6 +182,8 @@ class Connector:
                     #'ssl_server':False, 'authorization':''},
                     #'authorization' can also be like : {'username':<username>, 'password':<password>}
                     self.logger.info(f'Client {self.source_id} will use proxy {str(self.proxy)}')
+                    if hook_proxy_authorization:
+                        self.logger.info(f'Connector Client {self.source_id} has a hook_proxy_authorization')
                 
                 if send_message_types is None:
                     send_message_types = self.DEFAULT_MESSAGE_TYPES
@@ -517,9 +520,12 @@ class Connector:
             proxy_msg = f"CONNECT {server_sockaddr_addr or server_sockaddr[0]}:{server_sockaddr[1]} HTTP/1.1"
             authorization = self.proxy.get('authorization', None)
             if authorization:
-                #not tested
+                if self.hook_proxy_authorization:
+                    username, password = self.hook_proxy_authorization(authorization['username'], authorization['password'])
+                else:
+                    username, password = authorization['username'], authorization['password']
                 proxy_msg_cont = "\r\nProxy-Authorization: basic " + \
-                b64encode((authorization['username']+':'+authorization['password']).encode()).decode()
+                b64encode((username+':'+password).encode()).decode()
                 proxy_msg += proxy_msg_cont
             proxy_msg += "\r\n\r\n"
             proxy_msg = proxy_msg.encode()
