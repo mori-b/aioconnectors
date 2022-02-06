@@ -19,7 +19,7 @@ class ConnectorManager:
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
-                 client_bind_ip=None, certificates_directory_path=None, client_name=None, 
+                 client_bind_ip=None, certificates_directory_path=None, tokens_directory_path=None, client_name=None, 
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                  disk_persistence_send=Connector.DISK_PERSISTENCE_SEND, 
@@ -33,6 +33,7 @@ class ConnectorManager:
                  max_number_of_unanswered_keep_alive=Connector.MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=None, hook_allow_certificate_creation=None, hook_proxy_authorization=None,
+                 hook_store_token=None, hook_load_token=None,
                  max_size_file_upload_send=Connector.MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=Connector.MAX_SIZE_FILE_UPLOAD_RECV,
                  everybody_can_send_messages=Connector.EVERYBODY_CAN_SEND_MESSAGES, max_certs=Connector.MAX_CERTS,
                  send_message_types_priorities=None, pubsub_central_broker=False, proxy=None,
@@ -62,7 +63,7 @@ class ConnectorManager:
             
         self.is_server, self.server_sockaddr, self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = \
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
-        self.client_name, self.client_bind_ip = client_name, client_bind_ip
+        self.client_name, self.client_bind_ip, self.tokens_directory_path = client_name, client_bind_ip, tokens_directory_path
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
         self.subscribe_message_types = subscribe_message_types
@@ -85,6 +86,7 @@ class ConnectorManager:
         self.hook_server_auth_client, self.hook_target_directory = hook_server_auth_client, hook_target_directory
         self.hook_allow_certificate_creation = hook_allow_certificate_creation
         self.hook_proxy_authorization = hook_proxy_authorization
+        self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
         self.enable_client_try_reconnect = enable_client_try_reconnect
         self.reuse_server_sockaddr, self.reuse_uds_path_send_to_connector, self.reuse_uds_path_commander_server = \
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
@@ -146,7 +148,8 @@ class ConnectorManager:
         
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, 
                                    use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all,
-                                   certificates_directory_path=self.certificates_directory_path, 
+                                   certificates_directory_path=self.certificates_directory_path,
+                                   tokens_directory_path=self.tokens_directory_path,
                                    client_name=self.client_name, client_bind_ip=self.client_bind_ip,
                                    send_message_types=self.send_message_types, recv_message_types=self.recv_message_types,
                                    subscribe_message_types=self.subscribe_message_types,
@@ -162,6 +165,7 @@ class ConnectorManager:
                                    hook_target_directory=self.hook_target_directory,
                                    hook_allow_certificate_creation=self.hook_allow_certificate_creation,
                                    hook_proxy_authorization=self.hook_proxy_authorization,
+                                   hook_store_token=self.hook_store_token, hook_load_token=self.hook_load_token,
                                    enable_client_try_reconnect=self.enable_client_try_reconnect,
                                    keep_alive_period=self.keep_alive_period, keep_alive_timeout=self.keep_alive_timeout,
                                    max_number_of_unanswered_keep_alive=self.max_number_of_unanswered_keep_alive,

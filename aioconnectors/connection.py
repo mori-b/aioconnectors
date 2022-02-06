@@ -28,6 +28,8 @@ import os
 import ssl
 import ipaddress
 import re
+import hashlib
+import secrets
 
 from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
@@ -35,7 +37,7 @@ from .helpers import full_path, chown_file, validate_source_id, CustomException,
 DEBUG_SHOW_DATA = False
 
 class MessageFields:
-    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', '_pubsub', <user-defined>, ...
+    MESSAGE_TYPE = 'message_type'    #'_ssl', '_ack', '_ping', '_handshake_ssl', '_handshake_no_ssl', '_token', '_pubsub', <user-defined>, ...
     SOURCE_ID = 'source_id'    #str
     DESTINATION_ID = 'destination_id'    #str
     REQUEST_ID = 'request_id'    #int
@@ -400,6 +402,13 @@ class FullDuplex:
                 message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                
                 if self.connector.is_server:
                     if self.connector.use_ssl:
+                        
+                        if self.connector.use_token:
+                            #here message_type should be _token
+                            await self.handle_ssl_messages_server(data, transport_json)
+                            #don't send _token messages to queues                            
+                            continue
+                        
                         if message_type == '_ssl':
                             #server waits for get_new_certificate
                             await self.handle_ssl_messages_server(data, transport_json)
@@ -1068,12 +1077,14 @@ class FullDuplex:
                     self.logger.warning('handle_ssl_messages_server got invalid command : '+str(data_json.get('cmd')))
                 #now server disconnects
                 self.stop_task()
-            else:
-                if data != b'hello':            
-                    self.logger.warning(f'Received bad handshake ssl data : {data[:100]}, from client : '
-                                        f'{transport_json[MessageFields.SOURCE_ID]}')
-                    self.stop_task()
-                    return          
+            else:                
+                if not self.connector.use_token:
+                    if data != b'hello':            
+                        self.logger.warning(f'Received bad handshake ssl data : {data[:100]}, from client : '
+                                            f'{transport_json[MessageFields.SOURCE_ID]}')
+                        self.stop_task()
+                        return
+                    
                 self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
                 old_peername = self.peername
                 new_peername = transport_json[MessageFields.SOURCE_ID]
@@ -1083,13 +1094,13 @@ class FullDuplex:
                     allow_id = False                                        
                     for maybe_regex in self.connector.whitelisted_clients_id:
                         if re.match(maybe_regex, new_peername):                            
-                            self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server allowing whitelisted client'
+                            self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server allowing whitelisted client'
                                              f' {new_peername} from ip {self.extra_info}')
                             allow_id = True
                             break
                             
                     if not allow_id:
-                        self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking non whitelisted '
+                        self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server blocking non whitelisted '
                                          f'client {new_peername} from ip {self.extra_info}')
                         
                         if self.connector.hook_whitelist_clients:
@@ -1102,10 +1113,47 @@ class FullDuplex:
                 if self.connector.blacklisted_clients_id:
                     for maybe_regex in self.connector.blacklisted_clients_id:
                         if re.match(maybe_regex, new_peername):
-                            self.logger.info(f'{self.connector.source_id} handle_handshake_no_ssl_server blocking blacklisted'
+                            self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server blocking blacklisted'
                                              f' client {new_peername} from ip {self.extra_info}')
                             self.stop_task()                                
                             return                
+                
+                #token mode is supported only with use_ssl and with ssl_allow_all
+                if self.connector.use_token:
+                    data_json = json.loads(data.decode())                
+                    if data_json.get('cmd') == 'get_new_token':
+                        if new_peername in self.connector.tokens:
+                            self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server authenticated '
+                                     f'client {new_peername} from ip {self.extra_info} sending again get_new_token')                                    
+                            self.stop_task() 
+                            return
+                        if len(self.connector.tokens) > self.connector.MAX_NUMBER_OF_TOKENS:
+                            self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server cannot allocate '
+                                     f'token for client {new_peername} from ip {self.extra_info} : too many tokens')                                    
+                            self.stop_task() 
+                            return
+                        new_token = secrets.token_hex(32)
+                        self.connector.tokens[new_peername] = new_token
+                        self.connector.store_server_tokens(self.connector.tokens)
+                        response = {'cmd': 'set_new_token', 'token':new_token}
+                        params_as_string = json.dumps(response)
+                        self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server sending new token to '
+                                     f'client {new_peername} from ip {self.extra_info}')    
+                        await self.send_message(message_type='_token', data=params_as_string)         
+                        # ?? self.stop_task()
+                        return
+                    elif data_json.get('cmd') == 'authenticate':
+                        token = data_json.get('token', '')
+                        authenticate_success = False
+                        if token:
+                            hashed = self.hash_token(token[:self.connector.MAX_TOKEN_LENGTH])
+                            if hashed == self.connector.tokens.get(new_peername):
+                                self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server successfully'
+                                         f'authenticated token of client {new_peername} from ip {self.extra_info}')                                    
+                                authenticate_success = True
+                        if not authenticate_success:
+                            self.stop_task() 
+                            return
                 
                 self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
                 self.peername = new_peername                
@@ -1158,8 +1206,41 @@ class FullDuplex:
                         self.logger.warning(msg)
                         raise Exception(msg)                     
             else:
-                self.logger.info('handle_ssl_messages_client sending hello')            
-                await self.send_message(message_type='_handshake_ssl', data='hello')
+                #token mode is supported only with use_ssl and with ssl_allow_all
+                if self.connector.use_token:
+                    if self.connector.token:
+                        self.logger.info('handle_ssl_messages_client sending authenticate')                                                                
+                        await self.send_message(message_type='_token', data={'cmd':'authenticate', 'token':self.connector.token})
+                        return
+                    else:
+                        self.logger.info('handle_ssl_messages_client sending get_new_token')                                        
+                        await self.send_message(message_type='_token', data={'cmd':'get_new_token'})
+                        
+                        transport_json, data, binary = await self.recv_message()
+                        if transport_json[MessageFields.MESSAGE_TYPE] != '_token':
+                            msg = 'handle_ssl_messages_client received bad message_type : '+str(transport_json)
+                            self.logger.warning(msg)
+                            raise Exception(msg)                        
+                        data_json = json.loads(data.decode())
+                        if data_json.get('cmd') == 'set_new_token':
+                            self.logger.info('handle_ssl_messages_client receiving set_new_token')                                          
+                            token = data_json.get('token')
+                            self.connector.store_client_token(token)
+                            #close this connection, and open new connection with newly received token
+                            #self.stop_task()
+                            #raise self.TransitionClientCertificateException()
+                            self.logger.info('handle_ssl_messages_client sending authenticate')                                                                
+                            await self.send_message(message_type='_token', data={'cmd':'authenticate',
+                                                                                 'token':self.connector.token})
+                            return
+                            
+                        else:
+                            msg = 'handle_ssl_messages_client got invalid command : '+str(data_json.get('cmd'))
+                            self.logger.warning(msg)
+                            raise Exception(msg)                     
+                else:
+                    self.logger.info('handle_ssl_messages_client sending hello')            
+                    await self.send_message(message_type='_handshake_ssl', data='hello')
                 
         except self.TransitionClientCertificateException:
             #restart client connector with newly received certificate
@@ -1174,6 +1255,15 @@ class FullDuplex:
             self.logger.exception('handle_ssl_messages_client')
             self.stop_task(client_wait_for_reconnect=True)            
             raise
+            
+    def hash_token(self, token):
+        #64bytes to 64bytes
+        try:
+            res = hashlib.sha256(token.encode()).hexdigest()
+            return res
+        except Exception:
+            self.logger.exception('hash_token')
+            return
                     
     async def handle_handshake_no_ssl_server(self, data=None, transport_json=None):
         try:
@@ -1181,7 +1271,8 @@ class FullDuplex:
                 self.logger.warning(f'Received bad handshake_no_ssl data : {data[:100]}, from client : '
                                     f'{transport_json[MessageFields.SOURCE_ID]}')
                 self.stop_task()
-                return          
+                return
+            
             self.logger.info('Received handshake_no_ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
             old_peername = self.peername    #str(self.writer.get_extra_info('peername'))
             new_peername = transport_json[MessageFields.SOURCE_ID]

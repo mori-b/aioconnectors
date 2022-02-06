@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL = True
+    USE_SSL = True, USE_TOKEN=False,
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -71,6 +71,8 @@ class Connector:
     UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT = 'uds_path_receive_from_connector_client_{}_{}'    
     MAX_LENGTH_UDS_PATH = 104
     SUPPORT_PRIORITIES = True
+    MAX_TOKEN_LENGTH = 64
+    MAX_NUMBER_OF_TOKENS = 10000
     
     #client only
     KEEP_ALIVE_TIMEOUT = 5  
@@ -79,8 +81,8 @@ class Connector:
     ALTERNATE_CLIENT_DEFAULT_CERT = False    
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
-                 use_ssl=USE_SSL, ssl_allow_all=False, certificates_directory_path=None, 
-                 disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 use_ssl=USE_SSL, ssl_allow_all=False, use_token=USE_TOKEN, certificates_directory_path=None, 
+                 tokens_directory_path=None, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  tool_only=False, file_recv_config=None, config_file_path=None,
@@ -98,7 +100,8 @@ class Connector:
                  alternate_client_default_cert=ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
-                 hook_whitelist_clients=None, ignore_peer_traffic=False):                 
+                 hook_whitelist_clients=None, ignore_peer_traffic=False,
+                 hook_store_token=None, hook_load_token=None):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -125,7 +128,9 @@ class Connector:
             
             self.server_sockaddr = server_sockaddr
             self.is_server = is_server            
-            self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = use_ssl, ssl_allow_all, full_path(certificates_directory_path)
+            self.use_ssl, self.ssl_allow_all, self.use_token = use_ssl, ssl_allow_all, use_token
+            self.certificates_directory_path = full_path(certificates_directory_path)
+            self.tokens_directory_path = full_path(tokens_directory_path)
             self.server = self.send_to_connector_server = None
 
             self.reuse_server_sockaddr = reuse_server_sockaddr
@@ -134,12 +139,14 @@ class Connector:
             self.hook_target_directory = hook_target_directory
             self.hook_allow_certificate_creation = hook_allow_certificate_creation
             self.hook_proxy_authorization = hook_proxy_authorization
+            self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
             self.max_certs = max_certs
             self.config_file_path = config_file_path
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
+                self.tokens_file_path = os.path.join(self.tokens_directory_path, 'server_tokens.json')
                 self.hook_server_auth_client = hook_server_auth_client
                 if hook_server_auth_client:
                     self.logger.info(f'Connector Server {self.source_id} has a hook_server_auth_client')
@@ -173,7 +180,8 @@ class Connector:
                 self.logger.info('Client has source id : '+self.source_id)   
                 if hook_target_directory:
                     self.logger.info(f'Connector Client {self.source_id} has a hook_target_directory')                
-                self.alnum_source_id = self.alnum_name(self.source_id)                            
+                self.alnum_source_id = self.alnum_name(self.source_id)           
+                self.tokens_file_path = os.path.join(self.tokens_directory_path, self.alnum_source_id)
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
                 self.inside_end_sockpair = None
@@ -251,6 +259,16 @@ class Connector:
                 else:                        
                     self.logger.info('Connector will not use ssl')
                     
+                if self.use_token:                    
+                    self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
+                    if self.is_server:
+                        self.tokens = self.load_server_tokens()
+                    else:
+                        self.token = self.load_client_token()
+                else:                        
+                    self.logger.info('Connector will not use tokens')
+                    
+                    
                 self.everybody_can_send_messages = everybody_can_send_messages
                 self.send_message_types_priorities = send_message_types_priorities
                 if not self.send_message_types_priorities:
@@ -324,7 +342,49 @@ class Connector:
                 self.logger.exception('update_config_file')
                 return False
         return True
-    
+
+    def load_server_tokens(self):
+        try:
+            if not os.path.exists(self.tokens_file_path):
+                with open(self.tokens_file_path, 'w') as fd:
+                    fd.write('{}')
+                    return {}
+            with open(self.tokens_file_path, 'r') as fd:
+                res = json.load(fd)
+            self.tokens = res
+            return res
+        except Exception:
+            self.logger.exception('load_server_tokens')
+            return {}
+        
+    def store_server_tokens(self, tokens_dict):
+        self.logger.info(f'{self.source_id} Calling store_server_tokens')                    
+        self.tokens = tokens_dict
+        with open(self.tokens_file_path, 'w') as fd:
+            json.dump(tokens_dict, fd, inent=4, sort_keys=True)
+        os.chmod(self.tokens_file_path, stat.S_IRUSR | stat.S_IWUSR)        
+
+    def load_client_token(self):
+        if not os.path.exists(self.tokens_file_path):
+            return None        
+        with open(self.tokens_file_path, 'r') as fd:     
+            res = fd.read()[:MAX_TOKEN_LENGTH]
+        if self.hook_load_token:
+            res = self.hook_load_token(res)           
+        self.token = res
+        return res
+
+    def store_client_token(self, token):
+        self.token = token
+        if self.hook_store_token:
+            self.logger.info(f'{self.source_id} Calling store_client_token with hook_store_token')
+            token = self.hook_store_token(token)
+        else:
+            self.logger.info(f'{self.source_id} Calling store_client_token')            
+        with open(self.tokens_file_path, 'w') as fd:
+            fd.write(token)
+        os.chmod(self.tokens_file_path, stat.S_IRUSR | stat.S_IWUSR)        
+        
     async def create_commander_server(self):
         if os.path.exists(self.uds_path_commander) and not self.reuse_uds_path_commander_server:
             self.logger.exception('create_commander_server!')
@@ -390,6 +450,12 @@ class Connector:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, True)
             
             if self.is_server:
+                if self.use_token:                    
+                    self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
+                    self.tokens = self.load_server_tokens()
+                else:                        
+                    self.logger.info('Connector will not use tokens')
+                
                 self.sock.setblocking(False)
                 sock_bind = self.server_sockaddr
                 if '.' not in sock_bind[0]:
@@ -399,6 +465,12 @@ class Connector:
                 self.sock.bind(sock_bind)
                 self.tasks['run_server'] = self.loop.create_task(self.run_server())
             else:
+                if self.use_token:                    
+                    self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
+                    self.token = self.load_client_token()
+                else:                        
+                    self.logger.info('Connector will not use tokens')
+                
                 self.sock.setblocking(False)                
                 if self.client_bind_ip:
                     sock_bind = self.client_bind_ip
