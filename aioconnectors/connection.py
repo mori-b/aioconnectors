@@ -1133,7 +1133,7 @@ class FullDuplex:
                             self.stop_task() 
                             return
                         new_token = secrets.token_hex(32)
-                        self.connector.tokens[new_peername] = new_token
+                        self.connector.tokens[new_peername] = self.hash_token(new_token)
                         self.connector.store_server_tokens(self.connector.tokens)
                         response = {'cmd': 'set_new_token', 'token':new_token}
                         params_as_string = json.dumps(response)
