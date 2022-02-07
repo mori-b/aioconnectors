@@ -467,7 +467,11 @@ class Connector:
             else:
                 if self.use_token:                    
                     self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
-                    self.token = self.load_client_token()
+                    if alternate_client_cert_toggle_default:
+                        self.token = None
+                        self.logger.info('Client alternating with get_new_token')
+                    else:
+                        self.token = self.load_client_token()
                 else:                        
                     self.logger.info('Connector will not use tokens')
                 

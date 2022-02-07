@@ -1124,7 +1124,8 @@ class FullDuplex:
                     if data_json.get('cmd') == 'get_new_token':
                         if new_peername in self.connector.tokens:
                             self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server authenticated '
-                                     f'client {new_peername} from ip {self.extra_info} sending again get_new_token')                                    
+                                     f'client {new_peername} from ip {self.extra_info} sending again get_new_token, '
+                                     'disconnecting...')
                             self.stop_task() 
                             return
                         if len(self.connector.tokens) > self.connector.MAX_NUMBER_OF_TOKENS:
