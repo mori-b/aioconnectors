@@ -17,7 +17,7 @@ DEFAULT_LOGGER_ROTATE = True
 class ConnectorManager:
     def __init__(self, config_file_path=None, config_file_overrides_kwargs=True, logger=None, use_default_logger=True, 
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
-                 default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
+                 default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, use_token=Connector.USE_TOKEN,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
                  client_bind_ip=None, certificates_directory_path=None, tokens_directory_path=None, client_name=None, 
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
@@ -63,7 +63,8 @@ class ConnectorManager:
             
         self.is_server, self.server_sockaddr, self.use_ssl, self.ssl_allow_all, self.certificates_directory_path = \
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
-        self.client_name, self.client_bind_ip, self.tokens_directory_path = client_name, client_bind_ip, tokens_directory_path
+        self.client_name, self.client_bind_ip, self.tokens_directory_path, self.use_token = client_name, client_bind_ip,\
+                            tokens_directory_path, use_token
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
         self.subscribe_message_types = subscribe_message_types
@@ -147,7 +148,7 @@ class ConnectorManager:
         self.send_message_types.append('_pubsub')        
         
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, 
-                                   use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all,
+                                   use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all, use_token=self.use_token,
                                    certificates_directory_path=self.certificates_directory_path,
                                    tokens_directory_path=self.tokens_directory_path,
                                    client_name=self.client_name, client_bind_ip=self.client_bind_ip,

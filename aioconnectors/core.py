@@ -131,6 +131,9 @@ class Connector:
             self.use_ssl, self.ssl_allow_all, self.use_token = use_ssl, ssl_allow_all, use_token
             self.certificates_directory_path = full_path(certificates_directory_path)
             self.tokens_directory_path = full_path(tokens_directory_path)
+            if self.tokens_directory_path:
+                if not os.path.exists(self.tokens_directory_path):
+                    os.makedirs(self.tokens_directory_path)
             self.server = self.send_to_connector_server = None
 
             self.reuse_server_sockaddr = reuse_server_sockaddr
@@ -146,7 +149,7 @@ class Connector:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
-                self.tokens_file_path = os.path.join(self.tokens_directory_path, 'server_tokens.json')
+                self.tokens_file_path = os.path.join(self.tokens_directory_path or '', 'server_tokens.json')
                 self.hook_server_auth_client = hook_server_auth_client
                 if hook_server_auth_client:
                     self.logger.info(f'Connector Server {self.source_id} has a hook_server_auth_client')
@@ -180,8 +183,8 @@ class Connector:
                 self.logger.info('Client has source id : '+self.source_id)   
                 if hook_target_directory:
                     self.logger.info(f'Connector Client {self.source_id} has a hook_target_directory')                
-                self.alnum_source_id = self.alnum_name(self.source_id)           
-                self.tokens_file_path = os.path.join(self.tokens_directory_path, self.alnum_source_id)
+                self.alnum_source_id = self.alnum_name(self.source_id)    
+                self.tokens_file_path = os.path.join(self.tokens_directory_path or '', self.alnum_source_id)
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
                 self.inside_end_sockpair = None
@@ -361,14 +364,14 @@ class Connector:
         self.logger.info(f'{self.source_id} Calling store_server_tokens')                    
         self.tokens = tokens_dict
         with open(self.tokens_file_path, 'w') as fd:
-            json.dump(tokens_dict, fd, inent=4, sort_keys=True)
+            json.dump(tokens_dict, fd, indent=4, sort_keys=True)
         os.chmod(self.tokens_file_path, stat.S_IRUSR | stat.S_IWUSR)        
 
     def load_client_token(self):
         if not os.path.exists(self.tokens_file_path):
             return None        
         with open(self.tokens_file_path, 'r') as fd:     
-            res = fd.read()[:MAX_TOKEN_LENGTH]
+            res = fd.read()[:self.MAX_TOKEN_LENGTH]
         if self.hook_load_token:
             res = self.hook_load_token(res)           
         self.token = res

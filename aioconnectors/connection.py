@@ -403,7 +403,7 @@ class FullDuplex:
                 if self.connector.is_server:
                     if self.connector.use_ssl:
                         
-                        if self.connector.use_token:
+                        if self.connector.use_token and message_type == '_token':
                             #here message_type should be _token
                             await self.handle_ssl_messages_server(data, transport_json)
                             #don't send _token messages to queues                            
@@ -1141,7 +1141,7 @@ class FullDuplex:
                         self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server sending new token to '
                                      f'client {new_peername} from ip {self.extra_info}')    
                         await self.send_message(message_type='_token', data=params_as_string)         
-                        # ?? self.stop_task()
+                        self.stop_task()
                         return
                     elif data_json.get('cmd') == 'authenticate':
                         token = data_json.get('token', '')
@@ -1149,7 +1149,7 @@ class FullDuplex:
                         if token:
                             hashed = self.hash_token(token[:self.connector.MAX_TOKEN_LENGTH])
                             if hashed == self.connector.tokens.get(new_peername):
-                                self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server successfully'
+                                self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server successfully '
                                          f'authenticated token of client {new_peername} from ip {self.extra_info}')                                    
                                 authenticate_success = True
                         if not authenticate_success:
@@ -1210,12 +1210,13 @@ class FullDuplex:
                 #token mode is supported only with use_ssl and with ssl_allow_all
                 if self.connector.use_token:
                     if self.connector.token:
-                        self.logger.info('handle_ssl_messages_client sending authenticate')                                                                
-                        await self.send_message(message_type='_token', data={'cmd':'authenticate', 'token':self.connector.token})
+                        self.logger.info('handle_ssl_messages_client sending token authenticate')                                                                
+                        await self.send_message(message_type='_token', data=json.dumps({'cmd':'authenticate', \
+                                                                                'token':self.connector.token}))
                         return
                     else:
                         self.logger.info('handle_ssl_messages_client sending get_new_token')                                        
-                        await self.send_message(message_type='_token', data={'cmd':'get_new_token'})
+                        await self.send_message(message_type='_token', data=json.dumps({'cmd':'get_new_token'}))
                         
                         transport_json, data, binary = await self.recv_message()
                         if transport_json[MessageFields.MESSAGE_TYPE] != '_token':
@@ -1228,12 +1229,12 @@ class FullDuplex:
                             token = data_json.get('token')
                             self.connector.store_client_token(token)
                             #close this connection, and open new connection with newly received token
-                            #self.stop_task()
-                            #raise self.TransitionClientCertificateException()
-                            self.logger.info('handle_ssl_messages_client sending authenticate')                                                                
-                            await self.send_message(message_type='_token', data={'cmd':'authenticate',
-                                                                                 'token':self.connector.token})
-                            return
+                            self.stop_task()
+                            raise self.TransitionClientCertificateException()
+                            #self.logger.info('handle_ssl_messages_client sending token authenticate')                                                                
+                            #await self.send_message(message_type='_token', data=json.dumps({'cmd':'authenticate',
+                            #                                                     'token':self.connector.token}))
+                            #return
                             
                         else:
                             msg = 'handle_ssl_messages_client got invalid command : '+str(data_json.get('cmd'))
