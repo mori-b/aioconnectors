@@ -394,6 +394,16 @@ class FullDuplex:
                 except Exception:
                     self.logger.exception(self.connector.source_id+' handle_incoming_connection')                    
                     return                   
+                
+        else:
+            if self.connector.use_ssl:                
+                if self.connector.use_token:
+                    self.logger.info(self.connector.source_id+' handle_incoming_connection waiting for message with use_token')
+                    transport_json, data, binary = await self.recv_message()
+                    message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
+                    #here message_type should be _token, which is validated inside handle_ssl_messages_server
+                    await self.handle_ssl_messages_server(data, transport_json)
+                    #don't send _token messages to queues                                    
         
         while True:
             try:            
@@ -401,14 +411,7 @@ class FullDuplex:
                 transport_json, data, binary = await self.recv_message()
                 message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                
                 if self.connector.is_server:
-                    if self.connector.use_ssl:
-                        
-                        if self.connector.use_token and message_type == '_token':
-                            #here message_type should be _token
-                            await self.handle_ssl_messages_server(data, transport_json)
-                            #don't send _token messages to queues                            
-                            continue
-                        
+                    if self.connector.use_ssl:                        
                         if message_type == '_ssl':
                             #server waits for get_new_certificate
                             await self.handle_ssl_messages_server(data, transport_json)
@@ -1084,10 +1087,19 @@ class FullDuplex:
                                             f'{transport_json[MessageFields.SOURCE_ID]}')
                         self.stop_task()
                         return
-                    
-                self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
+
                 old_peername = self.peername
                 new_peername = transport_json[MessageFields.SOURCE_ID]
+                    
+                self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
+                message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
+                if message_type != '_token':
+                    self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
+                             f'message_type {message_type[:20]} from client {new_peername} from ip {self.extra_info},'
+                             ' while expecting token')                                                                
+                    self.stop_task() 
+                    return
+                
                 validate_source_id(new_peername)
                 
                 if self.connector.whitelisted_clients_id:
@@ -1123,9 +1135,9 @@ class FullDuplex:
                     data_json = json.loads(data.decode())                
                     if data_json.get('cmd') == 'get_new_token':
                         if new_peername in self.connector.tokens:
-                            self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server authenticated '
-                                     f'client {new_peername} from ip {self.extra_info} sending again get_new_token, '
-                                     'disconnecting...')
+                            self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server '
+                                     f'client {new_peername} from ip {self.extra_info} with existing token '
+                                     'sending get_new_token, disconnecting...')
                             self.stop_task() 
                             return
                         if len(self.connector.tokens) > self.connector.MAX_NUMBER_OF_TOKENS:
@@ -1153,8 +1165,16 @@ class FullDuplex:
                                          f'authenticated token of client {new_peername} from ip {self.extra_info}')                                    
                                 authenticate_success = True
                         if not authenticate_success:
+                            self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
+                                     f'authentication token from client {new_peername} from ip {self.extra_info}')                                                                
                             self.stop_task() 
                             return
+                    else:
+                        self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
+                                 f'command {data_json.get("cmd")[:20]} from client {new_peername} from ip {self.extra_info},'
+                                 ' while expecting token')                                                                
+                        self.stop_task() 
+                        return
                 
                 self.logger.info('Replacing peername {} by {}'.format(old_peername, new_peername))
                 self.peername = new_peername                
