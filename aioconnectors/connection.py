@@ -1092,13 +1092,14 @@ class FullDuplex:
                 new_peername = transport_json[MessageFields.SOURCE_ID]
                     
                 self.logger.info('Received handshake ssl from client : {}'.format(transport_json[MessageFields.SOURCE_ID]))
-                message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
-                if message_type != '_token':
-                    self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
-                             f'message_type {message_type[:20]} from client {new_peername} from ip {self.extra_info},'
-                             ' while expecting token')                                                                
-                    self.stop_task() 
-                    return
+                if self.connector.use_token:                
+                    message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
+                    if message_type != '_token':
+                        self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
+                                 f'message_type {message_type[:20]} from client {new_peername} from ip {self.extra_info},'
+                                 ' while expecting token')                                                                
+                        self.stop_task() 
+                        return
                 
                 validate_source_id(new_peername)
                 

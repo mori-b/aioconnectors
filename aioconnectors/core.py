@@ -465,10 +465,10 @@ class Connector:
             
             if self.is_server:
                 if self.use_token:                    
-                    self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
+                    self.logger.info('Connector server will use tokens, with tokens file path '+self.tokens_file_path)
                     self.tokens = self.load_server_tokens()
                 else:                        
-                    self.logger.info('Connector will not use tokens')
+                    self.logger.info('Connector server will not use tokens')
                 
                 self.sock.setblocking(False)
                 sock_bind = self.server_sockaddr
@@ -480,14 +480,14 @@ class Connector:
                 self.tasks['run_server'] = self.loop.create_task(self.run_server())
             else:
                 if self.use_token:                    
-                    self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
+                    self.logger.info('Connector client will use tokens, with tokens file path '+self.tokens_file_path)
                     if alternate_client_cert_toggle_default:
                         self.token = None
                         self.logger.info('Client alternating with get_new_token')
                     else:
                         self.token = self.load_client_token()
                 else:                        
-                    self.logger.info('Connector will not use tokens')
+                    self.logger.info('Connector client will not use tokens')
                 
                 self.sock.setblocking(False)                
                 if self.client_bind_ip:
