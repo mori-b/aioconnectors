@@ -109,7 +109,7 @@ def cli(logger=None):
             continue
         clearscreen()
         list_cmds = ['start', 'stop gracefully', 'stop hard', 'restart', 'show_connected_peers', 
-                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'disconnect_client',
+                     'ignore_peer_traffic', 'peek_queues', 'delete_client_certificate', 'delete_client_token', 'disconnect_client',
                      'show_log_level', 'set_log_level', 'show_subscribe_message_types', 'set_subscribe_message_types',
                      'add_blacklist_client', 'remove_blacklist_client', 'add_whitelist_client', 'remove_whitelist_client']
         dict_cmds = {str(index):cmd for index,cmd in enumerate(list_cmds)}
@@ -236,6 +236,36 @@ def cli(logger=None):
                         res = input('\nAre you sure you want to delete '+client_name+' \'s certificate ? y/n\n')
                         if res =='y':                            
                             task = loop.create_task(connector_remote_tool.delete_client_certificate())
+                            loop.run_until_complete(task)
+                            print(task.result().decode())
+
+                elif the_cmd == 'delete_client_token':
+                    if is_server:
+                        peers_dict = show_connected_peers(return_peers=running_with_tab_completion)
+                        if running_with_tab_completion:
+                            def complete(text,state):
+                                results = [peer for peer in peers_dict if peer.startswith(text)] + [None]
+                                return results[state]
+                            readline.set_completer(complete)                        
+                        
+                        client_name = input('\nPlease type the client name whose token you would '
+                                            'like to delete, or q to quit\n')
+                        if running_with_tab_completion:
+                            readline.set_completer(None) 
+                        
+                        if client_name != 'q':
+                            res = input('\nAre you sure you want to delete '+client_name+' \'s token ? y/n\n')
+                            if res =='y':
+                                task = loop.create_task(connector_remote_tool.delete_client_token(client_id=client_name))
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                            
+                                task = loop.create_task(connector_remote_tool.disconnect_client(client_id=client_name))
+                                loop.run_until_complete(task)
+                                print(task.result().decode())                            
+                    else:
+                        res = input('\nAre you sure you want to delete '+client_name+' \'s token ? y/n\n')
+                        if res =='y':                            
+                            task = loop.create_task(connector_remote_tool.delete_client_token())
                             loop.run_until_complete(task)
                             print(task.result().decode())
                             

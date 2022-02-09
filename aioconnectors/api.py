@@ -316,6 +316,14 @@ class ConnectorManager:
             res = await self.connector.delete_client_certificate_on_client()
         return res     
 
+    async def delete_client_token(self, client_id):
+        self.logger.info(f'{self.source_id} delete_client_token {client_id}')
+        if self.connector.is_server:
+            res = await self.connector.delete_client_token_on_server(client_id)
+        else:
+            res = await self.connector.delete_client_token_on_client()
+        return res     
+
     def show_subscribe_message_types(self):
         self.logger.info(f'{self.source_id} show_subscribe_message_types')
         return self.connector.show_subscribe_message_types()
@@ -839,6 +847,16 @@ class ConnectorRemoteTool(ConnectorBaseTool):
             return response
         else:
             response = await self.send_command(cmd='delete_client_certificate_on_client', kwargs={'restart_client':restart_client})
+            return response
+
+    async def delete_client_token(self, client_id=None, restart_client=True):
+        self.logger.info(f'{self.source_id} delete_client_token {client_id}')                 
+        if self.is_server:
+            response = await self.send_command(cmd='delete_client_token_on_server', 
+                                               kwargs={'client_id':client_id})
+            return response
+        else:
+            response = await self.send_command(cmd='delete_client_token_on_client', kwargs={'restart_client':restart_client})
             return response
         
     async def disconnect_client(self, client_id=None):

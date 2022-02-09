@@ -16,7 +16,7 @@ aioconnectors supported commands :
     
     - print_config_templates
     - create_certificates [optional dirpath]
-    - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate)
+    - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate, delete_client_token)
     - create_connector <config file path>
     - test_receive_messages <config file path>
     - test_send_messages <config file path>

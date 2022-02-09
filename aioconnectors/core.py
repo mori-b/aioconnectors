@@ -262,12 +262,20 @@ class Connector:
                 else:                        
                     self.logger.info('Connector will not use ssl')
                     
-                if self.use_token:                    
+                if self.use_token:          
                     self.logger.info('Connector will use tokens, with tokens file path '+self.tokens_file_path)
-                    if self.is_server:
-                        self.tokens = self.load_server_tokens()
+                    if not self.use_ssl:
+                        self.logger.warning('Connector cannot use tokens without use_ssl, not using tokens')
+                        self.use_token = None
                     else:
-                        self.token = self.load_client_token()
+                        if not self.ssl_allow_all:
+                            self.logger.warning('Connector cannot use tokens without ssl_allow_all, not using tokens')
+                            self.use_token = None
+                        else:
+                            if self.is_server:
+                                self.tokens = self.load_server_tokens()
+                            else:
+                                self.token = self.load_client_token()
                 else:                        
                     self.logger.info('Connector will not use tokens')
                     
@@ -361,7 +369,10 @@ class Connector:
             return {}
         
     def store_server_tokens(self, tokens_dict):
-        self.logger.info(f'{self.source_id} Calling store_server_tokens')                    
+        self.logger.info(f'{self.source_id} Calling store_server_tokens')
+        if len(tokens_dict) > self.MAX_NUMBER_OF_TOKENS:
+            self.logger.warning(f'{self.source_id} store_server_tokens with too many token : {len(tokens_dict)}, aborting')
+            return
         self.tokens = tokens_dict
         with open(self.tokens_file_path, 'w') as fd:
             json.dump(tokens_dict, fd, indent=4, sort_keys=True)
@@ -378,7 +389,7 @@ class Connector:
         return res
 
     def store_client_token(self, token):
-        self.token = token
+        self.token = token[:self.MAX_TOKEN_LENGTH]
         if self.hook_store_token:
             self.logger.info(f'{self.source_id} Calling store_client_token with hook_store_token')
             token = self.hook_store_token(token)
@@ -1010,7 +1021,10 @@ class Connector:
                 #full_duplex = self.full_duplex_connections.pop(client_id, None)            
                 #client_ip = full_duplex.extra_info[0]   
                 #full_duplex = None
-                await self.delete_client_certificate_on_server(client_id=client_id)
+                if self.use_token:
+                    await self.delete_client_token_on_server(client_id=client_id)
+                else:
+                    await self.delete_client_certificate_on_server(client_id=client_id)
             elif client_ip:
                 self.logger.info(f'{self.source_id} blacklisting client {client_ip}')        
                 if '/' in client_ip:
@@ -1120,6 +1134,19 @@ class Connector:
             self.logger.exception('delete_client_certificate_on_server')
             return json.dumps({'status':False, 'msg':str(exc)})
 
+    async def delete_client_token_on_server(self, client_id=None):
+        try:
+            self.logger.info(f'{self.source_id} deleting client token {client_id}')
+            tokens_dict = self.load_server_tokens()
+            if client_id in tokens_dict:
+                tokens_dict.pop(client_id)
+                self.store_server_tokens(tokens_dict)
+            await self.disconnect_client(client_id)
+            return json.dumps({'status':True, 'msg':''})
+        except Exception as exc:
+            self.logger.exception('delete_client_token_on_server')
+            return json.dumps({'status':False, 'msg':str(exc)})
+
     async def delete_client_certificate_on_client(self, restart_client=True):
         try:
             self.logger.info(f'{self.source_id} deleting own certificate')            
@@ -1131,6 +1158,19 @@ class Connector:
             return response
         except Exception as exc:
             self.logger.exception('delete_client_certificate_on_client')
+            return json.dumps({'status':False, 'msg':str(exc)})
+
+    async def delete_client_token_on_client(self, restart_client=True):
+        try:
+            self.logger.info(f'{self.source_id} deleting own token')
+            if os.path.exists(self.tokens_file_path):
+                os.remove(self.tokens_file_path)
+            self.token = None
+            if restart_client:
+                await self.restart()            
+            return json.dumps({'status':True, 'msg':''})
+        except Exception as exc:
+            self.logger.exception('delete_client_token_on_client')
             return json.dumps({'status':False, 'msg':str(exc)})
 
     def show_log_level(self):
