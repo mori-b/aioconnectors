@@ -42,7 +42,8 @@ TEST_UPLOAD_FILE_WITH_PERSISTENCE = False
 TEST_COMMANDER_SERVER = False    #delete_client_certificate
 TEST_COMMANDER_CLIENT = False    #delete_client_certificate
 TEST_WITH_ACK = False 
-TEST_WITH_SSL_ALLOW_ALL = False
+TEST_WITH_SSL_ALLOW_ALL = True
+TEST_WITH_TOKEN = True
 TEST_WITH_CLIENT_KEEP_ALIVE = True
 
 
@@ -122,7 +123,7 @@ if __name__ == '__main__':
                                                    file_recv_config=FILE_RECV_CONFIG, reuse_server_sockaddr=True,
                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                                                    uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, 
-                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL)
+                                                   ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL, use_token=TEST_WITH_TOKEN)
             loop = asyncio.get_event_loop()
             
             if PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE:
@@ -160,7 +161,7 @@ if __name__ == '__main__':
                                                    uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
                                                    uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET, 
                                                    ssl_allow_all=TEST_WITH_SSL_ALLOW_ALL, keep_alive_period=CLIENT_KEEP_ALIVE_PERIOD,
-                                                   send_message_types_priorities={'type1':1,'type2':2})
+                                                   send_message_types_priorities={'type1':1,'type2':2}, use_token=TEST_WITH_TOKEN)
             loop = asyncio.get_event_loop()
 
             if PERSISTENCE_CLIENT_DELETE_PREVIOUS_PERSISTENCE_FILE:
