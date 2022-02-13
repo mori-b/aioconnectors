@@ -1250,7 +1250,7 @@ class FullDuplex:
                             token = data_json.get('token')
                             self.connector.store_client_token(token)
                             #close this connection, and open new connection with newly received token
-                            self.stop_task()
+                            ###self.stop_task()
                             raise self.TransitionClientCertificateException()
                             #self.logger.info('handle_ssl_messages_client sending token authenticate')                                                                
                             #await self.send_message(message_type='_token', data=json.dumps({'cmd':'authenticate',
