@@ -40,7 +40,8 @@ class ConnectorManager:
                  alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
-                 hook_whitelist_clients=None, ignore_peer_traffic=False):
+                 hook_whitelist_clients=None, ignore_peer_traffic=False,
+                 token_verify_peer_cert=False, token_client_send_cert=True, token_client_verify_server_hostname=None):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -65,6 +66,8 @@ class ConnectorManager:
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path
         self.client_name, self.client_bind_ip, self.tokens_directory_path, self.use_token = client_name, client_bind_ip,\
                             tokens_directory_path, use_token
+        self.token_verify_peer_cert, self.token_client_send_cert = token_verify_peer_cert, token_client_send_cert
+        self.token_client_verify_server_hostname = token_client_verify_server_hostname
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
         self.subscribe_message_types = subscribe_message_types
@@ -182,7 +185,10 @@ class ConnectorManager:
                                    blacklisted_clients_id=self.blacklisted_clients_id, blacklisted_clients_ip=self.blacklisted_clients_ip,
                                    blacklisted_clients_subnet=self.blacklisted_clients_subnet, whitelisted_clients_id=self.whitelisted_clients_id,
                                    whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet,
-                                   hook_whitelist_clients=self.hook_whitelist_clients)
+                                   hook_whitelist_clients=self.hook_whitelist_clients,
+                                   token_verify_peer_cert=self.token_verify_peer_cert, token_client_send_cert=self.token_client_send_cert,
+                                   token_client_verify_server_hostname=self.token_client_verify_server_hostname
+)
         
             
     async def start_connector(self, delay=None, connector_socket_only=False):        

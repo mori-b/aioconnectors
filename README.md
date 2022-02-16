@@ -69,9 +69,12 @@ A directory containing certificates must be created before running the example, 
 If you run server and client on different machines, this command should be run on both machines.  
 
 3.Encryption with authentication  
-In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated. In case you want to run this example with authentication too, you should set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
+In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated.  
+In case you want to run this example with authentication too, you have 2 options :  
+3.1. Set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
 If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
 In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
+3.2. Set use\_ssl to True, ssl\_allow\_all to True, and use\_token to True, in both server and client ConnectorManager instantiations.  
 
 
 ### Server example

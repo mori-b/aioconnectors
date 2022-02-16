@@ -101,7 +101,9 @@ class Connector:
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
-                 hook_store_token=None, hook_load_token=None):                 
+                 hook_store_token=None, hook_load_token=None,
+                 token_verify_peer_cert=False, token_client_send_cert=True, token_client_verify_server_hostname=None
+):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
         if tool_only:
@@ -143,6 +145,8 @@ class Connector:
             self.hook_allow_certificate_creation = hook_allow_certificate_creation
             self.hook_proxy_authorization = hook_proxy_authorization
             self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
+            self.token_verify_peer_cert = token_verify_peer_cert
+            self.token_client_verify_server_hostname = token_client_verify_server_hostname
             self.max_certs = max_certs
             self.config_file_path = config_file_path
             if self.is_server:
@@ -188,6 +192,7 @@ class Connector:
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
                 self.inside_end_sockpair = None
+                self.token_client_send_cert = token_client_send_cert
                 if self.proxy.get('enabled'):
                     #proxy can be like {'enabled':True, 'address':'1.2.3.4 or bla.com', 'port':'22',
                     #'ssl_server':False, 'authorization':''},
@@ -1973,6 +1978,8 @@ class Connector:
         try:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
+            if self.token_client_verify_server_hostname: 
+                server_hostname = self.token_client_verify_server_hostname
             #self.inside_end_sockpair is not None only when proxy with ssl_server is configured
             socket_used = self.inside_end_sockpair or self.sock
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
@@ -2010,8 +2017,13 @@ class Connector:
     def build_server_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         if self.ssl_allow_all:
-            context.verify_mode = ssl.CERT_NONE
-            context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
+            if self.token_verify_peer_cert:
+                context.verify_mode = ssl.CERT_REQUIRED
+                context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
+                context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
+            else:
+                context.verify_mode = ssl.CERT_NONE
+                context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
             
         else:
             context.verify_mode = ssl.CERT_REQUIRED
@@ -2037,7 +2049,18 @@ class Connector:
     def build_client_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         if self.ssl_allow_all:
-            context.verify_mode = ssl.CERT_NONE
+            if self.token_client_send_cert:
+                context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME),
+                                        keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME))                
+            if self.token_verify_peer_cert:
+                context.verify_mode = ssl.CERT_REQUIRED        
+                if self.token_verify_peer_cert is True:
+                    context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)
+                else:
+                    #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
+                    context.load_verify_locations(cafile=self.token_verify_peer_cert)
+            else:
+                context.verify_mode = ssl.CERT_NONE
         else:        
             context.verify_mode = ssl.CERT_REQUIRED        
             context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
