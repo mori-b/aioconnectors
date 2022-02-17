@@ -87,8 +87,8 @@ class Connector:
 
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
-                 use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=None, 
-                 tokens_directory_path=None, disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=CONNECTOR_FILES_DIRPATH, 
+                 tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  tool_only=False, file_recv_config=None, config_file_path=None,
@@ -193,7 +193,12 @@ class Connector:
                 self.source_id = client_name
                 self.logger.info('Client has source id : '+self.source_id)   
                 if hook_target_directory:
-                    self.logger.info(f'Connector Client {self.source_id} has a hook_target_directory')                
+                    self.logger.info(f'Connector Client {self.source_id} has a hook_target_directory')               
+                if hook_store_token:
+                    self.logger.info(f'Connector Client {self.source_id} has a hook_store_token')               
+                if hook_load_token:
+                    self.logger.info(f'Connector Client {self.source_id} has a hook_load_token')               
+                    
                 self.alnum_source_id = self.alnum_name(self.source_id)    
                 self.tokens_file_path = os.path.join(self.tokens_directory_path or '', self.alnum_source_id)
                 self.enable_client_try_reconnect = enable_client_try_reconnect
