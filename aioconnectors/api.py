@@ -18,7 +18,7 @@ class ConnectorManager:
     def __init__(self, config_file_path=None, config_file_overrides_kwargs=True, logger=None, use_default_logger=True, 
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, use_token=Connector.USE_TOKEN,
-                 is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=False, 
+                 is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=Connector.SSL_ALLOW_ALL, 
                  client_bind_ip=None, certificates_directory_path=None, tokens_directory_path=None, client_name=None, 
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
@@ -41,7 +41,8 @@ class ConnectorManager:
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
-                 token_verify_peer_cert=False, token_client_send_cert=True, token_client_verify_server_hostname=None):
+                 token_verify_peer_cert=Connector.TOKEN_VERIFY_PEER_CERT, token_client_send_cert=Connector.TOKEN_CLIENT_SEND_CERT,
+                 token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath

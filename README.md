@@ -74,7 +74,7 @@ In case you want to run this example with authentication too, you have 2 options
 3.1. Set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
 If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
 In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
-3.2. Set use\_ssl to True, ssl\_allow\_all to True, and use\_token to True, in both server and client ConnectorManager instantiations.  
+3.2. Set use\_ssl to True, ssl\_allow\_all to True, and use\_token to True, in both server and client ConnectorManager instantiations, to use token authentication.  
 
 
 ### Server example
@@ -87,7 +87,7 @@ In case the server and client run on different machines, you should run the prer
     connector_files_dirpath = '/var/tmp/aioconnectors'
     
     #create connector
-    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
+    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False, use_token=False,
                                                        ssl_allow_all=True, connector_files_dirpath=connector_files_dirpath,
                                                        certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
@@ -147,7 +147,7 @@ In case the server and client run on different machines, you should run the prer
     
     #create connector
     connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
-                                                       use_ssl=False, ssl_allow_all=True,
+                                                       use_ssl=False, ssl_allow_all=True, use_token=False,
                                                        connector_files_dirpath=connector_files_dirpath,
                                                        certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
@@ -212,7 +212,7 @@ Just a server with pubsub\_central\_broker=True
     connector_files_dirpath = '/var/tmp/aioconnectors'
 
     #create connector
-    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False,
+    connector_manager = aioconnectors.ConnectorManager(is_server=True, server_sockaddr=server_sockaddr, use_ssl=False, use_token=False,
                                                        ssl_allow_all=True, connector_files_dirpath=connector_files_dirpath,
                                                        certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['any'],
@@ -262,7 +262,7 @@ Just a client with subscribe\_message\_types = [topic1, topic2, ...]
 
     #create connector
     connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
-                                                       use_ssl=False, ssl_allow_all=True,
+                                                       use_ssl=False, ssl_allow_all=True, use_token=False,
                                                        connector_files_dirpath=connector_files_dirpath,
                                                        certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['any'], recv_message_types=['type1'],
@@ -325,7 +325,7 @@ Just a client which uses publish\_message instead of send\_message
 
     #create connector
     connector_manager = aioconnectors.ConnectorManager(is_server=False, server_sockaddr=server_sockaddr,
-                                                       use_ssl=False, ssl_allow_all=True,
+                                                       use_ssl=False, ssl_allow_all=True, use_token=False,
                                                        connector_files_dirpath=connector_files_dirpath,
                                                        certificates_directory_path=connector_files_dirpath,
                                                        send_message_types=['type1','type2'], recv_message_types=['any'],
@@ -383,7 +383,7 @@ Just a client which uses publish\_message instead of send\_message
 
 The client and server are connected by one single tcp socket.
 When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can choose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.  
-The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot communicate. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another.
+The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot communicate. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another. Alternatively, the server generates on the fly a new token per client.  
 
 
 <a name="usecases"></a>
@@ -407,7 +407,7 @@ The following lines describe a possible approach to do that using aioconnectors.
 Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in <a href="#cli">7-</a>).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
-Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method or a hook\_allow\_certificate\_creation method and provide it to your ConnectorManager constructor (explained in <a href="#classes">4-</a>).  
+Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method or a hook\_allow\_certificate\_creation method and provide it to your ConnectorManager constructor (explained in <a href="#classes">4-</a>). For that purpose you can also use the whitelist and blacklist features.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in <a href="#classes">4-</a>).  
 
 
@@ -442,7 +442,10 @@ You can always delete a client certificate on the server (and also on client) by
 
 For this purpose, you can also call programmatically the ConnectorManager.delete_client\_certificate method.  
 You shouldn't need to modify the certificates, however there is a way to tweak the certificates template : run create\_certificates once, then modify certificates/server/csr\_details\_template.conf according to your needs (without setting the Organization field), delete other directories under certificates and run create\_certificates again.  
--Less secure options :  
+-Other options :  
+ssl\_allow\_all and use\_token enabled : this is a similar approach but instead of generating a certificate per client, the server generates a token per client. This approach is simpler and probably more scalable. Note that you can also delete the token on the fly by calling delete\_client\_token.  
+You can combine ssl\_allow\_all with token\_verify\_peer\_cert and token\_client\_send\_cert (on client) : in order to authenticate the default certificate only. On client side the token\_verify\_peer\_cert can also be the path of custom server public certificate.  
+token\_client\_verify\_server\_hostname can be the server hostname that your client authenticates through its certificate.  
 By setting ssl\_allow\_all on both sever and client, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
 By unsetting use_ssl, you can disable encryption at all.
 
@@ -582,10 +585,14 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "silent": true,
         "ssl_allow_all": false,
         "subscribe_message_types": [],
+        "token_client_send_cert": true,
+        "token_client_verify_server_hostname": null,
+        "token_verify_peer_cert": true,
         "tokens_directory_path": "/var/tmp/aioconnectors",
         "uds_path_receive_preserve_socket": true,
         "uds_path_send_preserve_socket": true,
         "use_ssl": true,
+        "use_token": false,
         "whitelisted_clients_id": null,
         "whitelisted_clients_ip": null,
         "whitelisted_clients_subnet": null
@@ -620,7 +627,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     }
 
 
--**alternate\_client\_default\_cert** is false by default : if true it lets the client try to connect alternatively with the default certificate, in case of failure with the private certificate. This can save the hassle of having to delete manually your client certificate when the certificate was already deleted on server side.  
+-**alternate\_client\_default\_cert** is false by default : if true it lets the client try to connect alternatively with the default certificate, in case of failure with the private certificate. This can save the hassle of having to delete manually your client certificate when the certificate was already deleted on server side. This affects also the token authentication : the client will try to connect alternatively by requesting a new token if its token fails.  
 -**blacklisted\_clients\_id|ip|subnet** : a list of blacklisted clients (regex for blacklisted\_clients\_id), can be updated on the fly with the api functions add|remove\_blacklist\_client or in the cli.  
 -**certificates\_directory\_path** is where your certificates are located, if use\_ssl is True. This is the <optional\_directory\_path> where you generated your certificates by calling "python3 -m aioconnectors create\_certificates <optional\_directory\_path>".  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI. It should match the regex \^\[0\-9a\-zA\-Z\-\_\:\]\+$  
@@ -635,6 +642,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**everybody\_can\_send\_messages** if True lets anyone send messages through the connector, otherwise the sender must have write permission to the connector. Setting to True requires the connector to run as root.  
 -**hook\_allow\_certificate\_creation** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client_name and returning a boolean, to let the server accept or block the client_name certificate creation.  
 -**hook\_server\_auth\_client** : does not appear in the config file (usable as a kwargs only). Only for server. Can be an async def coroutine receiving a client peername and returning a boolean, to let the server accept or block the client connection. An example exists in the chat implementation in applications.py.  
+-**hook\_store\_token** and **hook\_load\_token** : lets you manipulate the token before it is stored on disk.  
 -**hook\_target\_directory** : does not appear in the config file (usable as a kwargs only). A dictionary of the form {dst\_type: custom_function} where custom\_function receives transport\_json as an input and outputs a destination path to be appended to target\_directory. If custom\_function returns None, it has no effect on the target\_directory. If custom\_function returns False, the file is refused. This enables better customization of the target\_directory according to transport\_json. An example exists in the chat implementation in applications.py.  
 -**hook\_whitelist\_clients** : does not appear in the config file (usable as a kwargs only). Has 2 arguments : extra_info, peername. Lets you inject some code when blocking non whitelisted client.  
 -**hook\_proxy\_authorization** : does not appear in the config file (usable as a kwargs only). Only for client. A function that receives and returns 2 arguments : the proxy username and password. It returns them after an eventual transformation (like a decryption for example).  
@@ -653,9 +661,13 @@ application level.
 -**send\_message\_types\_priorities** : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
+-**tokens\_directory\_path** : The path of your server token json file, or client token file.  
+-**token\_verify\_peer\_cert** : True by default. If boolean, True means the server/client verifies its peer certificate according to its default location under certificates_directory_path. On client can also be a string with full path of a custom server certificate.  
+-**token\_client\_send\_cert** : True by default. Boolean, must be True if server has token\_verify\_peer\_cert enabled : sends the client certificate.  
+-**token\_client\_verify\_server\_hostname** : if not null, a string with the server hostname to be authenticated by client during SSL handshake.  
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
--**use\_ssl** and **ssl\_allow\_all** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced.  
+-**use\_ssl**, **ssl\_allow\_all**, **use\_token** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced. use\_token requires use\_ssl and ssl\_allow\_all both enabled.  
 -**whitelisted\_clients\_id|ip|subnet** : a list of whitelisted clients (regex for whitelisted\_clients\_id), can be updated on the fly with the api functions add|remove\_whitelist\_client or in the cli.  
 
 
@@ -689,7 +701,7 @@ Not a benchmark, but some point-to-point trials showed that up until 4000 messag
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in <a href="#cli">7-</a>.  
--**delete\_client\_certificate**, **disconnect\_client**  
+-**delete\_client\_certificate**, **delete\_client\_token**, **disconnect\_client**  
 -**add\_blacklist_client, remove\_blacklist_client**, **add\_whitelist_client, remove\_whitelist_client**  
 -**delete\_previous\_persistence\_remains**  
 -**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
@@ -712,7 +724,8 @@ An example of ConnectorRemoteTool is available in applications.py in the cli imp
 to run several interesting commands like :   
 -**start/stop/restart** your connectors.  
 -**show\_connected\_peers** : show currently connected peers.  
--**delete\_client\_certificate** enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate.  
+-**delete\_client\_certificate** enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate. The client side deletion is not needed in case alternate\_client\_default\_cert is true.  
+-**delete\_client\_token** enables your server to delete a specific client token. Enables you client to delete its own token and fallback requesting a new token.  
 -**disconnect_client** enables your server to disconnect a specific client.  
 -**add\_blacklist_client, remove\_blacklist_client** enables your server to blacklist a client by id, ip, or subnet at runtime. Disconnects the client if blacklisted by id, also deletes its certificate if exists. Kept in the connector config file if exists.  
 -**add\_whitelist_client, remove\_whitelist_client** enables your server to whitelist a client (id, ip, or subnet) at runtime. Kept in the connector config file if exists.   

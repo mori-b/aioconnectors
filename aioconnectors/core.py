@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL, USE_TOKEN = True, False
+    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL = True, False, False
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -42,6 +42,14 @@ class Connector:
     MAX_CERTS = 1024
     #USE_ACK = False  #or can be a list of message_types like ['type1']    
     DEBUG_MSG_COUNTS = True
+    TOKEN_VERIFY_PEER_CERT = True
+    
+    #client only
+    KEEP_ALIVE_TIMEOUT = 5  
+    MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE = 2
+    ALTERNATE_CLIENT_DEFAULT_CERT = False    
+    TOKEN_CLIENT_SEND_CERT = True
+    TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME = None
 
     ############################################    
     #default values of internals (not configurable at __init__)
@@ -75,13 +83,11 @@ class Connector:
     MAX_NUMBER_OF_TOKENS = 10000
     
     #client only
-    KEEP_ALIVE_TIMEOUT = 5  
-    MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE = 2
     KEEP_ALIVE_CLIENT_REQUEST_ID = 'keep_alive_client_check'
-    ALTERNATE_CLIENT_DEFAULT_CERT = False    
+
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
-                 use_ssl=USE_SSL, ssl_allow_all=False, use_token=USE_TOKEN, certificates_directory_path=None, 
+                 use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=None, 
                  tokens_directory_path=None, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
@@ -102,7 +108,8 @@ class Connector:
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
                  hook_store_token=None, hook_load_token=None,
-                 token_verify_peer_cert=False, token_client_send_cert=True, token_client_verify_server_hostname=None
+                 token_verify_peer_cert=TOKEN_VERIFY_PEER_CERT, token_client_send_cert=TOKEN_CLIENT_SEND_CERT,
+                 token_client_verify_server_hostname=TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME
 ):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
@@ -251,7 +258,8 @@ class Connector:
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
-                    self.logger.info('Connector will use ssl, with certificates directory '+self.ssl_helper.certificates_base_path)
+                    self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and '
+                                     f'with certificates directory : {self.ssl_helper.certificates_base_path}')
                     
                     #this code is used instead in run_client since the alternate_client_cert_toggle_default mechanism
                     #if self.is_server:                
@@ -264,7 +272,11 @@ class Connector:
                     #        self.client_certificate_name = self.ssl_helper.CLIENT_DEFAULT_CERT_NAME
                     #        self.logger.info('Client will use the default certificate : '+self.client_certificate_name)
                             
-                else:                        
+                    if self.ssl_allow_all:                        
+                        self.logger.info(f'Connector will use token_verify_peer_cert : {token_verify_peer_cert}, '
+                                     f'token_client_send_cert : {token_client_send_cert}, '
+                                     f'token_client_verify_server_hostname : {token_client_verify_server_hostname}')
+                else:
                     self.logger.info('Connector will not use ssl')
                     
                 if self.use_token:          
