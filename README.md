@@ -701,7 +701,7 @@ Not a benchmark, but some point-to-point trials showed that up until 4000 messag
 ### 6.Management programmatic tools
 
 The class ConnectorManager has several methods to manage your connector. These methods are explained in <a href="#cli">7-</a>.  
--**delete\_client\_certificate**, **delete\_client\_token**, **disconnect\_client**  
+-**delete\_client\_certificate**, **delete\_client\_token**, **disconnect\_client**, **reload\_tokens**  
 -**add\_blacklist_client, remove\_blacklist_client**, **add\_whitelist_client, remove\_whitelist_client**  
 -**delete\_previous\_persistence\_remains**  
 -**ignore\_peer\_traffic\_show**, **ignore\_peer\_traffic\_enable**, **ignore\_peer\_traffic\_enable\_unique**, **ignore\_peer\_traffic\_disable**  
@@ -726,6 +726,7 @@ to run several interesting commands like :
 -**show\_connected\_peers** : show currently connected peers.  
 -**delete\_client\_certificate** enables your server to delete a specific client certificate. delete\_client\_certificate enables your client to delete its own certificate and fallback using the default one. In order to delete a certificate of a currently connected client, first delete the certificate on server side, which will disconnect the client instantaneously, and then delete the certificate on client side : the client will then reconnect automatically and obtain a new certificate. The client side deletion is not needed in case alternate\_client\_default\_cert is true.  
 -**delete\_client\_token** enables your server to delete a specific client token. Enables you client to delete its own token and fallback requesting a new token.  
+-**reload\_tokens** reloads tokens after for example modifying them on disk.  
 -**disconnect_client** enables your server to disconnect a specific client.  
 -**add\_blacklist_client, remove\_blacklist_client** enables your server to blacklist a client by id, ip, or subnet at runtime. Disconnects the client if blacklisted by id, also deletes its certificate if exists. Kept in the connector config file if exists.  
 -**add\_whitelist_client, remove\_whitelist_client** enables your server to whitelist a client (id, ip, or subnet) at runtime. Kept in the connector config file if exists.   

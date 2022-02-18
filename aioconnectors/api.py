@@ -332,6 +332,14 @@ class ConnectorManager:
             res = await self.connector.delete_client_token_on_client()
         return res     
 
+    async def reload_tokens(self):
+        self.logger.info(f'{self.source_id} reload_tokens')
+        if self.connector.is_server:
+            res = await self.connector.load_server_tokens()
+        else:
+            res = await self.connector.load_client_token()
+        return res     
+
     def show_subscribe_message_types(self):
         self.logger.info(f'{self.source_id} show_subscribe_message_types')
         return self.connector.show_subscribe_message_types()
@@ -865,6 +873,15 @@ class ConnectorRemoteTool(ConnectorBaseTool):
             return response
         else:
             response = await self.send_command(cmd='delete_client_token_on_client', kwargs={'restart_client':restart_client})
+            return response
+
+    async def reload_tokens(self):
+        self.logger.info(f'{self.source_id} reload_tokens')                 
+        if self.is_server:
+            response = await self.send_command(cmd='load_server_tokens')
+            return response
+        else:
+            response = await self.send_command(cmd='load_client_token')
             return response
         
     async def disconnect_client(self, client_id=None):
