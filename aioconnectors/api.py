@@ -43,7 +43,8 @@ class ConnectorManager:
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
                  token_verify_peer_cert=Connector.TOKEN_VERIFY_PEER_CERT, token_client_send_cert=Connector.TOKEN_CLIENT_SEND_CERT,
-                 token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME):
+                 token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
+                 token_server_allow_authorized_non_default_cert=False):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath
@@ -70,6 +71,7 @@ class ConnectorManager:
                             tokens_directory_path, use_token
         self.token_verify_peer_cert, self.token_client_send_cert = token_verify_peer_cert, token_client_send_cert
         self.token_client_verify_server_hostname = token_client_verify_server_hostname
+        self.token_server_allow_authorized_non_default_cert = token_server_allow_authorized_non_default_cert
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
         self.subscribe_message_types = subscribe_message_types
@@ -189,7 +191,8 @@ class ConnectorManager:
                                    whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet,
                                    hook_whitelist_clients=self.hook_whitelist_clients,
                                    token_verify_peer_cert=self.token_verify_peer_cert, token_client_send_cert=self.token_client_send_cert,
-                                   token_client_verify_server_hostname=self.token_client_verify_server_hostname
+                                   token_client_verify_server_hostname=self.token_client_verify_server_hostname,
+                                   token_server_allow_authorized_non_default_cert=self.token_server_allow_authorized_non_default_cert
 )
         
             

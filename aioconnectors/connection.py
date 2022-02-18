@@ -240,6 +240,30 @@ class FullDuplex:
                         #in ssl_allow_all mode, no cert can be obtained, peer_identification_finished will be 
                         #finished in handle_ssl_messages_server
                         peername = str(self.writer.get_extra_info('peername'))
+                        peer_cert = self.writer.get_extra_info('ssl_object').getpeercert()
+                        #client_certificate_serial can be useful in server token mode to allow non default client
+                        self.client_certificate_serial = peer_cert['serialNumber']
+                        
+                        if self.connector.use_token:
+                            self.main_case_receive_first_token_command_from_client = True
+                            if self.connector.token_verify_peer_cert and self.connector.token_server_allow_authorized_non_default_cert and ( \
+                                            self.client_certificate_serial != self.connector.ssl_helper.default_client_serial):                                
+                                peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
+                                if not peername:
+                                    self.logger.error(f'Authorized client with certificate '
+                                                      f'{self.client_certificate_serial} has no source_id ! Aborting')
+                                    self.peername = str(self.writer.get_extra_info('peername'))
+                                    raise Exception('Unknown client')
+                                self.logger.info(f'{self.connector.source_id} handle_incoming_connection accepting without token '
+                                                 f'authorized client {peername} because token_verify_peer_cert '
+                                                 'and token_server_allow_authorized_non_default_cert')                                    
+                                peer_identification_finished = True     
+                                old_peername = str(self.writer.get_extra_info('peername'))                                                        
+                                self.logger.info(f'Replacing peername {old_peername} in full_duplex_connections with {peername}')
+                                self.connector.full_duplex_connections[peername] = self.connector.full_duplex_connections.pop(old_peername)                               
+                                #in token_allow_non_default_cert mode, we allow authorized non default certificate 
+                                self.main_case_receive_first_token_command_from_client = False
+                        
                 else:
                     #this creates a temporary entry in queue_send, peername will be replaced by client_id after handshake_no_ssl
                     peername = str(self.writer.get_extra_info('peername'))     
@@ -397,13 +421,14 @@ class FullDuplex:
                 
         else:
             if self.connector.use_ssl:                
-                if self.connector.use_token:
-                    self.logger.info(self.connector.source_id+' handle_incoming_connection waiting for message with use_token')
-                    transport_json, data, binary = await self.recv_message()
-                    message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
-                    #here message_type should be _token, which is validated inside handle_ssl_messages_server
-                    await self.handle_ssl_messages_server(data, transport_json)
-                    #don't send _token messages to queues                                    
+                if self.connector.use_token:                        
+                    if self.main_case_receive_first_token_command_from_client:
+                        self.logger.info(self.connector.source_id+' handle_incoming_connection waiting for message with use_token')
+                        transport_json, data, binary = await self.recv_message()
+                        message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                                    
+                        #here message_type should be _token, which is validated inside handle_ssl_messages_server
+                        await self.handle_ssl_messages_server(data, transport_json)
+                        #don't send _token messages to queues                                    
         
         while True:
             try:            

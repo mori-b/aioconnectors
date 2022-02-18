@@ -109,7 +109,8 @@ class Connector:
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
                  hook_store_token=None, hook_load_token=None,
                  token_verify_peer_cert=TOKEN_VERIFY_PEER_CERT, token_client_send_cert=TOKEN_CLIENT_SEND_CERT,
-                 token_client_verify_server_hostname=TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME
+                 token_client_verify_server_hostname=TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
+                 token_server_allow_authorized_non_default_cert=False
 ):                 
         
         self.logger = logger.getChild('server' if is_server else 'client')
@@ -153,7 +154,6 @@ class Connector:
             self.hook_proxy_authorization = hook_proxy_authorization
             self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
             self.token_verify_peer_cert = token_verify_peer_cert
-            self.token_client_verify_server_hostname = token_client_verify_server_hostname
             self.max_certs = max_certs
             self.config_file_path = config_file_path
             if self.is_server:
@@ -161,6 +161,8 @@ class Connector:
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
                 self.tokens_file_path = os.path.join(self.tokens_directory_path or '', 'server_tokens.json')
+                self.token_server_allow_authorized_non_default_cert = token_server_allow_authorized_non_default_cert
+                
                 self.hook_server_auth_client = hook_server_auth_client
                 if hook_server_auth_client:
                     self.logger.info(f'Connector Server {self.source_id} has a hook_server_auth_client')
@@ -205,6 +207,8 @@ class Connector:
                 self.proxy = proxy or {}
                 self.inside_end_sockpair = None
                 self.token_client_send_cert = token_client_send_cert
+                self.token_client_verify_server_hostname = token_client_verify_server_hostname                
+                
                 if self.proxy.get('enabled'):
                     #proxy can be like {'enabled':True, 'address':'1.2.3.4 or bla.com', 'port':'22',
                     #'ssl_server':False, 'authorization':''},

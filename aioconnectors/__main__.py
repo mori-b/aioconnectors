@@ -77,7 +77,8 @@ if len(sys.argv) > 1:
                         whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                         ignore_peer_traffic=False, token_verify_peer_cert=Connector.TOKEN_VERIFY_PEER_CERT,
                         token_client_send_cert=Connector.TOKEN_CLIENT_SEND_CERT,
-                        token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME)
+                        token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
+                        token_server_allow_authorized_non_default_cert=False)
                         
         print('\n- MANAGER TEMPLATE, used to create a connector')
         print(json.dumps(manager_config_template, indent=4, sort_keys=True))

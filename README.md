@@ -587,6 +587,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "subscribe_message_types": [],
         "token_client_send_cert": true,
         "token_client_verify_server_hostname": null,
+        "token_server_allow_authorized_non_default_cert": false,
         "token_verify_peer_cert": true,
         "tokens_directory_path": "/var/tmp/aioconnectors",
         "uds_path_receive_preserve_socket": true,
@@ -665,6 +666,7 @@ application level.
 -**token\_verify\_peer\_cert** : True by default. If boolean, True means the server/client verifies its peer certificate according to its default location under certificates_directory_path. On client can also be a string with full path of a custom server certificate.  
 -**token\_client\_send\_cert** : True by default. Boolean, must be True if server has token\_verify\_peer\_cert enabled : sends the client certificate.  
 -**token\_client\_verify\_server\_hostname** : if not null, a string with the server hostname to be authenticated by client during SSL handshake.  
+-**token\_server\_allow\_authorized\_non\_default\_cert** : boolean false by default. If true, server using use\_token will allow client with non default authorized certificate, even if this client doesn't use a token.  
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  
 -**use\_ssl**, **ssl\_allow\_all**, **use\_token** are boolean, must be identical on server and client. use\_ssl enables encryption as explained previously. When ssl\_allow\_all is disabled, certificates validation is enforced. use\_token requires use\_ssl and ssl\_allow\_all both enabled.  
