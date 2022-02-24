@@ -809,7 +809,7 @@ def chat(args, logger=None):
 
             while True:
                 await asyncio.sleep(1)                
-                if connector_manager.show_connected_peers(return_peers=True):
+                if connector_manager.show_connected_peers():
                     print('Connected !')
                     break                  
         
