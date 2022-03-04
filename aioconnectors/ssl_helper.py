@@ -4,8 +4,9 @@ import json
 import subprocess
 import uuid
 import shutil
+import re
 
-from .helpers import get_tmp_dir, validate_source_id
+from .helpers import get_tmp_dir, validate_source_id, SOURCE_ID_DEFAULT_REGEX
 
 def update_conf(conf_template, conf, replacement_dict):
     shutil.copy(conf_template, conf)
@@ -58,11 +59,22 @@ class SSL_helper:
                 else:
                     self.source_id_2_cert = {'source_id_2_cert':{}, 'cert_2_source_id':{}}
                 #load default_client_serial
-                stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
-                                        str(os.path.join(self.SERVER_CERTS_PATH,
-                                            self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
-                hash_name, serial = stdout.decode().splitlines()
-                self.default_client_serial = serial.split('=')[1]
+                self.default_client_serials_list = []
+                for cert in self.SERVER_CERTS_PATH:
+                    #optimize by assuming "default"
+                    if cert.startswith('default'):
+                        if SOURCE_ID_DEFAULT_REGEX.match(cert):
+                            stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
+                                                    str(os.path.join(self.SERVER_CERTS_PATH,
+#                                                        self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
+                                                        cert+'.'+self.CERT_NAME_EXTENSION)), shell=True)
+                            
+                            hash_name, serial = stdout.decode().splitlines()
+                            serial = serial.split('=')[1]
+                            if cert == 'default':
+                                self.default_client_serial = serial
+                            self.default_client_serials_list.append(serial)
+                                
                 self.max_certs = max_certs
 
         except Exception:

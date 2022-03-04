@@ -218,7 +218,7 @@ class FullDuplex:
                         
                         self.client_certificate_serial = peer_cert['serialNumber']
     
-                        if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial:
+                        if self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list:                            
                             peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
                             if not peername:
                                 self.logger.error(f'Authorized client with certificate '
@@ -247,7 +247,7 @@ class FullDuplex:
                         if self.connector.use_token:
                             self.main_case_receive_first_token_command_from_client = True
                             if self.connector.token_verify_peer_cert and self.connector.token_server_allow_authorized_non_default_cert and ( \
-                                            self.client_certificate_serial != self.connector.ssl_helper.default_client_serial):                                
+                                            self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list):                                
                                 peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
                                 if not peername:
                                     self.logger.error(f'Authorized client with certificate '
@@ -1039,7 +1039,7 @@ class FullDuplex:
                 data_json = json.loads(data.decode())                
                 if data_json.get('cmd') == 'get_new_certificate':
                     
-                    if self.client_certificate_serial != self.connector.ssl_helper.default_client_serial: 
+                    if self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list: 
                         self.logger.warning(f'handle_ssl_messages_server Client '
                     f'{self.connector.ssl_helper.source_id_2_cert["cert_2_source_id"].get(self.client_certificate_serial)}'
                     ' tried to get_new_certificate with private certificate. Stopping...')
