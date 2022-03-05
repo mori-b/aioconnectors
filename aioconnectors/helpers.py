@@ -133,7 +133,7 @@ def validate_source_id(source_id):
         #protect against path traversal
         raise Exception(f'Invalid source_id : {source_id} - please use only {SOURCE_ID_REGEX.pattern}')
     if len(source_id) > SOURCE_ID_MAX_LENGTH:
-        raise Exception(f'Invalid source_id : {source_id} - of length {len(source_id}')        
+        raise Exception(f'Invalid source_id : {source_id} - of length {len(source_id)}')        
     if SOURCE_ID_DEFAULT_REGEX.match(source_id):
         raise Exception(f'Invalid source_id : {source_id} - cannot match {SOURCE_ID_DEFAULT_REGEX.pattern}')
         

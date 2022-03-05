@@ -60,21 +60,24 @@ class SSL_helper:
                     self.source_id_2_cert = {'source_id_2_cert':{}, 'cert_2_source_id':{}}
                 #load default_client_serial
                 self.default_client_serials_list = []
-                for cert in self.SERVER_CERTS_PATH:
-                    #optimize by assuming "default"
+                for cert in (file_name for file_name in os.listdir(self.SERVER_CERTS_PATH) if \
+                                                     file_name.endswith(f'.{self.CERT_NAME_EXTENSION}')):
+                    #optimize by assuming "default"                    
                     if cert.startswith('default'):
-                        if SOURCE_ID_DEFAULT_REGEX.match(cert):
+                        cert_name = cert[:-1-len(self.CERT_NAME_EXTENSION)]
+                        if SOURCE_ID_DEFAULT_REGEX.match(cert_name):
                             stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
                                                     str(os.path.join(self.SERVER_CERTS_PATH,
 #                                                        self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
-                                                        cert+'.'+self.CERT_NAME_EXTENSION)), shell=True)
+                                                        cert)), shell=True)
                             
                             hash_name, serial = stdout.decode().splitlines()
                             serial = serial.split('=')[1]
-                            if cert == 'default':
+                            if cert_name == 'default':
                                 self.default_client_serial = serial
+                            self.logger.info(f'Server adding default certificate : {cert_name}')
                             self.default_client_serials_list.append(serial)
-                                
+                self.logger.info(f'Server using default_client_serials_list : {self.default_client_serials_list}')                 
                 self.max_certs = max_certs
 
         except Exception:
