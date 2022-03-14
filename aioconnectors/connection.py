@@ -239,15 +239,16 @@ class FullDuplex:
                     else:
                         #in ssl_allow_all mode, no cert can be obtained, peer_identification_finished will be 
                         #finished in handle_ssl_messages_server
+                        self.main_case_receive_first_token_command_from_client = True                        
                         peername = str(self.writer.get_extra_info('peername'))
-                        peer_cert = self.writer.get_extra_info('ssl_object').getpeercert()
-                        #client_certificate_serial can be useful in server token mode to allow non default client
-                        self.client_certificate_serial = peer_cert['serialNumber']
                         
                         if self.connector.use_token:
-                            self.main_case_receive_first_token_command_from_client = True
-                            if self.connector.token_verify_peer_cert and self.connector.token_server_allow_authorized_non_default_cert and ( \
-                                            self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list):                                
+                            peer_cert = self.writer.get_extra_info('ssl_object').getpeercert() or {}
+                            #client_certificate_serial can be useful in server token mode to allow non default client
+                            self.client_certificate_serial = peer_cert.get('serialNumber', None)
+                            if self.client_certificate_serial and self.connector.token_verify_peer_cert \
+                                and self.connector.token_server_allow_authorized_non_default_cert and ( \
+                                self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list):                                
                                 peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
                                 if not peername:
                                     self.logger.error(f'Authorized client with certificate '
@@ -436,7 +437,7 @@ class FullDuplex:
                 transport_json, data, binary = await self.recv_message()
                 message_type = transport_json.get(MessageFields.MESSAGE_TYPE)                
                 if self.connector.is_server:
-                    if self.connector.use_ssl:                        
+                    if self.connector.use_ssl:
                         if message_type == '_ssl':
                             #server waits for get_new_certificate
                             await self.handle_ssl_messages_server(data, transport_json)
