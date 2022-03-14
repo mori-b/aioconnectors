@@ -2000,7 +2000,10 @@ class Connector:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
             if self.token_client_verify_server_hostname: 
-                server_hostname = self.token_client_verify_server_hostname
+                #server_hostname = self.token_client_verify_server_hostname
+                #here we assume server_sockaddr[0] is a hostname, not an ip address.
+                #this should go together with token_verify_peer_cert='/etc/ssl/certs/ca-certificates.crt'
+                server_hostname = self.server_sockaddr[0]
             #self.inside_end_sockpair is not None only when proxy with ssl_server is configured
             socket_used = self.inside_end_sockpair or self.sock
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
@@ -2068,7 +2071,7 @@ class Connector:
     
 
     def build_client_ssl_context(self):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         if self.ssl_allow_all:
             if self.token_client_send_cert:
                 context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME),

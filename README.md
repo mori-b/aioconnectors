@@ -442,6 +442,7 @@ You can always delete a client certificate on the server (and also on client) by
 
 For this purpose, you can also call programmatically the ConnectorManager.delete_client\_certificate method.  
 You shouldn't need to modify the certificates, however there is a way to tweak the certificates template : run create\_certificates once, then modify certificates/server/csr\_details\_template.conf according to your needs (without setting the Organization field), delete other directories under certificates and run create\_certificates again.  
+On server side, you can store manually additional default certificates (with thei symlink), they must be called defaultN where N is an integer.  
 -Other options :  
 ssl\_allow\_all and use\_token enabled : this is a similar approach but instead of generating a certificate per client, the server generates a token per client. This approach is simpler and probably more scalable. Note that you can also delete the token on the fly by calling delete\_client\_token.  
 You can combine ssl\_allow\_all with token\_verify\_peer\_cert and token\_client\_send\_cert (on client) : in order to authenticate the default certificate only. On client side the token\_verify\_peer\_cert can also be the path of custom server public certificate.  
@@ -663,9 +664,9 @@ application level.
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
 -**tokens\_directory\_path** : The path of your server token json file, or client token file.  
--**token\_verify\_peer\_cert** : True by default. If boolean, True means the server/client verifies its peer certificate according to its default location under certificates_directory_path. On client can also be a string with full path of a custom server certificate.  
+-**token\_verify\_peer\_cert** : True by default. If boolean, True means the server/client verifies its peer certificate according to its default location under certificates_directory_path. On client : can also be a string with full path of a custom server certificate, or even a string with full path of CA certificate to authenticate server hostname (for example "/etc/ssl/certs/ca-certificates.crt", in that case token\_client\_verify\_server\_hostname should be true).  
 -**token\_client\_send\_cert** : True by default. Boolean, must be True if server has token\_verify\_peer\_cert enabled : sends the client certificate.  
--**token\_client\_verify\_server\_hostname** : if not null, a string with the server hostname to be authenticated by client during SSL handshake.  
+-**token\_client\_verify\_server\_hostname** : if true, client authenticates the server hostname with token\_verify\_peer\_cert (CA path) during SSL handshake.  
 -**token\_server\_allow\_authorized\_non\_default\_cert** : boolean false by default. If true, server using use\_token will allow client with non default authorized certificate, even if this client doesn't use a token.  
 -**uds\_path\_receive\_preserve\_socket** should always be True for better performance, your message\_received\_cb coroutine in start\_waiting\_for\_messages is called for each message without socket disconnection between messages (in fact, only 1 disconnection per 100 messages).  
 -**uds\_path\_send\_preserve\_socket** should always be True for better performance.  

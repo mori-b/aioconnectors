@@ -58,12 +58,11 @@ class SSL_helper:
                         self.source_id_2_cert = json.load(fd)
                 else:
                     self.source_id_2_cert = {'source_id_2_cert':{}, 'cert_2_source_id':{}}
-                #load default_client_serial
+                #load default_client_serial, and default_client_serials_list
                 self.default_client_serials_list = []
                 for cert in (file_name for file_name in os.listdir(self.SERVER_CERTS_PATH) if \
                                                      file_name.endswith(f'.{self.CERT_NAME_EXTENSION}')):
-                    #optimize by assuming "default"                    
-                    if cert.startswith('default'):
+                    if cert.startswith(self.CLIENT_DEFAULT_CERT_NAME):
                         cert_name = cert[:-1-len(self.CERT_NAME_EXTENSION)]
                         if SOURCE_ID_DEFAULT_REGEX.match(cert_name):
                             stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
@@ -73,7 +72,7 @@ class SSL_helper:
                             
                             hash_name, serial = stdout.decode().splitlines()
                             serial = serial.split('=')[1]
-                            if cert_name == 'default':
+                            if cert_name == self.CLIENT_DEFAULT_CERT_NAME:
                                 self.default_client_serial = serial
                             self.logger.info(f'Server adding default certificate : {cert_name}')
                             self.default_client_serials_list.append(serial)
