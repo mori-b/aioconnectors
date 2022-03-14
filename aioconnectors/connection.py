@@ -1190,6 +1190,13 @@ class FullDuplex:
                                 self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server successfully '
                                          f'authenticated token of client {new_peername} from ip {self.extra_info}')                                    
                                 authenticate_success = True
+                                
+                                response = {'result': 'success'}
+                                params_as_string = json.dumps(response)
+                                self.logger.info(f'{self.connector.source_id} handle_ssl_messages_server sending token '
+                                             f'success to client {new_peername} from ip {self.extra_info}')    
+                                await self.send_message(message_type='_token', data=params_as_string)         
+                                
                         if not authenticate_success:
                             self.logger.warning(f'{self.connector.source_id} handle_ssl_messages_server : wrong '
                                      f'authentication token from client {new_peername} from ip {self.extra_info}')                                                                
@@ -1259,6 +1266,17 @@ class FullDuplex:
                         self.logger.info('handle_ssl_messages_client sending token authenticate')                                                                
                         await self.send_message(message_type='_token', data=json.dumps({'cmd':'authenticate', \
                                                                                 'token':self.connector.token}))
+                        transport_json, data, binary = await self.recv_message()
+                        if transport_json[MessageFields.MESSAGE_TYPE] != '_token':
+                            msg = 'handle_ssl_messages_client received bad message_type : '+str(transport_json)
+                            self.logger.warning(msg)
+                            raise Exception(msg)                        
+                        data_json = json.loads(data.decode())
+                        if data_json.get('result') != 'success':
+                            msg = 'handle_ssl_messages_client received bad token result : '+str(transport_json)
+                            self.logger.warning(msg)
+                            raise Exception(msg)
+                        self.logger.info('handle_ssl_messages_client received token success') 
                         return
                     else:
                         self.logger.info('handle_ssl_messages_client sending get_new_token')                                        

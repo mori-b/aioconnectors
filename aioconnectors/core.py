@@ -2041,7 +2041,7 @@ class Connector:
     def build_server_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         if self.ssl_allow_all:
-            if self.token_verify_peer_cert:
+            if self.use_token and self.token_verify_peer_cert:
                 context.verify_mode = ssl.CERT_REQUIRED
                 context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
                 context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
@@ -2071,21 +2071,29 @@ class Connector:
     
 
     def build_client_ssl_context(self):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         if self.ssl_allow_all:
-            if self.token_client_send_cert:
-                context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME),
-                                        keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME))                
-            if self.token_verify_peer_cert:
-                context.verify_mode = ssl.CERT_REQUIRED        
-                if self.token_verify_peer_cert is True:
-                    context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)
+            if self.use_token:
+                if self.token_verify_peer_cert:
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)            
                 else:
-                    #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
-                    context.load_verify_locations(cafile=self.token_verify_peer_cert)
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+                if self.token_client_send_cert:
+                    context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME),
+                                            keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.ssl_helper.CLIENT_DEFAULT_CERT_NAME))                
+                if self.token_verify_peer_cert:
+                    context.verify_mode = ssl.CERT_REQUIRED        
+                    if self.token_verify_peer_cert is True:
+                        context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)
+                    else:
+                        #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
+                        context.load_verify_locations(cafile=self.token_verify_peer_cert)
+                else:
+                    context.verify_mode = ssl.CERT_NONE
             else:
-                context.verify_mode = ssl.CERT_NONE
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS)                
+                context.verify_mode = ssl.CERT_NONE                    
         else:        
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)            
             context.verify_mode = ssl.CERT_REQUIRED        
             context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
                                     keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
