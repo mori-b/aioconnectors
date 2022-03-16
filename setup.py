@@ -19,7 +19,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-VERSION = '1.0.60'
+VERSION = '1.1.0'
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file

@@ -408,10 +408,10 @@ class Connector:
         if not os.path.exists(self.tokens_file_path):
             return None        
         with open(self.tokens_file_path, 'r') as fd:     
-            res = fd.read()[:self.MAX_TOKEN_LENGTH]
+            res = fd.read()
         if self.hook_load_token:
             res = self.hook_load_token(res)           
-        self.token = res
+        self.token = res[:self.MAX_TOKEN_LENGTH]
         return res
 
     def store_client_token(self, token):
