@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL = True, False, False
+    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, False
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -88,7 +88,7 @@ class Connector:
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=CONNECTOR_FILES_DIRPATH, 
-                 tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 server_ca=SERVER_CA, tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  tool_only=False, file_recv_config=None, config_file_path=None,
@@ -138,7 +138,7 @@ class Connector:
             
             self.server_sockaddr = server_sockaddr
             self.is_server = is_server            
-            self.use_ssl, self.ssl_allow_all, self.use_token = use_ssl, ssl_allow_all, use_token
+            self.use_ssl, self.ssl_allow_all, self.use_token, self.server_ca = use_ssl, ssl_allow_all, use_token, server_ca
             self.certificates_directory_path = full_path(certificates_directory_path)
             self.tokens_directory_path = full_path(tokens_directory_path)
             if self.tokens_directory_path:
@@ -266,8 +266,9 @@ class Connector:
                     self.client_reconnect_last_timestamp = 0
                 
                 if self.use_ssl:                    
-                    self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path, self.max_certs)
-                    self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and '
+                    self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path,
+                                                 self.max_certs, self.server_ca)
+                    self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and server_ca : {server_ca}'
                                      f'with certificates directory : {self.ssl_helper.certificates_base_path}')
                     
                     #this code is used instead in run_client since the alternate_client_cert_toggle_default mechanism
@@ -2059,7 +2060,13 @@ class Connector:
             #certificate, the context needs to be rebuilt in order to call again load_verify_locations(capath, which will
             #take into account the new certificate.
             context.load_cert_chain(certfile=self.ssl_helper.SERVER_PEM_PATH, keyfile=self.ssl_helper.SERVER_KEY_PATH)
-            context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
+            if self.server_ca:
+                #just validate that the client cert is signed by our server CA. Then let FullDuplex start() validate
+                #that peer_cert['serialNumber'] is in source_id_2_cert
+                context.load_verify_locations(cafile=self.ssl_helper.SERVER_CA_PEM_PATH)
+            else:
+                context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
+                
             try:
                 if PYTHON_GREATER_37:
                     context.sni_callback = self.override_server_ssl_context

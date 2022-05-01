@@ -1088,7 +1088,8 @@ class FullDuplex:
                     
                     crt_path, key_path = await self.connector.ssl_helper.create_client_certificate(source_id=\
                                             transport_json[MessageFields.SOURCE_ID], common_name=None,
-                                            hook_allow_certificate_creation=self.connector.hook_allow_certificate_creation)
+                                            hook_allow_certificate_creation=self.connector.hook_allow_certificate_creation,
+                                            server_ca=self.connector.server_ca)
                     with open(crt_path, 'r') as fd:
                         crt = fd.read()
                     with open(key_path, 'r') as fd:
@@ -1096,8 +1097,12 @@ class FullDuplex:
                     response = {'cmd': 'set_new_certificate',
                                 'crt': crt,
                                 'key': key}
-                    #we might want to delete now the client private key from server :
-                    if self.connector.DELETE_CLIENT_PRIVATE_KEY_ON_SERVER:
+                    if self.connector.server_ca:
+                        #no need to keep client certs, which are checked only by their CA
+                        os.remove(crt_path)
+                        os.remove(key_path)
+                    elif self.connector.DELETE_CLIENT_PRIVATE_KEY_ON_SERVER:
+                        #we might want to delete now the client private key from server :
                         os.remove(key_path)
                     params_as_string = json.dumps(response)
                     self.logger.info('handle_ssl_messages_server sending set_new_certificate')                
