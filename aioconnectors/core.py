@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, False
+    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, True
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -268,8 +268,8 @@ class Connector:
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path,
                                                  self.max_certs, self.server_ca)
-                    self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and server_ca : {server_ca}'
-                                     f'with certificates directory : {self.ssl_helper.certificates_base_path}')
+                    self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and server_ca : {server_ca},'
+                                     f' with certificates directory : {self.ssl_helper.certificates_base_path}')
                     
                     #this code is used instead in run_client since the alternate_client_cert_toggle_default mechanism
                     #if self.is_server:                

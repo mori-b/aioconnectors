@@ -64,7 +64,7 @@ basicConstraints       = CA:FALSE
 keyUsage               = digitalSignature, keyEncipherment
 '''
 
-CSR_CREATE_CNF = '''
+CA_CSR_CREATE_CNF = '''
 [ req ]
 prompt             = no
 default_bits       = 2048
@@ -118,8 +118,8 @@ class SSL_helper:
             self.CSR_TEMPLATE_CONF  = os.path.join(self.SERVER_BASE_PATH, 'csr_details_template.conf')
             self.SERVER_CA_PEM_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_ca.'+self.CERT_NAME_EXTENSION)
             self.SERVER_CA_KEY_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_ca.'+self.KEY_NAME_EXTENSION)
-            self.SERVER_CSR_CONF  = os.path.join(self.SERVER_BASE_PATH, 'server_csr_details.conf')
-            self.SERVER_CSR_PEM_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_csr.'+self.CERT_NAME_EXTENSION)
+            self.SERVER_CA_CSR_CONF  = os.path.join(self.SERVER_BASE_PATH, 'server_ca_csr_details.conf')
+            self.SERVER_CA_CSR_PEM_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_ca_csr.'+self.CERT_NAME_EXTENSION)
 
             
             #client
@@ -220,18 +220,18 @@ class SSL_helper:
                                          
                 else:
                     #create csr and sign it with server_ca
-                    if not os.path.exists(self.SERVER_CSR_CONF):
-                        with open(self.SERVER_CSR_CONF, 'w') as fd:
-                            fd.write(CSR_CREATE_CNF)
+                    if not os.path.exists(self.SERVER_CA_CSR_CONF):
+                        with open(self.SERVER_CA_CSR_CONF, 'w') as fd:
+                            fd.write(CA_CSR_CREATE_CNF)
                     
-                    create_csr_cmd = f"openssl req -config {self.SERVER_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
-                                    f"{key_path} -out {self.SERVER_CSR_PEM_PATH} -outform PEM"
+                    create_csr_cmd = f"openssl req -config {self.SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
+                                    f"{key_path} -out {self.SERVER_CA_CSR_PEM_PATH} -outform PEM"
                     proc, stdout, stderr = await self.run_cmd(create_csr_cmd)                
                     if proc.returncode != 0:
                         raise Exception('Error while Generating csr : '+stderr.decode())
                     create_certificate_cmd = f"openssl ca -batch -cert {self.SERVER_CA_PEM_PATH} -keyfile "\
                                             f"{self.SERVER_CA_KEY_PATH} -policy signing_policy "\
-                                            f"-extensions signing_req -out {crt_path} -infiles {self.SERVER_CSR_PEM_PATH}"                    
+                                            f"-extensions signing_req -out {crt_path} -infiles {self.SERVER_CA_CSR_PEM_PATH}"                    
                     proc, stdout, stderr = await self.run_cmd(create_certificate_cmd)                
                     if proc.returncode != 0:
                         raise Exception('Error while Generating CA signed certificate : '+stderr.decode())
@@ -421,7 +421,13 @@ def create_certificates(logger, certificates_directory_path):
     CLIENT_KEY_PATH = os.path.join(certificates_path_client_client, '{}.key')
     SERVER_CERTS_PATH = os.path.join(certificates_path_server_client, '{}.pem')
     
+    SERVER_CA_PEM_PATH = os.path.join(certificates_path_server_server, 'server_ca.crt')
+    SERVER_CA_KEY_PATH = os.path.join(certificates_path_server_server, 'server_ca.key')
+    SERVER_CA_CSR_CONF  = os.path.join(certificates_path_server, 'server_ca_csr_details.conf')
+    SERVER_CA_CSR_PEM_PATH = os.path.join(certificates_path_server, 'server-cert/server_ca_csr.crt')
+    
     server_ca_details_conf = os.path.join(certificates_path_server, 'server_ca_details.conf')
+    
     csr_details_conf = os.path.join(certificates_path_server, 'csr_details.conf')
     csr_details_template_conf = os.path.join(certificates_path_server, 'csr_details_template.conf')
     
@@ -441,6 +447,13 @@ C = US
 ''')
     else:
         logger.info(f'Using preexisting {csr_details_template_conf}')
+
+    if not os.path.exists(SERVER_CA_CSR_CONF):
+        with open(SERVER_CA_CSR_CONF, 'w') as fd:
+            fd.write(CA_CSR_CREATE_CNF)
+    else:
+        logger.info(f'Using preexisting {SERVER_CA_CSR_CONF}')
+
         
 #        1) Create Server certificate            
     update_conf(csr_details_template_conf, csr_details_conf, {'O':'company'})                        
@@ -448,16 +461,45 @@ C = US
     stdout = subprocess.check_output(cmd, shell=True)
     shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
     #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
- 
+
+#        2)generate ca pem and key
+    if not os.path.exists(server_ca_details_conf):
+        with open(server_ca_details_conf, 'w') as fd:
+            fd.write(CA_CREATE_CNF)
+    cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
+          f" -out {SERVER_CA_PEM_PATH} -config {server_ca_details_conf} -outform PEM"
+    stdout = subprocess.check_output(cmd, shell=True)        
+    
 #        2) Create client default certificate
     client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
     #we might want to obfuscate organization
     organization = str(abs(hash(organization)) % (10 ** 8))
-    update_conf(csr_details_template_conf, csr_details_conf, {'O':organization})                    
-    cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
-    stdout = subprocess.check_output(cmd, shell=True)        
+#    update_conf(csr_details_template_conf, csr_details_conf, {'O':organization})
+    
+    
+    #create csr and sign it with server_ca
+    if not os.path.exists(SERVER_CA_CSR_CONF):
+        with open(SERVER_CA_CSR_CONF, 'w') as fd:
+            fd.write(CA_CSR_CREATE_CNF)
+            
+    update_conf(SERVER_CA_CSR_CONF, csr_details_conf, {'O':organization})
+            
+    
+    create_csr_cmd = f"openssl req -config {SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
+                    f"{client_default_key} -out {SERVER_CA_CSR_PEM_PATH} -outform PEM"
+    stdout = subprocess.check_output(create_csr_cmd, shell=True)              
+
+    create_certificate_cmd = f"openssl ca -batch -cert {SERVER_CA_PEM_PATH} -keyfile "\
+                            f"{SERVER_CA_KEY_PATH} -policy signing_policy -config {server_ca_details_conf} "\
+                            f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
+    stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
+       
+    #cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {csr_details_conf}"
+    #stdout = subprocess.check_output(cmd, shell=True)     
+    
+    
     shutil.copy(client_default_pem, SERVER_CERTS_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
 
 #        3) Calculate hash of client default certificate
@@ -471,16 +513,7 @@ C = US
         os.remove(dst)
     
     cmd = f'ln -s ../{ssl_helper.CLIENT_DEFAULT_CERT_NAME}.pem '+dst
-    stdout = subprocess.check_output(cmd, shell=True)
-    
-    if not os.path.exists(server_ca_details_conf):
-        with open(server_ca_details_conf, 'w') as fd:
-            fd.write(CA_CREATE_CNF)
-    #generate ca pem and jey
-    cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {ssl_helper.SERVER_CA_KEY_PATH}" \
-          f"-out {ssl_helper.SERVER_CA_PEM_PATH} -config {csr_details_conf} -outform PEM"
-    stdout = subprocess.check_output(cmd, shell=True)        
-    
+    stdout = subprocess.check_output(cmd, shell=True)    
     
     logger.info('Finished create_certificates')
     return True
