@@ -24,6 +24,13 @@ x509_extensions = ca_extensions # The extensions to add to the cert
 email_in_dn     = no            # Don't concat the email in the DN
 copy_extensions = copy          # Required to copy SANs from CSR to cert
 
+base_dir      = {base_dir}
+certificate   = $base_dir/{ca_pem}   # The CA certificate
+private_key   = $base_dir/{ca_key}    # The CA private key
+new_certs_dir = $base_dir              # Location for new certs after signing
+database      = $base_dir/index.txt    # Database index file
+serial        = $base_dir/serial.txt   # The current serial number
+
 unique_subject = no  # Set to 'no' to allow creation of
                      # several certificates with same subject.
 
@@ -52,9 +59,9 @@ keyUsage               = keyCertSign, cRLSign
 countryName            = optional
 stateOrProvinceName    = optional
 localityName           = optional
-organizationName       = optional
+organizationName       = supplied
 organizationalUnitName = optional
-commonName             = supplied
+commonName             = optional
 emailAddress           = optional
 
 [ signing_req ]
@@ -75,9 +82,9 @@ string_mask        = utf8only
 
 [ server_distinguished_name ]
 countryName                 = US
+organizationName               = {org}
 
 [ server_req_extensions ]
-
 subjectKeyIdentifier = hash
 basicConstraints     = CA:FALSE
 keyUsage             = digitalSignature, keyEncipherment
@@ -421,8 +428,10 @@ def create_certificates(logger, certificates_directory_path):
     CLIENT_KEY_PATH = os.path.join(certificates_path_client_client, '{}.key')
     SERVER_CERTS_PATH = os.path.join(certificates_path_server_client, '{}.pem')
     
-    SERVER_CA_PEM_PATH = os.path.join(certificates_path_server_server, 'server_ca.crt')
-    SERVER_CA_KEY_PATH = os.path.join(certificates_path_server_server, 'server_ca.key')
+    SERVER_CA_PEM = 'server_ca.crt'
+    SERVER_CA_KEY = 'server_ca.key'
+    SERVER_CA_PEM_PATH = os.path.join(certificates_path_server_server, SERVER_CA_PEM)
+    SERVER_CA_KEY_PATH = os.path.join(certificates_path_server_server, SERVER_CA_KEY)
     SERVER_CA_CSR_CONF  = os.path.join(certificates_path_server, 'server_ca_csr_details.conf')
     SERVER_CA_CSR_PEM_PATH = os.path.join(certificates_path_server, 'server-cert/server_ca_csr.crt')
     
@@ -454,7 +463,7 @@ C = US
     else:
         logger.info(f'Using preexisting {SERVER_CA_CSR_CONF}')
 
-        
+    logger.info('Create Server certificate')
 #        1) Create Server certificate            
     update_conf(csr_details_template_conf, csr_details_conf, {'O':'company'})                        
     cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {csr_details_conf}'
@@ -462,14 +471,20 @@ C = US
     shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
     #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
 
+    logger.info('Generate CA')
 #        2)generate ca pem and key
     if not os.path.exists(server_ca_details_conf):
         with open(server_ca_details_conf, 'w') as fd:
-            fd.write(CA_CREATE_CNF)
+            fd.write(CA_CREATE_CNF.format(base_dir=certificates_path_server_server, ca_pem=SERVER_CA_PEM, ca_key=SERVER_CA_KEY))
+#    cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
+#          f" -out {SERVER_CA_PEM_PATH} -config {server_ca_details_conf} -outform PEM"
+          
     cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
           f" -out {SERVER_CA_PEM_PATH} -config {server_ca_details_conf} -outform PEM"
+          
     stdout = subprocess.check_output(cmd, shell=True)        
     
+    logger.info('Generate client default certificate CSR')
 #        2) Create client default certificate
     client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
@@ -478,21 +493,32 @@ C = US
     organization = str(abs(hash(organization)) % (10 ** 8))
 #    update_conf(csr_details_template_conf, csr_details_conf, {'O':organization})
     
-    
     #create csr and sign it with server_ca
     if not os.path.exists(SERVER_CA_CSR_CONF):
         with open(SERVER_CA_CSR_CONF, 'w') as fd:
-            fd.write(CA_CSR_CREATE_CNF)
-            
-    update_conf(SERVER_CA_CSR_CONF, csr_details_conf, {'O':organization})
-            
+            fd.write(CA_CSR_CREATE_CNF.format(org=organization))
+    #update_conf(SERVER_CA_CSR_CONF, csr_details_conf, {'O':organization})            
     
     create_csr_cmd = f"openssl req -config {SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
                     f"{client_default_key} -out {SERVER_CA_CSR_PEM_PATH} -outform PEM"
     stdout = subprocess.check_output(create_csr_cmd, shell=True)              
 
-    create_certificate_cmd = f"openssl ca -batch -cert {SERVER_CA_PEM_PATH} -keyfile "\
-                            f"{SERVER_CA_KEY_PATH} -policy signing_policy -config {server_ca_details_conf} "\
+    logger.info('Sign client default certificate CSR')
+    
+    # Create the index and serial files
+    index_file_path = os.path.join(certificates_path_server_server, 'index.txt')
+    serial_file_path = os.path.join(certificates_path_server_server, 'serial.txt')
+    
+    if not os.path.exists(index_file_path):
+        open(index_file_path, 'w').close()
+    if not os.path.exists(serial_file_path):
+        with open(serial_file_path, 'w') as fd:
+            fd.write('00')
+    
+#    create_certificate_cmd = f"openssl ca -batch -cert {SERVER_CA_PEM_PATH} -keyfile "\
+#                            f"{SERVER_CA_KEY_PATH} -policy signing_policy -config {server_ca_details_conf} "\
+                            
+    create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {server_ca_details_conf} "\
                             f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
     stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
        
