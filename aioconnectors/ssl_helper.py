@@ -231,16 +231,16 @@ class SSL_helper:
                     with open(self.SERVER_CA_CSR_CONF, 'w') as fd:
                         fd.write(CA_CSR_CREATE_CNF.format(org=organization))
                     #update_conf(SERVER_CA_CSR_CONF, csr_details_conf, {'O':organization})            
-                    crt_path = f'{self.SERVER_CERTS_PATH}/{source_id}-csr.{self.CERT_NAME_EXTENSION}'    
+                    csr_path = f'{self.SERVER_CERTS_PATH}/{source_id}-csr.{self.CERT_NAME_EXTENSION}'    
                     
                     create_csr_cmd = f"openssl req -config {self.SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
-                                    f"{key_path} -out {crt_path} -outform PEM"
+                                    f"{key_path} -out {csr_path} -outform PEM"
                     proc, stdout, stderr = await self.run_cmd(create_csr_cmd)                
                     if proc.returncode != 0:
                         raise Exception('Error while Generating csr : '+stderr.decode())
                                     
                     self.logger.info('Sign client default certificate CSR')
-                    crt_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
+                    pem_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
                     
                     # Create the index and serial files
                     index_file_path = os.path.join(self.SERVER_BASE_PATH, 'index.txt')
@@ -253,7 +253,7 @@ class SSL_helper:
                             fd.write('00')
                     
                     create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {self.SERVER_CA_DETAILS_CONF} "\
-                                            f"-extensions signing_req -out {crt_path} -infiles {self.SERVER_CA_CSR_PEM_PATH}"
+                                            f"-extensions signing_req -out {pem_path} -infiles {csr_path}"
                     stdout = subprocess.check_output(create_certificate_cmd, shell=True)       
                     proc, stdout, stderr = await self.run_cmd(create_certificate_cmd)                
                     if proc.returncode != 0:
