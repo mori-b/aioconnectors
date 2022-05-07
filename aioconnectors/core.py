@@ -972,6 +972,12 @@ class Connector:
                 except Exception:
                     self.logger.exception('commander_cb writer drain')     
             writer.close()
+            if PYTHON_GREATER_37:
+                try:
+                    await writer.wait_closed()      #python 3.7                                              
+                except Exception as exc:
+                    self.logger.warning('commander_cb writer.wait_closed : '+str(exc))
+            
         except asyncio.CancelledError:
             raise            
         except Exception:
@@ -1505,6 +1511,11 @@ class Connector:
                         self.logger.debug(f'{self.source_id} queue_send_to_connector_put : Ignoring message to peer {peername}')
                         if not self.uds_path_send_preserve_socket:
                             writer.close()
+                            if PYTHON_GREATER_37:
+                                try:
+                                    await writer.wait_closed()      #python 3.7                                              
+                                except Exception as exc:
+                                    self.logger.warning('queue_send_to_connector_put1 writer.wait_closed : '+str(exc))                            
                         await asyncio.sleep(0)
                         if not self.uds_path_send_preserve_socket:
                             return
@@ -1574,6 +1585,12 @@ class Connector:
                                                 'persistence is disabled')
                             #close writer so that client stops waiting uselessly
                             writer.close()
+                            if PYTHON_GREATER_37:
+                                try:
+                                    await writer.wait_closed()      #python 3.7                                              
+                                except Exception as exc:
+                                    self.logger.warning('queue_send_to_connector_put2 writer.wait_closed : '+str(exc))
+                            
                     else:
                         if len(self.messages_awaiting_response[message_type].get(peername, {})) > self.MAX_NUMBER_OF_AWAITING_REQUESTS:
                             self.logger.error(f'{self.source_id} messages_awaiting_response dict has '
@@ -1633,6 +1650,12 @@ class Connector:
                 #await writer.drain()
                 if not self.uds_path_send_preserve_socket:
                     writer.close()
+                    if PYTHON_GREATER_37:
+                        try:
+                            await writer.wait_closed()      #python 3.7                                              
+                        except Exception as exc:
+                            self.logger.warning('queue_send_to_connector_put3 writer.wait_closed : '+str(exc))
+                    
                 await asyncio.sleep(0)
                 #self.logger.debug(f'{self.source_id} Finished queue_send_to_connector_put task.')
                 if not self.uds_path_send_preserve_socket:
@@ -1648,6 +1671,12 @@ class Connector:
             self.logger.exception(f'{self.source_id} queue_send_to_connector_put')
             try:
                 writer.close()
+                if PYTHON_GREATER_37:
+                    try:
+                        await writer.wait_closed()      #python 3.7                                              
+                    except Exception as exc:
+                        self.logger.warning('queue_send_to_connector_put4 writer.wait_closed : '+str(exc))
+                
             except Exception:
                 pass
       
@@ -1794,6 +1823,12 @@ class Connector:
                             reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                                limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
                             writer.close()
+                            if PYTHON_GREATER_37:
+                                try:
+                                    await writer.wait_closed()      #python 3.7                                              
+                                except Exception as exc:
+                                    self.logger.warning('queue_recv_from_connector1 writer.wait_closed : '+str(exc))
+                            
                             msg_types_ready_for_transition.append(msg_type)
                         except Exception as exc: #ConnectionRefusedError:
                             if not ignore_redundant_log:
@@ -1886,6 +1921,12 @@ class Connector:
                             self.logger.debug(f'Resetting reader_writer_uds_path_receive after {MAX_RESET_SOCKET} times')
                             writer = self.reader_writer_uds_path_receive[uds_path_receive][1]
                             writer.close()
+                            if PYTHON_GREATER_37:
+                                try:
+                                    await writer.wait_closed()      #python 3.7                                              
+                                except Exception as exc:
+                                    self.logger.warning('queue_recv_from_connector2 writer.wait_closed : '+str(exc))
+                            
                             del self.reader_writer_uds_path_receive[uds_path_receive]
                         else:
                             try:
@@ -1905,6 +1946,7 @@ class Connector:
                             self.reader_writer_uds_path_receive[uds_path_receive] = reader, writer = await \
                                                 asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                         limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                            writer.transport.set_write_buffer_limits(0,0)
                         except asyncio.CancelledError:
                             raise                                                
                         except Exception as exc: #ConnectionRefusedError:
@@ -1928,6 +1970,7 @@ class Connector:
                     try:
                         reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=uds_path_receive, 
                                                            limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                        writer.transport.set_write_buffer_limits(0,0)
                     except asyncio.CancelledError:
                         raise                        
                     except Exception as exc: #ConnectionRefusedError:
@@ -1943,6 +1986,11 @@ class Connector:
                     self.logger.debug(f'{self.source_id} queue_recv_from_connector finished sending '
                                       f'data to {uds_path_receive}')                                        
                     writer.close()                                       
+                    if PYTHON_GREATER_37:
+                        try:
+                            await writer.wait_closed()      #python 3.7                                              
+                        except Exception as exc:
+                            self.logger.warning('queue_recv_from_connector3 writer.wait_closed : '+str(exc))
 
                 message_bytes, transport_json, data, binary = None, None, None, None                
                 #await asyncio.sleep(0)
@@ -1952,6 +2000,12 @@ class Connector:
                 self.logger.exception(f'{self.source_id} queue_recv_from_connector')
                 try:
                     writer.close()
+                    if PYTHON_GREATER_37:
+                        try:
+                            await writer.wait_closed()      #python 3.7                                              
+                        except Exception as exc:
+                            self.logger.warning('queue_recv_from_connector4 writer.wait_closed : '+str(exc))
+                    
                 except Exception:
                     self.logger.exception('queue_recv_from_connector writer close')
             
@@ -2009,7 +2063,8 @@ class Connector:
             socket_used = self.inside_end_sockpair or self.sock
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
                                     server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), 
-                                    timeout=self.ASYNC_TIMEOUT)                                                                     
+                                    timeout=self.ASYNC_TIMEOUT)
+            writer.transport.set_write_buffer_limits(0,0)                                                                 
             await self.manage_full_duplex(reader, writer)
             self.logger.info(f'{self.source_id} client is running')            
         except asyncio.CancelledError:

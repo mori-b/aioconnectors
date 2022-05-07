@@ -336,6 +336,12 @@ class ConnectorAPI:
                         self.logger.exception('send_message uds_path_send_preserve_socket')
                         try:
                             writer.close()
+                            if PYTHON_GREATER_37:
+                                try:
+                                    await writer.wait_closed()      #python 3.7                                              
+                                except Exception as exc:
+                                    self.logger.warning('send_message1 wait_closed : '+str(exc))
+                            
                         except Exception:
                             pass                                          
                         
@@ -350,6 +356,7 @@ class ConnectorAPI:
                 
                 reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.uds_path_send_to_connector, 
                                                    limit=self.MAX_SOCKET_BUFFER_SIZE), timeout=self.ASYNC_TIMEOUT)
+                writer.transport.set_write_buffer_limits(0,0)
                 if self.uds_path_send_preserve_socket and not await_response:
                     self.reader_writer_uds_path_send = reader, writer
             except asyncio.CancelledError:
@@ -380,12 +387,24 @@ class ConnectorAPI:
                     except asyncio.TimeoutError:
                         self.logger.warning(f'send_message : await_response_timeout error ({await_response_timeout} s)')
                         writer.close()
+                        if PYTHON_GREATER_37:
+                            try:
+                                await writer.wait_closed()      #python 3.7                                              
+                            except Exception as exc:
+                                self.logger.warning('send_message2 wait_closed : '+str(exc))
+                        
                         return False                      
                 else:
                     the_response = await self.recv_message(reader, writer)
             self.logger.debug('send_message finished sending')                    
             if await_response:
                 writer.close()
+                if PYTHON_GREATER_37:
+                    try:
+                        await writer.wait_closed()      #python 3.7                                              
+                    except Exception as exc:
+                        self.logger.warning('send_message3 wait_closed : '+str(exc))
+                
                 return the_response
             return True      
                 
@@ -507,6 +526,7 @@ class ConnectorRemoteTool(ConnectorAPI):
             message = Structures.MSG_4_STRUCT.pack(len(message)) + message
             reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path=self.connector.uds_path_commander), 
                                                     timeout=self.ASYNC_TIMEOUT)
+            writer.transport.set_write_buffer_limits(0,0)
             writer.write(message)  
             try:
                 await asyncio.wait_for(writer.drain(), timeout=self.ASYNC_TIMEOUT)
@@ -516,6 +536,12 @@ class ConnectorRemoteTool(ConnectorAPI):
             next_length = Structures.MSG_4_STRUCT.unpack(next_length_bytes)[0]
             response = await asyncio.wait_for(reader.readexactly(next_length), timeout=self.ASYNC_TIMEOUT)
             writer.close()
+            if PYTHON_GREATER_37:
+                try:
+                    await writer.wait_closed()      #python 3.7                                              
+                except Exception as exc:
+                    self.logger.warning('send_command wait_closed : '+str(exc))
+            
             self.logger.info(f'send_command got response {response}')
         except Exception as exc:
             self.logger.exception('send_command')
