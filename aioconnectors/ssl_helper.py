@@ -259,6 +259,12 @@ class SSL_helper:
                     if proc.returncode != 0:
                         raise Exception('Error while Generating CA signed certificate : '+stderr.decode())
                     
+                    try:
+                        if os.path.exists(csr_path):
+                            #deleting client csr
+                            os.remove(csr_path)
+                    except Exception:
+                        self.logger.exception(f'Deleting {csr_path}')
                                      
             #if stderr:
             #    self.logger.warning('create_certificate_cmd : '+stderr.decode())

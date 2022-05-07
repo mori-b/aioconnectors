@@ -55,6 +55,7 @@ if len(sys.argv) > 1:
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, reuse_server_sockaddr=False,
                         reuse_uds_path_commander_server=False, reuse_uds_path_send_to_connector=False,
                         use_ssl=Connector.USE_SSL, ssl_allow_all=False, use_token=Connector.USE_TOKEN,
+                        server_ca=Connector.SERVER_CA,
                         certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
                         tokens_directory_path=Connector.CONNECTOR_FILES_DIRPATH,                        
                         client_name=None, client_bind_ip=None, 
