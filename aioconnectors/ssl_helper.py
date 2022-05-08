@@ -388,7 +388,7 @@ class SSL_helper:
             self.logger.exception('remove_client_cert_on_server')
             return json.dumps({'status':False, 'msg':str(exc)})
 
-def create_certificates(logger, certificates_directory_path):
+def create_certificates(logger, certificates_directory_path, no_ca=False):
     '''
     
     1) Create Server certificate
@@ -497,51 +497,60 @@ C = US
     shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
     #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
 
-    logger.info('Generate CA')
-#        2)generate ca pem and key
-    if not os.path.exists(SERVER_CA_DETAILS_CONF):
-        with open(SERVER_CA_DETAILS_CONF, 'w') as fd:
-            fd.write(CA_CREATE_CNF.format(base_dir=certificates_path_server_server, ca_pem=SERVER_CA_PEM, ca_key=SERVER_CA_KEY))
-          
-    cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
-          f" -out {SERVER_CA_PEM_PATH} -config {SERVER_CA_DETAILS_CONF} -outform PEM"
-          
-    stdout = subprocess.check_output(cmd, shell=True)        
-    
-    logger.info('Generate client default certificate CSR')
+    if not no_ca:
+        logger.info('Generate CA')
+    #        2)generate ca pem and key
+        if not os.path.exists(SERVER_CA_DETAILS_CONF):
+            with open(SERVER_CA_DETAILS_CONF, 'w') as fd:
+                fd.write(CA_CREATE_CNF.format(base_dir=certificates_path_server_server, ca_pem=SERVER_CA_PEM, ca_key=SERVER_CA_KEY))
+              
+        cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
+              f" -out {SERVER_CA_PEM_PATH} -config {SERVER_CA_DETAILS_CONF} -outform PEM"
+              
+        stdout = subprocess.check_output(cmd, shell=True)        
+        
+        logger.info('Generate client default certificate CSR')
+
 #        2) Create client default certificate
     client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
     #we might want to obfuscate organization
     organization = str(abs(hash(organization)) % (10 ** 8))
-    
-    #create csr and sign it with server_ca
-    if not os.path.exists(SERVER_CA_CSR_CONF):
-        with open(SERVER_CA_CSR_CONF, 'w') as fd:
-            fd.write(CA_CSR_CREATE_CNF.format(org=organization))
-    
-    create_csr_cmd = f"openssl req -config {SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
-                    f"{client_default_key} -out {SERVER_CA_CSR_PEM_PATH} -outform PEM"
-    stdout = subprocess.check_output(create_csr_cmd, shell=True)              
 
-    logger.info('Sign client default certificate CSR')
+    if no_ca:    
+        update_conf(CSR_TEMPLATE_CONF, CSR_CONF, {'O':organization})                    
+        cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {CSR_CONF}"
+        stdout = subprocess.check_output(cmd, shell=True)        
+        shutil.copy(client_default_pem, SERVER_CERTS_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
+    else:        
+        #create csr and sign it with server_ca
+        if not os.path.exists(SERVER_CA_CSR_CONF):
+            with open(SERVER_CA_CSR_CONF, 'w') as fd:
+                fd.write(CA_CSR_CREATE_CNF.format(org=organization))
+        
+        create_csr_cmd = f"openssl req -config {SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
+                        f"{client_default_key} -out {SERVER_CA_CSR_PEM_PATH} -outform PEM"
+        stdout = subprocess.check_output(create_csr_cmd, shell=True)              
     
-    # Create the index and serial files
-    index_file_path = os.path.join(certificates_path_server_server, 'index.txt')
-    serial_file_path = os.path.join(certificates_path_server_server, 'serial.txt')
-    
-    if not os.path.exists(index_file_path):
-        open(index_file_path, 'w').close()
-    if not os.path.exists(serial_file_path):
-        with open(serial_file_path, 'w') as fd:
-            fd.write('00')
-    
-    create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {SERVER_CA_DETAILS_CONF} "\
-                            f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
-    stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
-       
-    shutil.copy(client_default_pem, SERVER_CERTS_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
+        logger.info('Sign client default certificate CSR')
+        
+        # Create the index and serial files
+        index_file_path = os.path.join(certificates_path_server_server, 'index.txt')
+        serial_file_path = os.path.join(certificates_path_server_server, 'serial.txt')
+        
+        if not os.path.exists(index_file_path):
+            open(index_file_path, 'w').close()
+        if not os.path.exists(serial_file_path):
+            with open(serial_file_path, 'w') as fd:
+                fd.write('00')
+        
+        create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {SERVER_CA_DETAILS_CONF} "\
+                                f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
+        stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
+           
+        shutil.copy(client_default_pem, SERVER_CERTS_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
+
 
 #        3) Calculate hash of client default certificate
     cmd = f'openssl x509 -hash -noout -in {client_default_pem}'

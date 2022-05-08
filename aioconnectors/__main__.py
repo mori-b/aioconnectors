@@ -30,19 +30,24 @@ aioconnectors supported commands :
     
 if len(sys.argv) > 1:
     if sys.argv[1] == 'create_certificates':
-        
+        no_ca = False
+        if '--no-ca' in sys.argv:
+            sys.argv.remove('--no-ca')
+            no_ca = True
         if len(sys.argv) == 3:
             if sys.argv[2] == '--help':
                 print('create_certificates without argument will create client and server certificates directories '
                       f'under {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n'
                       'You can specify a target directory as an optional argument.\n'
-                      '(Use "create_certificates ." to create your target directory in your current working directory.)')
+                      '(Use "create_certificates ." to create your target directory in your current working directory.)\n'
+                      'Use --no-ca to create certificates for a server having server_ca=False')
                 sys.exit(0)
             certificates_directory_path = aioconnectors.helpers.full_path(sys.argv[2])
         else:
             certificates_directory_path = None
         logger.info('Starting create_certificates')            
-        res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path)
+        res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path,
+                                                           no_ca=no_ca)
         if res is False:
             sys.exit(1)
         

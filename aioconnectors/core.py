@@ -2145,7 +2145,11 @@ class Connector:
                 if self.token_verify_peer_cert:
                     context.verify_mode = ssl.CERT_REQUIRED        
                     if self.token_verify_peer_cert is True:
-                        context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)
+                        if not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
+                            #support old .crt name from < 1.2.0
+                            context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH.replace('.pem','.crt'))
+                        else:
+                            context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)                   
                     else:
                         #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
                         context.load_verify_locations(cafile=self.token_verify_peer_cert)
@@ -2160,7 +2164,11 @@ class Connector:
             context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
                                     keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
             #in case server certificate change, client should first replace/chain the new server certificate in its cafile
-            context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)    #optional
+            if not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
+                #support old .crt name from < 1.2.0
+                context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH.replace('.pem','.crt'))
+            else:
+                context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)
             #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
         return context
 

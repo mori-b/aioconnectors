@@ -64,9 +64,10 @@ In case you want to use this example with encryption, you should read 2. and 3.,
 In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
 A directory containing certificates must be created before running the example, which is done by a single command :
 
-    python3 -m aioconnectors create_certificates
+    python3 -m aioconnectors create_certificates [--no-ca] [--help]
 
 If you run server and client on different machines, this command should be run on both machines.  
+--no-ca is needed for a server having server_ca=false (<a href="#classes">4-</a>).  
 
 3.Encryption with authentication  
 In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated.  
