@@ -77,6 +77,7 @@ class FullDuplex:
         self.MAX_RETRIES_BEFORE_ACK = self.connector.MAX_RETRIES_BEFORE_ACK
         self.ack_dict = {}
         self.keep_alive_event_received = asyncio.Event()    #client only
+        self.send_message_lock = asyncio.Lock()
 
     def stop_nowait_for_persistence(self, message_tuple=None):
         #at disconnection, this functions stores queue_send remainings into persistence
@@ -942,6 +943,7 @@ class FullDuplex:
     #4|2|json|4|data|4|binary
     async def send_message(self, message=None, message_type=None, source_id=None, destination_id=None, request_id=None,
                            response_id=None, transport_json=None, data=None, binary=None, message_type_publish=None):
+        await self.send_message_lock.acquire()
         try:
 #            async with self.lock_connection:       
             update_msg_counts = True                   
@@ -993,6 +995,8 @@ class FullDuplex:
             raise        
         except Exception:
             self.logger.exception(self.connector.source_id+' send_message with peer '+self.peername)
+        finally:
+            self.send_message_lock.release()
             
             
     #4|2|json|4|data|4|binary
