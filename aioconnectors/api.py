@@ -678,6 +678,8 @@ class ConnectorAPI(ConnectorBaseTool):
                 if await_response_timeout is not None:
                     try:
                         the_response = await asyncio.wait_for(self.recv_message(reader, writer), timeout=await_response_timeout)
+                        if the_response[0].get(MessageFields.ERROR):
+                            raise asyncio.IncompleteReadError(the_response[0].get(MessageFields.ERROR).encode(), 0)
                     except asyncio.TimeoutError:
                         self.logger.warning(f'send_message : await_response_timeout error ({await_response_timeout} s)')
                         writer.close()

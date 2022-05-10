@@ -50,6 +50,7 @@ class MessageFields:
     TRANSPORT_ID = 'transport_id'    #int
     WAIT_FOR_ACK = 'wait_for_ack'    #boolean
     MESSAGE_TYPE_PUBLISH = 'message_type_publish'
+    ERROR = 'error'
     
 class Structures:
     MSG_4_STRUCT = Struct('I')    #4
@@ -764,6 +765,16 @@ class FullDuplex:
             except asyncio.CancelledError:
                 raise     
             except Exception as exc:
+                
+                self.logger.info('Free response waiters after peer connector disconnection')
+                for type_waiters in self.connector.messages_awaiting_response.values():
+                    for peer_waiters in type_waiters.values():
+                        for response_waiters in peer_waiters.values():
+                            #this transport_json error flows to queue_send_to_connector_put (await_response part) and
+                            #then generates an IncompleteReadError in api.py (send_message, await_response part)                                                        
+                            response_waiters[1] = ({MessageFields.ERROR:'disconnected_during_wait'}, '{}', None)    
+                            response_waiters[0].set()
+                            
                 if isinstance(exc, asyncio.IncompleteReadError):                
                     if self.connector.is_server:                
                         self.logger.warning(f'{self.connector.source_id} handle_incoming_connection from '
@@ -981,13 +992,13 @@ class FullDuplex:
             self.writer.write(message[:Structures.MSG_4_STRUCT.size])
             self.writer.write(message[Structures.MSG_4_STRUCT.size:])        
             try:
-                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.ASYNC_TIMEOUT * 3)
+                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.ASYNC_TIMEOUT * 5)
             except asyncio.TimeoutError as exc:
                 self.logger.warning('send_message TimeoutError : '+str(exc))
+                #requires immediate socket close
                 #struct.pack('ii', l_onoff=1, l_linger=0)
                 self.connector.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\x01\x00\x00\x00\x00\x00\x00\x00')
-                #tc qdisc del dev eth0 root
-                #tc qdisc add dev eth0 root netem delay 200ms
+                #to reproduce : tc qdisc add dev eth0 root netem delay 200ms (to disable : tc qdisc del dev eth0 root)
                 self.connector.sock.shutdown(socket.SHUT_RDWR)                                
                 raise ConnectionResetError()
                 
