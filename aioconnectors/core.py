@@ -620,6 +620,9 @@ class Connector:
 
                 if number_of_unanswered_keep_alive >= self.max_number_of_unanswered_keep_alive:
                     self.logger.warning('Restarting client because lack of keep alive responses')
+                    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\x01\x00\x00\x00\x00\x00\x00\x00')                                    
+                    self.sock.shutdown(socket.SHUT_RDWR)
+                    
                     self.tasks['client_wait_for_reconnect'] = self.loop.create_task(self.client_wait_for_reconnect())
                     return
             except asyncio.CancelledError:

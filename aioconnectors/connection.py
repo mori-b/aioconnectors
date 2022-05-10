@@ -30,6 +30,7 @@ import ipaddress
 import re
 import hashlib
 import secrets
+import socket
 
 from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
@@ -471,9 +472,9 @@ class FullDuplex:
                         #created by server for the requested source_id
                         if self.client_certificate_serial != \
                        self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]):
-                           self.logger.warning('Client {} tried to impersonate client {}'.format(\
+                           self.logger.warning('Client {} from {} tried to impersonate client {}'.format(\
                                             self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(\
-                                                        self.client_certificate_serial), transport_json[MessageFields.SOURCE_ID]))
+                                                        self.client_certificate_serial), self.extra_info, transport_json[MessageFields.SOURCE_ID]))
                            continue
                            #self.stop_task()
                            #return                
@@ -954,7 +955,7 @@ class FullDuplex:
             else:
                 if transport_json:
                     self.logger.debug(f'{self.connector.source_id} send_message {message_type or transport_json} '
-                                      f'with data length {len(data or "")}')     
+                                      f'with data length {len(data or "")}, and binary length {len(binary or "")}')     
                     if DEBUG_SHOW_DATA:
                         self.logger.info('and with data {}'.format(data))
                         if binary:
@@ -980,9 +981,15 @@ class FullDuplex:
             self.writer.write(message[:Structures.MSG_4_STRUCT.size])
             self.writer.write(message[Structures.MSG_4_STRUCT.size:])        
             try:
-                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.ASYNC_TIMEOUT)
+                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.ASYNC_TIMEOUT * 3)
             except asyncio.TimeoutError as exc:
                 self.logger.warning('send_message TimeoutError : '+str(exc))
+                #struct.pack('ii', l_onoff=1, l_linger=0)
+                self.connector.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\x01\x00\x00\x00\x00\x00\x00\x00')
+                #tc qdisc del dev eth0 root
+                #tc qdisc add dev eth0 root netem delay 200ms
+                self.connector.sock.shutdown(socket.SHUT_RDWR)                                
+                raise ConnectionResetError()
                 
             if self.connector.debug_msg_counts and update_msg_counts:
                 self.connector.msg_counts['queue_sent']+=1
