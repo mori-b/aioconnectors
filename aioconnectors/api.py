@@ -30,7 +30,7 @@ class ConnectorManager:
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
-                 keep_alive_period=None, keep_alive_timeout=Connector.KEEP_ALIVE_TIMEOUT,
+                 keep_alive_period=None, keep_alive_timeout=Connector.KEEP_ALIVE_TIMEOUT, send_timeout=Connector.SEND_TIMEOUT,
                  max_number_of_unanswered_keep_alive=Connector.MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload=None, hook_allow_certificate_creation=None, hook_proxy_authorization=None,
@@ -100,6 +100,7 @@ class ConnectorManager:
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
         self.keep_alive_period, self.keep_alive_timeout, self.max_number_of_unanswered_keep_alive = \
                     keep_alive_period, keep_alive_timeout, max_number_of_unanswered_keep_alive
+        self.send_timeout = send_timeout
         
         self.blacklisted_clients_id, self.blacklisted_clients_ip = blacklisted_clients_id, blacklisted_clients_ip
         self.blacklisted_clients_subnet, self.whitelisted_clients_id = blacklisted_clients_subnet, whitelisted_clients_id
@@ -177,7 +178,7 @@ class ConnectorManager:
                                    enable_client_try_reconnect=self.enable_client_try_reconnect,
                                    keep_alive_period=self.keep_alive_period, keep_alive_timeout=self.keep_alive_timeout,
                                    max_number_of_unanswered_keep_alive=self.max_number_of_unanswered_keep_alive,
-                                   reuse_server_sockaddr=self.reuse_server_sockaddr,
+                                   reuse_server_sockaddr=self.reuse_server_sockaddr, send_timeout = self.send_timeout,
                                    reuse_uds_path_send_to_connector=self.reuse_uds_path_send_to_connector,
                                    reuse_uds_path_commander_server=self.reuse_uds_path_commander_server,
                                    max_size_file_upload_send=self.max_size_file_upload_send,

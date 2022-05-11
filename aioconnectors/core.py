@@ -43,6 +43,7 @@ class Connector:
     #USE_ACK = False  #or can be a list of message_types like ['type1']    
     DEBUG_MSG_COUNTS = True
     TOKEN_VERIFY_PEER_CERT = True
+    SEND_TIMEOUT = 50
     
     #client only
     KEEP_ALIVE_TIMEOUT = 5  
@@ -97,7 +98,7 @@ class Connector:
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
                  hook_proxy_authorization=None, enable_client_try_reconnect=True,
-                 keep_alive_period=None, keep_alive_timeout=KEEP_ALIVE_TIMEOUT,
+                 keep_alive_period=None, keep_alive_timeout=KEEP_ALIVE_TIMEOUT, send_timeout=SEND_TIMEOUT,
                  max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
                  max_size_file_upload_send=MAX_SIZE_FILE_UPLOAD_SEND, max_size_file_upload_recv=MAX_SIZE_FILE_UPLOAD_RECV,
@@ -155,7 +156,9 @@ class Connector:
             self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
             self.token_verify_peer_cert = token_verify_peer_cert
             self.max_certs = max_certs
+            self.send_timeout = send_timeout
             self.config_file_path = config_file_path
+            
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
                 self.logger.info('Server has source id : '+self.source_id)                

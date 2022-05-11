@@ -885,7 +885,7 @@ class FullDuplex:
                         transport_json, data, binary, message_tuple = None, None, None, None
                         
                         try:
-                            await asyncio.wait_for(self.ack_dict[self.transport_id].wait(), timeout=self.connector.ASYNC_TIMEOUT)
+                            await asyncio.wait_for(self.ack_dict[self.transport_id].wait(), timeout=self.connector.send_timeout)
                             self.logger.info(f'handle_outgoing_connection {self.connector.source_id} received ACK for '
                                              f'transport id {self.transport_id}')
                             del self.ack_dict[self.transport_id]
@@ -990,9 +990,10 @@ class FullDuplex:
                     update_msg_counts = False
             # send the length to be sent next
             self.writer.write(message[:Structures.MSG_4_STRUCT.size])
-            self.writer.write(message[Structures.MSG_4_STRUCT.size:])        
+            self.writer.write(message[Structures.MSG_4_STRUCT.size:])    
+            print('yomo', self.connector.send_timeout)
             try:
-                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.ASYNC_TIMEOUT * 5)
+                await asyncio.wait_for(self.writer.drain(), timeout=self.connector.send_timeout)
             except asyncio.TimeoutError as exc:
                 self.logger.warning('send_message TimeoutError : '+str(exc))
                 #requires immediate socket close
