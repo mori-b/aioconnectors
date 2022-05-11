@@ -991,7 +991,6 @@ class FullDuplex:
             # send the length to be sent next
             self.writer.write(message[:Structures.MSG_4_STRUCT.size])
             self.writer.write(message[Structures.MSG_4_STRUCT.size:])    
-            print('yomo', self.connector.send_timeout)
             try:
                 await asyncio.wait_for(self.writer.drain(), timeout=self.connector.send_timeout)
             except asyncio.TimeoutError as exc:
