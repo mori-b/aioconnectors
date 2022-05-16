@@ -2154,6 +2154,7 @@ class Connector:
                     if self.token_verify_peer_cert is True:
                         if not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
                             #support old .crt name from < 1.2.0
+                            context.check_hostname = False
                             context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH.replace('.pem','.crt'))
                         else:
                             context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH)                   
@@ -2167,7 +2168,8 @@ class Connector:
                 context.verify_mode = ssl.CERT_NONE                    
         else:        
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)            
-            context.verify_mode = ssl.CERT_REQUIRED        
+            context.verify_mode = ssl.CERT_REQUIRED
+            context.check_hostname = False
             context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
                                     keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
             #in case server certificate change, client should first replace/chain the new server certificate in its cafile
