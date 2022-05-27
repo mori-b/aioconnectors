@@ -1,6 +1,12 @@
 [![PyPI version](https://badge.fury.io/py/aioconnectors.svg)](https://badge.fury.io/py/aioconnectors) [![Downloads](https://static.pepy.tech/personalized-badge/aioconnectors?period=total&units=international_system&left_color=grey&right_color=blue&left_text=downloads)](https://pepy.tech/project/aioconnectors)
 
-# aioconnectors
+#       _                                       _
+#  __ _(_) ___   ___ ___  _ __  _ __   ___  ___| |_ ___  _ __ ___ 
+# / _` | |/ _ \ / __/ _ \| '_ \| '_ \ / _ \/ __| __/ _ \| '__/ __|
+#| (_| | | (_) | (_| (_) | | | | | | |  __/ (__| || (_) | |  \__ \
+# \__,_|_|\___/ \___\___/|_| |_|_| |_|\___|\___|\__\___/|_|  |___/
+
+
 **Simple secure asynchronous message broker**
 
 *<a href="#features">Features</a>*  
