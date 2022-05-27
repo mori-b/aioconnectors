@@ -8,7 +8,7 @@
 
 
 # aioconnectors
-**Simple secure asynchronous message broker**
+**Simple secure asynchronous message queue**
 
 *<a href="#features">Features</a>*  
 *<a href="#installation">Installation</a>*  
