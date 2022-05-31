@@ -34,7 +34,7 @@
 ## FEATURES
 
 aioconnectors is an easy to set up message queue that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
-It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss.  
+It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss, proxy support.  
 It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
 Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file.  
