@@ -41,7 +41,7 @@ class ConnectorManager:
                  alternate_client_default_cert=Connector.ALTERNATE_CLIENT_DEFAULT_CERT,
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
-                 hook_whitelist_clients=None, ignore_peer_traffic=False,
+                 hook_whitelist_clients=None, ignore_peer_traffic=False, client_cafile_verify_server=None,
                  token_verify_peer_cert=Connector.TOKEN_VERIFY_PEER_CERT, token_client_send_cert=Connector.TOKEN_CLIENT_SEND_CERT,
                  token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
                  token_server_allow_authorized_non_default_cert=False):
@@ -71,6 +71,7 @@ class ConnectorManager:
                             tokens_directory_path, use_token
         self.token_verify_peer_cert, self.token_client_send_cert = token_verify_peer_cert, token_client_send_cert
         self.token_client_verify_server_hostname = token_client_verify_server_hostname
+        self.client_cafile_verify_server = client_cafile_verify_server
         self.token_server_allow_authorized_non_default_cert = token_server_allow_authorized_non_default_cert
         self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
         self.pubsub_central_broker = pubsub_central_broker        
@@ -190,7 +191,7 @@ class ConnectorManager:
                                    blacklisted_clients_id=self.blacklisted_clients_id, blacklisted_clients_ip=self.blacklisted_clients_ip,
                                    blacklisted_clients_subnet=self.blacklisted_clients_subnet, whitelisted_clients_id=self.whitelisted_clients_id,
                                    whitelisted_clients_ip=self.whitelisted_clients_ip, whitelisted_clients_subnet=self.whitelisted_clients_subnet,
-                                   hook_whitelist_clients=self.hook_whitelist_clients,
+                                   hook_whitelist_clients=self.hook_whitelist_clients, client_cafile_verify_server=self.client_cafile_verify_server,
                                    token_verify_peer_cert=self.token_verify_peer_cert, token_client_send_cert=self.token_client_send_cert,
                                    token_client_verify_server_hostname=self.token_client_verify_server_hostname,
                                    token_server_allow_authorized_non_default_cert=self.token_server_allow_authorized_non_default_cert

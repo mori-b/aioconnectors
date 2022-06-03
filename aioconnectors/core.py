@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, False
+    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, True
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -108,7 +108,7 @@ class Connector:
                  blacklisted_clients_id=None, blacklisted_clients_ip=None, blacklisted_clients_subnet=None,
                  whitelisted_clients_id=None, whitelisted_clients_ip=None, whitelisted_clients_subnet=None,
                  hook_whitelist_clients=None, ignore_peer_traffic=False,
-                 hook_store_token=None, hook_load_token=None,
+                 hook_store_token=None, hook_load_token=None, client_cafile_verify_server=None,
                  token_verify_peer_cert=TOKEN_VERIFY_PEER_CERT, token_client_send_cert=TOKEN_CLIENT_SEND_CERT,
                  token_client_verify_server_hostname=TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
                  token_server_allow_authorized_non_default_cert=False
@@ -155,6 +155,7 @@ class Connector:
             self.hook_proxy_authorization = hook_proxy_authorization
             self.hook_store_token, self.hook_load_token = hook_store_token, hook_load_token
             self.token_verify_peer_cert = token_verify_peer_cert
+            self.client_cafile_verify_server = client_cafile_verify_server
             self.max_certs = max_certs
             self.send_timeout = send_timeout
             self.config_file_path = config_file_path
@@ -272,7 +273,8 @@ class Connector:
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path,
                                                  self.max_certs, self.server_ca)
                     self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and server_ca : {server_ca},'
-                                     f' with certificates directory : {self.ssl_helper.certificates_base_path}')
+                                     f' with certificates directory : {self.ssl_helper.certificates_base_path},'
+                                     f' and with client_cafile_verify_server : {client_cafile_verify_server}')
                     
                     #this code is used instead in run_client since the alternate_client_cert_toggle_default mechanism
                     #if self.is_server:                
@@ -2173,7 +2175,10 @@ class Connector:
             context.load_cert_chain(certfile=self.ssl_helper.CLIENT_PEM_PATH.format(self.client_certificate_name),
                                     keyfile=self.ssl_helper.CLIENT_KEY_PATH.format(self.client_certificate_name))
             #in case server certificate change, client should first replace/chain the new server certificate in its cafile
-            if not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
+            if self.client_cafile_verify_server:
+                #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
+                context.load_verify_locations(cafile=self.client_cafile_verify_server)
+            elif not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
                 #support old .crt name from < 1.2.0
                 context.load_verify_locations(cafile=self.ssl_helper.CLIENT_SERVER_CRT_PATH.replace('.pem','.crt'))
             else:
