@@ -2063,12 +2063,12 @@ class Connector:
         try:
             ssl_context = self.build_client_ssl_context() if self.use_ssl else None        
             server_hostname = '' if self.use_ssl else None
-            if self.token_client_verify_server_hostname: 
-                #server_hostname = self.token_client_verify_server_hostname
+            if self.client_cafile_verify_server or self.token_client_verify_server_hostname: 
                 #here we assume server_sockaddr[0] is a hostname, not an ip address.
-                #this should go together with token_verify_peer_cert='/etc/ssl/certs/ca-certificates.crt'
+                #this should go together with client_cafile_verify_server or token_verify_peer_cert='/etc/ssl/certs/ca-certificates.crt'
                 server_hostname = self.server_sockaddr[0]
-            #self.inside_end_sockpair is not None only when proxy with ssl_server is configured
+                #self.inside_end_sockpair is not None only when proxy with ssl_server is configured
+                self.logger.info(f'{self.source_id} Client will connect to server {server_hostname}')            
             socket_used = self.inside_end_sockpair or self.sock
             reader, writer = await asyncio.wait_for(asyncio.open_connection(sock=socket_used, ssl=ssl_context,
                                     server_hostname=server_hostname, limit=self.MAX_SOCKET_BUFFER_SIZE), 
@@ -2177,6 +2177,8 @@ class Connector:
             #in case server certificate change, client should first replace/chain the new server certificate in its cafile
             if self.client_cafile_verify_server:
                 #cafile can be like : "/etc/ssl/certs/ca-certificates.crt"
+                #server can be tested with : openssl s_client --connect <server_ip>:<server_port>
+                context.check_hostname = True
                 context.load_verify_locations(cafile=self.client_cafile_verify_server)
             elif not os.path.exists(self.ssl_helper.CLIENT_SERVER_CRT_PATH):
                 #support old .crt name from < 1.2.0
