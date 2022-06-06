@@ -103,7 +103,7 @@ class SSL_helper:
     CERT_NAME_EXTENSION = "pem"
     KEY_NAME_EXTENSION = "key"
     
-    def __init__(self, logger, is_server, certificates_directory_path=None, max_certs=None, server_ca=False):
+    def __init__(self, logger, is_server, certificates_directory_path=None, max_certs=None, server_ca=False, tool_only=False):
         self.logger = logger.getChild('ssl')
         try:
             self.is_server, self.certificates_directory_path, self.server_ca = is_server, certificates_directory_path, server_ca
@@ -137,6 +137,9 @@ class SSL_helper:
             #self.CLIENT_DEFAULT_ORGANIZATION = '9d2f849c877b4e50b6fccb54d6cd1818'    #'Internet Widgits Pty Ltd'  #'company' 
             self.CLIENT_SERVER_CRT_PATH  = os.path.join(self.CLIENT_BASE_PATH, 'server-cert/server.'+self.CERT_NAME_EXTENSION)                        
             #we might want to chain multiple certificates in CLIENT_SERVER_CRT_PATH, to support multiple server certificates
+            self.tool_only = tool_only
+            if self.tool_only:
+                return
             
             if self.is_server:
                 self.source_id_2_cert_path = os.path.join(self.SERVER_CERTS_PATH, self.SOURCE_ID_2_CERT)
@@ -568,3 +571,35 @@ C = US
     logger.info('Finished create_certificates')
     return True
             
+def replace_server_certificate(logger, server_certificate_path=None, certificates_directory_path=None, revert=False):
+    '''server_certificate_path should be the path to server.pem, where server.key also exists'''
+    if not server_certificate_path:
+        return False
+    ssl_helper = SSL_helper(logger, is_server=True, certificates_directory_path=certificates_directory_path, tool_only=True)
+    backup_server_pem = ssl_helper.SERVER_PEM_PATH+'.org'
+    backup_server_key = ssl_helper.SERVER_KEY_PATH+'.org'
+    
+    if revert:
+        logger.info('Reverting server certificate to original')
+        shutil.move(backup_server_pem, ssl_helper.SERVER_PEM_PATH)
+        shutil.move(backup_server_key, ssl_helper.SERVER_KEY_PATH)
+        return True
+    
+    logger.info(f'Setting new server certificate from {server_certificate_path}')
+    shutil.copy(ssl_helper.SERVER_PEM_PATH, backup_server_pem)
+    shutil.copy(ssl_helper.SERVER_KEY_PATH, backup_server_key)
+    shutil.copy(server_certificate_path, ssl_helper.SERVER_PEM_PATH)
+    shutil.copy(server_certificate_path.replace(ssl_helper.CERT_NAME_EXTENSION, ssl_helper.KEY_NAME_EXTENSION),
+                                                        ssl_helper.SERVER_KEY_PATH)
+    #set owner (current user) and permissions (taken from original server pem/key)
+    current_uid, current_gid = os.getuid(), os.getgid()
+    shutil.copystat(backup_server_pem, ssl_helper.SERVER_PEM_PATH)
+    shutil.copystat(backup_server_key, ssl_helper.SERVER_KEY_PATH)
+    shutil.chown(ssl_helper.SERVER_PEM_PATH, user=current_uid, group=current_gid)
+    shutil.chown(ssl_helper.SERVER_KEY_PATH, user=current_uid, group=current_gid)
+    return True
+
+
+        
+        
+        

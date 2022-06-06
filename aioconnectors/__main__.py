@@ -15,7 +15,8 @@ HELP = '''
 aioconnectors supported commands :
     
     - print_config_templates
-    - create_certificates [optional dirpath]
+    - create_certificates [optional dirpath] [--help]
+    - replace_server_certificate new_pem_path [optional dirpath] [--revert] [--help]
     - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate, delete_client_token)
     - create_connector <config file path>
     - test_receive_messages <config file path>
@@ -48,6 +49,34 @@ if len(sys.argv) > 1:
         logger.info('Starting create_certificates')            
         res = aioconnectors.ssl_helper.create_certificates(logger, certificates_directory_path=certificates_directory_path,
                                                            no_ca=no_ca)
+        if res is False:
+            sys.exit(1)
+
+    if sys.argv[1] == 'replace_server_certificate':
+        help_test = 'replace_server_certificate puts your custom server certificate in the server certificates directories.\n' \
+              'First argument (mandatory) : the path of you server pem (the server key should be there too)\n' \
+              f'Second argument (optional) : the certificates directory path. If not provided it is : {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n' \
+              '(Use "." to create your target directory in your current working directory.)' \
+              'Use "--revert" to put back the original certificates and delete the custom certificate copy.'
+        
+        if len(sys.argv) == 3:
+            if sys.argv[2] == '--help':
+                print(help_test)
+                sys.exit(0)
+            if sys.argv[2] == '--revert':
+                res = aioconnectors.ssl_helper.replace_server_certificate(logger, revert=True)
+                sys.exit(0)                
+            server_certificate_path = aioconnectors.helpers.full_path(sys.argv[2])
+            certificates_directory_path = None
+        elif len(sys.argv) == 4:
+            server_certificate_path = aioconnectors.helpers.full_path(sys.argv[2])            
+            certificates_directory_path = aioconnectors.helpers.full_path(sys.argv[3])
+        else:
+            print(help_test)
+            sys.exit(0)
+        logger.info('Starting replace_server_certificate')            
+        res = aioconnectors.ssl_helper.replace_server_certificate(logger, server_certificate_path=server_certificate_path,
+                                                        certificates_directory_path=certificates_directory_path)
         if res is False:
             sys.exit(1)
         
