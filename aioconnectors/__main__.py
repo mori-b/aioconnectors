@@ -53,10 +53,10 @@ if len(sys.argv) > 1:
             sys.exit(1)
 
     if sys.argv[1] == 'replace_server_certificate':
-        help_test = 'replace_server_certificate puts your custom server certificate in the server certificates directories.\n' \
+        help_test = 'For server only, replace_server_certificate puts your custom server certificate in the server certificates directories.\n' \
               'First argument (mandatory) : the path of you server pem (the server key should be there too)\n' \
               f'Second argument (optional) : the certificates directory path. If not provided it is : {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n' \
-              '(Use "." to create your target directory in your current working directory.)' \
+              '(Use "." to create your target directory in your current working directory).\n' \
               'Use "--revert" to put back the original certificates and delete the custom certificate copy.'
         
         if len(sys.argv) == 3:

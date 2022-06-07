@@ -573,8 +573,10 @@ C = US
             
 def replace_server_certificate(logger, server_certificate_path=None, certificates_directory_path=None, revert=False):
     '''server_certificate_path should be the path to server.pem, where server.key also exists'''
-    if not server_certificate_path:
+    if not server_certificate_path and not revert:
+        logger.warning('replace_server_certificate bad arguments')
         return False
+    
     ssl_helper = SSL_helper(logger, is_server=True, certificates_directory_path=certificates_directory_path, tool_only=True)
     backup_server_pem = ssl_helper.SERVER_PEM_PATH+'.org'
     backup_server_key = ssl_helper.SERVER_KEY_PATH+'.org'
@@ -589,7 +591,7 @@ def replace_server_certificate(logger, server_certificate_path=None, certificate
     shutil.copy(ssl_helper.SERVER_PEM_PATH, backup_server_pem)
     shutil.copy(ssl_helper.SERVER_KEY_PATH, backup_server_key)
     shutil.copy(server_certificate_path, ssl_helper.SERVER_PEM_PATH)
-    shutil.copy(server_certificate_path.replace(ssl_helper.CERT_NAME_EXTENSION, ssl_helper.KEY_NAME_EXTENSION),
+    shutil.copy(server_certificate_path.replace('.'+ssl_helper.CERT_NAME_EXTENSION, '.'+ssl_helper.KEY_NAME_EXTENSION),
                                                         ssl_helper.SERVER_KEY_PATH)
     #set owner (current user) and permissions (taken from original server pem/key)
     current_uid, current_gid = os.getuid(), os.getgid()
