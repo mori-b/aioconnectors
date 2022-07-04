@@ -51,6 +51,7 @@ class Connector:
     ALTERNATE_CLIENT_DEFAULT_CERT = False    
     TOKEN_CLIENT_SEND_CERT = True
     TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME = None
+    CONNECT_TIMEOUT = 10    #can take time to resolve url
 
     ############################################    
     #default values of internals (not configurable at __init__)
@@ -536,13 +537,13 @@ class Connector:
                     
                 if not self.proxy.get('enabled'):
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.CONNECT_TIMEOUT)                                
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
                     #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (self.proxy['address'], self.proxy['port'])), timeout=2)                                
+                                                (self.proxy['address'], self.proxy['port'])), timeout=self.CONNECT_TIMEOUT)                                
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
@@ -906,13 +907,13 @@ class Connector:
 
                 if not self.proxy.get('enabled'):
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=2)                                
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.CONNECT_TIMEOUT)                                
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
                     #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (self.proxy['address'], self.proxy['port'])), timeout=2)                                
+                                                (self.proxy['address'], self.proxy['port'])), timeout=self.CONNECT_TIMEOUT)                                
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
