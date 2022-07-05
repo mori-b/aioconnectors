@@ -28,7 +28,7 @@ class ConnectorManager:
                  max_size_persistence_path=Connector.MAX_SIZE_PERSISTENCE_PATH,
                  file_recv_config=None, debug_msg_counts=Connector.DEBUG_MSG_COUNTS, silent=Connector.SILENT, #use_ack=Connector.USE_ACK,
                  uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET,
-                 uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
+                 uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET, connect_timeout=Connector.CONNECT_TIMEOUT,
                  hook_server_auth_client=None, hook_target_directory=None, enable_client_try_reconnect=True,
                  keep_alive_period=None, keep_alive_timeout=Connector.KEEP_ALIVE_TIMEOUT, send_timeout=Connector.SEND_TIMEOUT,
                  max_number_of_unanswered_keep_alive=Connector.MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
@@ -101,7 +101,7 @@ class ConnectorManager:
                             reuse_server_sockaddr, reuse_uds_path_send_to_connector, reuse_uds_path_commander_server
         self.keep_alive_period, self.keep_alive_timeout, self.max_number_of_unanswered_keep_alive = \
                     keep_alive_period, keep_alive_timeout, max_number_of_unanswered_keep_alive
-        self.send_timeout = send_timeout
+        self.send_timeout, self.connect_timeout = send_timeout, connect_timeout
         
         self.blacklisted_clients_id, self.blacklisted_clients_ip = blacklisted_clients_id, blacklisted_clients_ip
         self.blacklisted_clients_subnet, self.whitelisted_clients_id = blacklisted_clients_subnet, whitelisted_clients_id
@@ -176,7 +176,7 @@ class ConnectorManager:
                                    hook_allow_certificate_creation=self.hook_allow_certificate_creation,
                                    hook_proxy_authorization=self.hook_proxy_authorization,
                                    hook_store_token=self.hook_store_token, hook_load_token=self.hook_load_token,
-                                   enable_client_try_reconnect=self.enable_client_try_reconnect,
+                                   enable_client_try_reconnect=self.enable_client_try_reconnect, connect_timeout=self.connect_timeout,
                                    keep_alive_period=self.keep_alive_period, keep_alive_timeout=self.keep_alive_timeout,
                                    max_number_of_unanswered_keep_alive=self.max_number_of_unanswered_keep_alive,
                                    reuse_server_sockaddr=self.reuse_server_sockaddr, send_timeout = self.send_timeout,

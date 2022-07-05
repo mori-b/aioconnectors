@@ -576,6 +576,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "client_bind_ip": null,
         "client_cafile_verify_server": null,
         "client_name": null,
+        "connect_timeout": 10,
         "connector_files_dirpath": "/var/tmp/aioconnectors",
         "debug_msg_counts": true,
         "default_logger_dirpath": "/var/tmp/aioconnectors",
@@ -665,6 +666,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**client\_cafile\_verify\_server** : On client side, if server\_sockaddr is configured with the server hostname, you can set client\_cafile\_verify\_server to be the ca cert path (like /etc/ssl/certs/ca-certificates.crt), to enable CA verification of you server certificate.  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI. It should match the regex \^\[0\-9a\-zA\-Z\-\_\:\]\+$  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
+-**connect\_timeout** : On client side, the socket timeout to connect to Tsoc. Default is 10s, you might need to increase it when using a server url in server\_sockaddr, since sometimes name resolution with getaddrinfo is slow.  
 -**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /var/tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -**debug_msg_counts** is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if **silent** is disabled.  
 -**default\_logger\_rotate** (boolean) can also be an integer telling the maximum size of the log file in bytes. There are 5 backups configured, compressed with gzip.  

@@ -98,7 +98,7 @@ class Connector:
                  uds_path_receive_preserve_socket=UDS_PATH_RECEIVE_PRESERVE_SOCKET,
                  uds_path_send_preserve_socket=UDS_PATH_SEND_PRESERVE_SOCKET,
                  hook_server_auth_client=None, hook_target_directory=None, hook_allow_certificate_creation=None,
-                 hook_proxy_authorization=None, enable_client_try_reconnect=True,
+                 hook_proxy_authorization=None, enable_client_try_reconnect=True, connect_timeout=CONNECT_TIMEOUT,
                  keep_alive_period=None, keep_alive_timeout=KEEP_ALIVE_TIMEOUT, send_timeout=SEND_TIMEOUT,
                  max_number_of_unanswered_keep_alive=MAX_NUMBER_OF_UNANSWERED_KEEP_ALIVE,
                  reuse_server_sockaddr=False, reuse_uds_path_send_to_connector=False, reuse_uds_path_commander_server=False,
@@ -269,6 +269,7 @@ class Connector:
                     self.alternate_client_default_cert = alternate_client_default_cert
                     self.alternate_client_cert_toggle_default = False
                     self.client_reconnect_last_timestamp = 0
+                    self.connect_timeout = connect_timeout
                 
                 if self.use_ssl:                    
                     self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path,
@@ -537,13 +538,13 @@ class Connector:
                     
                 if not self.proxy.get('enabled'):
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.CONNECT_TIMEOUT)                                
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.connect_timeout)                                
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
                     #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (self.proxy['address'], self.proxy['port'])), timeout=self.CONNECT_TIMEOUT)                                
+                                                (self.proxy['address'], self.proxy['port'])), timeout=self.connect_timeout)                                
                     self.logger.info(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
@@ -907,13 +908,13 @@ class Connector:
 
                 if not self.proxy.get('enabled'):
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.CONNECT_TIMEOUT)                                
+                                                (server_sockaddr_addr, self.server_sockaddr[1])), timeout=self.connect_timeout)                                
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to peer {self.sock.getpeername()}')
                 else:
                     #only for client
                     await asyncio.wait_for(self.loop.sock_connect(self.sock,
-                                                (self.proxy['address'], self.proxy['port'])), timeout=self.CONNECT_TIMEOUT)                                
+                                                (self.proxy['address'], self.proxy['port'])), timeout=self.connect_timeout)                                
                     self.logger.debug(f'Created socket for {self.source_id} with info {str(self.sock.getsockname())} '
                                      f'to proxy {self.sock.getpeername()}')
                     await self.proxy_connect(self.server_sockaddr, server_sockaddr_addr=server_sockaddr_addr)
