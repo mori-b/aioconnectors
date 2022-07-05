@@ -15,7 +15,7 @@ HELP = '''
 aioconnectors supported commands :
     
     - print_config_templates
-    - create_certificates [optional dirpath] [--help]
+    - create_certificates [--no-ca] [optional dirpath] [--help]
     - replace_server_certificate new_pem_path [optional dirpath] [--revert] [--help]
     - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate, delete_client_token)
     - create_connector <config file path>
@@ -52,7 +52,7 @@ if len(sys.argv) > 1:
         if res is False:
             sys.exit(1)
 
-    if sys.argv[1] == 'replace_server_certificate':
+    elif sys.argv[1] == 'replace_server_certificate':
         help_test = 'For server only, replace_server_certificate puts your custom server certificate in the server certificates directories.\n' \
               'First argument (mandatory) : the path of you server pem (the server key should be there too)\n' \
               f'Second argument (optional) : the certificates directory path. If not provided it is : {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n' \
