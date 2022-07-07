@@ -457,7 +457,7 @@ and in case you want to roll back to use the original generated server certifica
 
     python3 -m aioconnectors replace_server_certificate --revert
     
--On client side, configure server\_sockaddr with the server hostname instead of IP address, and set client\_cafile\_verify\_server to be the ca cert path (like /etc/ssl/certs/ca-certificates.crt), to enable CA verification of you server certificate.  
+-On client side, configure server\_sockaddr with the server hostname instead of IP address, and set client\_cafile\_verify\_server to be the ca cert path (like /etc/ssl/certs/ca-certificates.crt), to enable CA verification of your server certificate.  
 
 You can always delete a client certificate on the server (and also on client) by calling delete\_client\_certificate in
 
