@@ -610,6 +610,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "send_message_types_priorities": {},
         "send_timeout": 50,
         "server_ca": false,
+        "server_secure_tls": true,
         "server_sockaddr": [
             "127.0.0.1",
             10673
@@ -687,7 +688,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**max\_size\_file\_upload\_send** and **max\_size\_file\_upload\_recv**: Size limit of the files you send and receive, both on server and on client. Default is 8GB. However best performance is achieved until 1GB. Once you exceed 1GB, the file is divided in 1GB chunks and reassembled after reception, which is time consuming.  
 -**disk\_persistence\_send** : In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True (applies to all message types). disk\_persistence\_send can also be a list of message types for which to apply persistence. There will be 1 persistence file per message type. You can limit the persistence files size with **max\_size\_persistence\_path**.  
 -**pubsub\_central\_broker** : set to True if you need your server to be the broker. Used in the publish/subscribe approach, not necessary in the point to point approach.  
--**proxy** an optional dictionary like {"enabled":true, "address":"<proxy_url>", "port":<proxy_port>, "authorization":"", "ssl\_server":false}. Relevant only on client side. Lets the client connect to the server through an http(s) proxy with the connect method, if the **enabled** field is true. The authorization field can have a value like {"username":"<username>", "password":"<password>"}. Regardless of the aioconnectors inner encryption, you can set the "ssl\_server" flag in case your proxy listens on ssl : this feature is currently not tested because such proxy setup is rare.  
+-**proxy** an optional dictionary like {"enabled":true, "address":"<proxy_url>", "port":<proxy_port>, "authorization":"", "ssl\_server":false}. Relevant only on client side. Lets the client connect to the server through an http(s) proxy with the connect method, if the **enabled** field is true. The authorization field can have a value like {"username":"<username>", "password":"<password>"}. Regardless of the aioconnectors inner encryption, you can set the "ssl\_server" flag in case your proxy listens on ssl : this feature is under development and not tested because such proxy setup is rare.  
 -**receive\_from\_any\_connector\_owner** if True lets the api receive messages from a connector being run by any user, otherwise the connector user must have write permission to the api. True by default (requires the api to run as root to be effective).  
 -**recv\_message\_types** : the list of message types that can be received by connector. Default is ["any"]. It should include the send\_message\_types using await\_response.  
 -**reuse\_server\_sockaddr**, **reuse\_uds\_path\_send\_to\_connector**, **reuse\_uds\_path\_commander\_server** : booleans false by default, that prevent duplicate processes you might create by mistake from using the same sockets. In case your OS is not freeing a closed socket, you still can set the relevant boolean to true.  
@@ -696,6 +697,7 @@ application level.
 -**send\_message\_types\_priorities** : None, or a dictionary specifying for each send\_message\_type its priority. The priority is an integer, a smaller integer meaning a higher priority. Usually this is not needed, but with very high throughputs you may want to use it in order to ensure that a specific message type will not get drown by other messages. This might starve the lowest priority messages. Usage example : "send\_message\_types\_priorities": {"type\_fast":0, "type\_slow":1}.  
 -**send\_timeout** : maximum time for sending a message between peers on the socket. By default 50 seconds. After timeout, the message is lost, the sending peer disconnects, and peers reconnect if enable\_client\_try\_reconnect.  
 -**server\_ca** : (server only) If set to true, the server authenticates client certificates according to its CA only. This is recommended to prevent storing all client certificates on server side.  
+-**server\_secure\_tls** : (server only) If set to true (default), the server allows only clients using TLS version >= v1.2.  
 -**server\_sockaddr** can be configured as a tuple when used as a kwarg, or as a list when used in the json, and is mandatory on both server and client sides. You can use an interface name instead of its ip on server side, for example ("eth0", 10673).  
 -**subscribe\_message\_types** : In the publish/subscribe approach, specify for your client the message types you want to subscribe to. It is a subset of recv\_message\_types.  
 -**tokens\_directory\_path** : The path of your server token json file, or client token file.  

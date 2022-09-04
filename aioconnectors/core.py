@@ -90,7 +90,8 @@ class Connector:
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=CONNECTOR_FILES_DIRPATH, 
-                 server_ca=SERVER_CA, tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
+                 server_ca=SERVER_CA, server_secure_tls=True,
+                 tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  tool_only=False, file_recv_config=None, config_file_path=None,
@@ -140,7 +141,8 @@ class Connector:
             
             self.server_sockaddr = server_sockaddr
             self.is_server = is_server            
-            self.use_ssl, self.ssl_allow_all, self.use_token, self.server_ca = use_ssl, ssl_allow_all, use_token, server_ca
+            self.use_ssl, self.ssl_allow_all, self.use_token = use_ssl, ssl_allow_all, use_token
+            self.server_ca, self.server_secure_tls = server_ca, server_secure_tls
             self.certificates_directory_path = full_path(certificates_directory_path)
             self.tokens_directory_path = full_path(tokens_directory_path)
             if self.tokens_directory_path:
@@ -661,6 +663,7 @@ class Connector:
             
             if self.proxy.get('ssl_server', None):
                 self.logger.info('Proxy server listens with SSL')
+                #TODO !!! wrapping the non blocking socket won't work, need to rewrite this
                 context = ssl.create_default_context()
                 #ssl wrap the client/proxy socket
                 self.sock = context.wrap_socket(self.sock)
@@ -2107,6 +2110,14 @@ class Connector:
         
     def build_server_ssl_context(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        #test using : curl -I -v --tlsv1.2 --tls-max 1.2 https://localhost:10673
+        if self.server_secure_tls:
+            self.logger.info('Server allowing only clients with TLS version >= v1.2')
+            if PYTHON_GREATER_37:
+                context.minimum_version = ssl.TLSVersion.TLSv1_2
+            else:
+                context.options = ssl.OP_NO_TLSv1_1
+        
         if self.ssl_allow_all:
             if self.use_token and self.token_verify_peer_cert:
                 context.verify_mode = ssl.CERT_REQUIRED

@@ -19,7 +19,8 @@ class ConnectorManager:
                  default_logger_log_level=DEFAULT_LOGGER_LOG_LEVEL, default_logger_rotate=True,
                  default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, use_token=Connector.USE_TOKEN,
                  is_server=True, server_sockaddr=None, use_ssl=Connector.USE_SSL, ssl_allow_all=Connector.SSL_ALLOW_ALL, 
-                 server_ca=Connector.SERVER_CA, client_bind_ip=None, certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
+                 server_ca=Connector.SERVER_CA, server_secure_tls=True,
+                 client_bind_ip=None, certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
                  tokens_directory_path=Connector.CONNECTOR_FILES_DIRPATH, client_name=None, 
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
                  connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
@@ -69,6 +70,7 @@ class ConnectorManager:
                             is_server, server_sockaddr, use_ssl, ssl_allow_all, certificates_directory_path, server_ca
         self.client_name, self.client_bind_ip, self.tokens_directory_path, self.use_token = client_name, client_bind_ip,\
                             tokens_directory_path, use_token
+        self.server_secure_tls = server_secure_tls
         self.token_verify_peer_cert, self.token_client_send_cert = token_verify_peer_cert, token_client_send_cert
         self.token_client_verify_server_hostname = token_client_verify_server_hostname
         self.client_cafile_verify_server = client_cafile_verify_server
@@ -158,7 +160,8 @@ class ConnectorManager:
         
         self.connector = Connector(self.logger, is_server=self.is_server, server_sockaddr=self.server_sockaddr, 
                                    use_ssl=self.use_ssl, ssl_allow_all=self.ssl_allow_all, use_token=self.use_token,
-                                   server_ca=self.server_ca, certificates_directory_path=self.certificates_directory_path,
+                                   server_ca=self.server_ca, server_secure_tls=self.server_secure_tls,
+                                   certificates_directory_path=self.certificates_directory_path,
                                    tokens_directory_path=self.tokens_directory_path,
                                    client_name=self.client_name, client_bind_ip=self.client_bind_ip,
                                    send_message_types=self.send_message_types, recv_message_types=self.recv_message_types,
