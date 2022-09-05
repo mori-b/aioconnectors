@@ -45,7 +45,7 @@ class ConnectorManager:
                  hook_whitelist_clients=None, ignore_peer_traffic=False, client_cafile_verify_server=None,
                  token_verify_peer_cert=Connector.TOKEN_VERIFY_PEER_CERT, token_client_send_cert=Connector.TOKEN_CLIENT_SEND_CERT,
                  token_client_verify_server_hostname=Connector.TOKEN_CLIENT_VERIFY_SERVER_HOSTNAME,
-                 token_server_allow_authorized_non_default_cert=False):
+                 token_server_allow_authorized_non_default_cert=False, **kwargs):
         
         self.connector_files_dirpath = connector_files_dirpath
         self.default_logger_dirpath = default_logger_dirpath

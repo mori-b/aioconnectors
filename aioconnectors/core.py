@@ -2140,7 +2140,9 @@ class Connector:
             if self.server_ca:
                 #just validate that the client cert is signed by our server CA. Then let FullDuplex start() validate
                 #that peer_cert['serialNumber'] is in source_id_2_cert
-                context.load_verify_locations(cafile=self.ssl_helper.SERVER_CA_PEM_PATH)
+                #flexibility to manually add defaultN or CA certificates under SERVER_SYMLINKS_PATH
+                #context.load_verify_locations(cafile=self.ssl_helper.SERVER_CA_PEM_PATH)
+                context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)                
             else:
                 context.load_verify_locations(capath=self.ssl_helper.SERVER_SYMLINKS_PATH)
                 

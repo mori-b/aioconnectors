@@ -512,6 +512,19 @@ C = US
               
         stdout = subprocess.check_output(cmd, shell=True)        
         
+        logger.info('Create server ca symlink')
+        stdout = subprocess.check_output(f'openssl x509 -hash -serial -noout -in {SERVER_CA_PEM_PATH}', shell=True)
+        hash_name, serial = stdout.decode().splitlines()
+        #serial = serial.split('=')[1]
+    
+        index = 0
+        while True:
+            candidate = os.path.join(certificates_path_server_client_sym, hash_name + '.' + str(index))
+            if not os.path.exists(candidate):
+                break
+            index += 1
+        os.symlink(f'../../server-cert/{SERVER_CA_PEM}' , candidate)    
+    
         logger.info('Generate client default certificate CSR')
 
 #        2) Create client default certificate
