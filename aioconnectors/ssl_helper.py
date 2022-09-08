@@ -156,22 +156,17 @@ class SSL_helper:
                     if cert.startswith(self.CLIENT_DEFAULT_CERT_NAME):
                         cert_name = cert[:-1-len(self.CERT_NAME_EXTENSION)]
                         if SOURCE_ID_DEFAULT_REGEX.match(cert_name):
-#                            stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
-                            stdout = subprocess.check_output('openssl x509 -hash -subject -noout -in '+\
+                            stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
                                                     str(os.path.join(self.SERVER_CERTS_PATH,
 #                                                        self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
                                                         cert)), shell=True)
                             
-                            #hash_name, serial = stdout.decode().splitlines()
-                            #serial = serial.split('=')[1]
-                            hash_name, subject = stdout.decode().splitlines()     
-                            #regex allows also { and } because of an old bug with org value being {org}
-                            regex_org = re.search(' O = (?P<org>\w+)(,|$)', subject)
-                            org = regex_org.group('org')
+                            hash_name, serial = stdout.decode().splitlines()
+                            serial = serial.split('=')[1]
                             if cert_name == self.CLIENT_DEFAULT_CERT_NAME:
-                                self.default_client_cert_id = org
+                                self.default_client_cert_id = serial
                             self.logger.info(f'Server adding default certificate : {cert_name}')
-                            self.default_client_cert_ids_list.append(org)
+                            self.default_client_cert_ids_list.append(serial)
                 self.logger.info(f'Server using default_client_cert_ids_list : {self.default_client_cert_ids_list}')                 
                 self.max_certs = max_certs
 
@@ -251,17 +246,7 @@ class SSL_helper:
                     self.logger.info('Sign client default certificate CSR')
                     pem_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
                     
-                    # Create the index and serial files
-                    index_file_path = os.path.join(self.SERVER_BASE_PATH, 'index.txt')
-                    serial_file_path = os.path.join(self.SERVER_BASE_PATH, 'serial.txt')
-                    
-                    if not os.path.exists(index_file_path):
-                        open(index_file_path, 'w').close()
-                    if not os.path.exists(serial_file_path):
-                        with open(serial_file_path, 'w') as fd:
-                            fd.write('00')
-                    
-                    create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {self.SERVER_CA_DETAILS_CONF} "\
+                    create_certificate_cmd = f"openssl ca -rand_serial -batch -policy signing_policy -config {self.SERVER_CA_DETAILS_CONF} "\
                                             f"-extensions signing_req -out {pem_path} -infiles {csr_path}"
                     stdout = subprocess.check_output(create_certificate_cmd, shell=True)       
                     proc, stdout, stderr = await self.run_cmd(create_certificate_cmd)                
@@ -286,10 +271,9 @@ class SSL_helper:
                 self.logger.warning('hash : '+stderr.decode())            
             hash_name, serial = stdout.splitlines()
             serial = serial.split('=')[1]
-            cert_id = organization
+            cert_id = serial
 
             if not server_ca:
-#                cert_id = serial
                 #create a symlink called <hash>.<first free index, starting from 0>, 
                 #pointing to f'../{source_id}.{self.CERT_NAME_EXTENSION}'
                 index = 0
@@ -555,18 +539,8 @@ C = US
         stdout = subprocess.check_output(create_csr_cmd, shell=True)              
     
         logger.info('Sign client default certificate CSR')
-        
-        # Create the index and serial files
-        index_file_path = os.path.join(certificates_path_server_server, 'index.txt')
-        serial_file_path = os.path.join(certificates_path_server_server, 'serial.txt')
-        
-        if not os.path.exists(index_file_path):
-            open(index_file_path, 'w').close()
-        if not os.path.exists(serial_file_path):
-            with open(serial_file_path, 'w') as fd:
-                fd.write('00')
-        
-        create_certificate_cmd = f"openssl ca -batch -policy signing_policy -config {SERVER_CA_DETAILS_CONF} "\
+                
+        create_certificate_cmd = f"openssl ca -rand_serial -batch -policy signing_policy -config {SERVER_CA_DETAILS_CONF} "\
                                 f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
         stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
            

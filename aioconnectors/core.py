@@ -2114,7 +2114,6 @@ class Connector:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         #test using : curl -I -v --tlsv1.2 --tls-max 1.2 https://localhost:10673
         if self.server_secure_tls:
-            self.logger.debug('Server allowing only clients with TLS version >= v1.2')
             if PYTHON_GREATER_37:
                 context.minimum_version = ssl.TLSVersion.TLSv1_2
             else:

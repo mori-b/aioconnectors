@@ -223,12 +223,7 @@ class FullDuplex:
                         #for client peer validation
                         #client_certificate_common_name = peer_cert["subject"][1][0][1]
                         
-                        for el in peer_cert['subject']:
-                            if el[0][0] == 'organizationName':
-                                self.client_certificate_id = el[0][1]
-                                break
-                        else:
-                            raise Exception(f'Invalid certificate {peer_cert}')
+                        self.client_certificate_id = peer_cert['serialNumber']
     
                         if self.client_certificate_id not in self.connector.ssl_helper.default_client_cert_ids_list:                            
                             peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_id)
