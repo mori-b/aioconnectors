@@ -31,6 +31,7 @@ import re
 import hashlib
 import secrets
 import socket
+import uuid
 
 from .helpers import full_path, chown_file, validate_source_id, CustomException, PYTHON_GREATER_37
 
@@ -133,6 +134,8 @@ class FullDuplex:
         
     async def stop(self, client_wait_for_reconnect=False, hard=False):
         try:
+            if not self.peername:
+                self.peername = uuid.uuid4().hex
             
             if not self.connector.is_server:
                 if self.connector.subscribe_message_types:
@@ -209,6 +212,7 @@ class FullDuplex:
     async def start(self):
         try:
             self.logger.info(f'{self.connector.source_id} start FullDuplex')
+            self.peername = None
             self.is_stopping = False            
             peer_identification_finished = False
             if self.connector.is_server:
@@ -219,13 +223,18 @@ class FullDuplex:
                         #for client peer validation
                         #client_certificate_common_name = peer_cert["subject"][1][0][1]
                         
-                        self.client_certificate_serial = peer_cert['serialNumber']
+                        for el in peer_cert['subject']:
+                            if el[0][0] == 'organizationName':
+                                self.client_certificate_id = el[0][1]
+                                break
+                        else:
+                            raise Exception(f'Invalid certificate {peer_cert}')
     
-                        if self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list:                            
-                            peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
+                        if self.client_certificate_id not in self.connector.ssl_helper.default_client_cert_ids_list:                            
+                            peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_id)
                             if not peername:
                                 self.logger.error(f'Authorized client with certificate '
-                                                  f'{self.client_certificate_serial} has no source_id ! Aborting')
+                                                  f'{self.client_certificate_id} has no source_id ! Aborting')
                                 self.peername = str(self.writer.get_extra_info('peername'))
                                 raise Exception('Unknown client')
                             peer_identification_finished = True     
@@ -234,8 +243,8 @@ class FullDuplex:
                             self.connector.full_duplex_connections[peername] = self.connector.full_duplex_connections.pop(old_peername)
 
                         else:
-                            #we could use the default_client_serial, but prefer to have a unique peername per client
-                            #for rare case where 2 clients are connecting simultaneously and have same default_client_serial
+                            #we could use the default_client_cert_id, but prefer to have a unique peername per client
+                            #for rare case where 2 clients are connecting simultaneously and have same default_client_cert_id
                             peername = str(self.writer.get_extra_info('peername'))
                             #for client with default certificate, creation of handle_outgoing_connection task 
                             #is not necessary and not performed
@@ -247,15 +256,15 @@ class FullDuplex:
                         
                         if self.connector.use_token:
                             peer_cert = self.writer.get_extra_info('ssl_object').getpeercert() or {}
-                            #client_certificate_serial can be useful in server token mode to allow non default client
-                            self.client_certificate_serial = peer_cert.get('serialNumber', None)
-                            if self.client_certificate_serial and self.connector.token_verify_peer_cert \
+                            #client_certificate_id can be useful in server token mode to allow non default client
+                            self.client_certificate_id = peer_cert.get('serialNumber', None)
+                            if self.client_certificate_id and self.connector.token_verify_peer_cert \
                                 and self.connector.token_server_allow_authorized_non_default_cert and ( \
-                                self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list):                                
-                                peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_serial)
+                                self.client_certificate_id not in self.connector.ssl_helper.default_client_cert_ids_list):                                
+                                peername = self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(self.client_certificate_id)
                                 if not peername:
                                     self.logger.error(f'Authorized client with certificate '
-                                                      f'{self.client_certificate_serial} has no source_id ! Aborting')
+                                                      f'{self.client_certificate_id} has no source_id ! Aborting')
                                     self.peername = str(self.writer.get_extra_info('peername'))
                                     raise Exception('Unknown client')
                                 self.logger.info(f'{self.connector.source_id} handle_incoming_connection accepting without token '
@@ -469,13 +478,13 @@ class FullDuplex:
                 
                 if self.connector.is_server:
                     if self.connector.use_ssl and not self.connector.ssl_allow_all: 
-                        #check if client_certificate_serial in peer client certificate is the serial of the certificate
+                        #check if client_certificate_id in peer client certificate is the id of the certificate
                         #created by server for the requested source_id
-                        if self.client_certificate_serial != \
+                        if self.client_certificate_id != \
                        self.connector.ssl_helper.source_id_2_cert['source_id_2_cert'].get(transport_json[MessageFields.SOURCE_ID]):
                            self.logger.warning('Client {} from {} tried to impersonate client {}'.format(\
                                             self.connector.ssl_helper.source_id_2_cert['cert_2_source_id'].get(\
-                                                        self.client_certificate_serial), self.extra_info, transport_json[MessageFields.SOURCE_ID]))
+                                                        self.client_certificate_id), self.extra_info, transport_json[MessageFields.SOURCE_ID]))
                            continue
                            #self.stop_task()
                            #return                
@@ -1062,9 +1071,9 @@ class FullDuplex:
                 data_json = json.loads(data.decode())                
                 if data_json.get('cmd') == 'get_new_certificate':
                     
-                    if self.client_certificate_serial not in self.connector.ssl_helper.default_client_serials_list: 
+                    if self.client_certificate_id not in self.connector.ssl_helper.default_client_cert_ids_list: 
                         self.logger.warning(f'handle_ssl_messages_server Client '
-                    f'{self.connector.ssl_helper.source_id_2_cert["cert_2_source_id"].get(self.client_certificate_serial)}'
+                    f'{self.connector.ssl_helper.source_id_2_cert["cert_2_source_id"].get(self.client_certificate_id)}'
                     ' tried to get_new_certificate with private certificate. Stopping...')
                         self.stop_task() 
                         return

@@ -149,25 +149,30 @@ class SSL_helper:
                         self.source_id_2_cert = json.load(fd)
                 else:
                     self.source_id_2_cert = {'source_id_2_cert':{}, 'cert_2_source_id':{}}
-                #load default_client_serial, and default_client_serials_list
-                self.default_client_serials_list = []
+                #load default_client_cert_id, and default_client_cert_ids_list
+                self.default_client_cert_ids_list = []
                 for cert in (file_name for file_name in os.listdir(self.SERVER_CERTS_PATH) if \
                                                      file_name.endswith(f'.{self.CERT_NAME_EXTENSION}')):
                     if cert.startswith(self.CLIENT_DEFAULT_CERT_NAME):
                         cert_name = cert[:-1-len(self.CERT_NAME_EXTENSION)]
                         if SOURCE_ID_DEFAULT_REGEX.match(cert_name):
-                            stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
+#                            stdout = subprocess.check_output('openssl x509 -hash -serial -noout -in '+\
+                            stdout = subprocess.check_output('openssl x509 -hash -subject -noout -in '+\
                                                     str(os.path.join(self.SERVER_CERTS_PATH,
 #                                                        self.CLIENT_DEFAULT_CERT_NAME+'.'+self.CERT_NAME_EXTENSION)), shell=True)
                                                         cert)), shell=True)
                             
-                            hash_name, serial = stdout.decode().splitlines()
-                            serial = serial.split('=')[1]
+                            #hash_name, serial = stdout.decode().splitlines()
+                            #serial = serial.split('=')[1]
+                            hash_name, subject = stdout.decode().splitlines()     
+                            #regex allows also { and } because of an old bug with org value being {org}
+                            regex_org = re.search(' O = (?P<org>\w+)(,|$)', subject)
+                            org = regex_org.group('org')
                             if cert_name == self.CLIENT_DEFAULT_CERT_NAME:
-                                self.default_client_serial = serial
+                                self.default_client_cert_id = org
                             self.logger.info(f'Server adding default certificate : {cert_name}')
-                            self.default_client_serials_list.append(serial)
-                self.logger.info(f'Server using default_client_serials_list : {self.default_client_serials_list}')                 
+                            self.default_client_cert_ids_list.append(org)
+                self.logger.info(f'Server using default_client_cert_ids_list : {self.default_client_cert_ids_list}')                 
                 self.max_certs = max_certs
 
         except Exception:
@@ -280,8 +285,10 @@ class SSL_helper:
                 self.logger.warning('hash : '+stderr.decode())            
             hash_name, serial = stdout.splitlines()
             serial = serial.split('=')[1]
-            
+            cert_id = organization
+
             if not server_ca:
+#                cert_id = serial
                 #create a symlink called <hash>.<first free index, starting from 0>, 
                 #pointing to f'../{source_id}.{self.CERT_NAME_EXTENSION}'
                 index = 0
@@ -293,8 +300,8 @@ class SSL_helper:
                 os.symlink(f'../{source_id}.{self.CERT_NAME_EXTENSION}', candidate)
             
             #backup self.source_id_2_cert in file source_id_2_cert.json
-            self.source_id_2_cert['source_id_2_cert'][source_id] = serial
-            self.source_id_2_cert['cert_2_source_id'][serial] = source_id            
+            self.source_id_2_cert['source_id_2_cert'][source_id] = cert_id
+            self.source_id_2_cert['cert_2_source_id'][cert_id] = source_id            
             with open(self.source_id_2_cert_path, 'w') as fd:
                 json.dump(self.source_id_2_cert, fd)
            
@@ -486,12 +493,6 @@ C = US
     else:
         logger.info(f'Using preexisting {CSR_TEMPLATE_CONF}')
 
-    if not os.path.exists(SERVER_CA_CSR_CONF):
-        with open(SERVER_CA_CSR_CONF, 'w') as fd:
-            fd.write(CA_CSR_CREATE_CNF)
-    else:
-        logger.info(f'Using preexisting {SERVER_CA_CSR_CONF}')
-
     logger.info('Create Server certificate')
 #        1) Create Server certificate            
     update_conf(CSR_TEMPLATE_CONF, CSR_CONF, {'O':'company'})                        
@@ -530,9 +531,10 @@ C = US
 #        2) Create client default certificate
     client_default_key = CLIENT_KEY_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
     client_default_pem = CLIENT_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME)
-    organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
+    #organization = ssl_helper.CLIENT_DEFAULT_CERT_NAME
     #we might want to obfuscate organization
-    organization = str(abs(hash(organization)) % (10 ** 8))
+    #organization = str(abs(hash(organization)) % (10 ** 8))
+    organization = uuid.uuid4().hex
 
     if no_ca:    
         update_conf(CSR_TEMPLATE_CONF, CSR_CONF, {'O':organization})                    
@@ -544,6 +546,8 @@ C = US
         if not os.path.exists(SERVER_CA_CSR_CONF):
             with open(SERVER_CA_CSR_CONF, 'w') as fd:
                 fd.write(CA_CSR_CREATE_CNF.format(org=organization))
+        else:
+            logger.info(f'Using preexisting {SERVER_CA_CSR_CONF}')
         
         create_csr_cmd = f"openssl req -config {SERVER_CA_CSR_CONF} -newkey rsa:2048 -sha256 -nodes -keyout "\
                         f"{client_default_key} -out {SERVER_CA_CSR_PEM_PATH} -outform PEM"

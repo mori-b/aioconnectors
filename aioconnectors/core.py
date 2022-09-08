@@ -165,6 +165,8 @@ class Connector:
             
             if self.is_server:
                 self.source_id = str(self.server_sockaddr)
+                if self.server_secure_tls:                
+                    self.logger.info('Server allowing only clients with TLS version >= v1.2')    
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
                 self.tokens_file_path = os.path.join(self.tokens_directory_path or '', 'server_tokens.json')
@@ -2112,7 +2114,7 @@ class Connector:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         #test using : curl -I -v --tlsv1.2 --tls-max 1.2 https://localhost:10673
         if self.server_secure_tls:
-            self.logger.info('Server allowing only clients with TLS version >= v1.2')
+            self.logger.debug('Server allowing only clients with TLS version >= v1.2')
             if PYTHON_GREATER_37:
                 context.minimum_version = ssl.TLSVersion.TLSv1_2
             else:
