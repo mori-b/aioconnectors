@@ -222,6 +222,7 @@ class SSL_helper:
                 update_conf(self.CSR_TEMPLATE_CONF, self.CSR_CONF, {'O':common_name, 'CN':common_name})
                 create_certificate_cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout "\
                                          f"{key_path} -out {crt_path} -config {self.CSR_CONF}"
+                raise Exception('Need to implement create_client_certificate with common_name')
             else:
                 #necessary to set a unique field (like organization), so that each certificate has a unique hash, 
                 #which is better for fast authentication
