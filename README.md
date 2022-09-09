@@ -436,7 +436,7 @@ Encryption mode is, as everything else, configurable through the ConnectorManage
 The default mode is the most secure : use_ssl is enabled and ssl\_allow\_all is disabled, both on server and client.  
 -If you choose to use encryption, you should call
 
-    python3 -m aioconnectors create_certificates [<optional_directory_path>] [--no-ca] [--help]
+    python3 -m aioconnectors create_certificates [<optional_directory_path>] [--ca] [--help]
 
 A directory called "certificates" will be created under your optional\_directory\_path, or under /var/tmp/aioconnectors if not specified.
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
