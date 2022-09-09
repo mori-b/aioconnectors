@@ -15,7 +15,7 @@ HELP = '''
 aioconnectors supported commands :
     
     - print_config_templates
-    - create_certificates [--no-ca] [optional dirpath] [--help]
+    - create_certificates [--ca] [optional dirpath] [--help]
     - replace_server_certificate new_pem_path [optional dirpath] [--revert] [--help]
     - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate, delete_client_token)
     - create_connector <config file path>
@@ -31,10 +31,10 @@ aioconnectors supported commands :
     
 if len(sys.argv) > 1:
     if sys.argv[1] == 'create_certificates':
-        no_ca = False
-        if '--no-ca' in sys.argv:
-            sys.argv.remove('--no-ca')
-            no_ca = True
+        no_ca = True
+        if '--ca' in sys.argv:
+            sys.argv.remove('--ca')
+            no_ca = False
         if len(sys.argv) == 3:
             if sys.argv[2] == '--help':
                 print('create_certificates without argument will create client and server certificates directories '
@@ -89,7 +89,7 @@ if len(sys.argv) > 1:
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, reuse_server_sockaddr=False,
                         reuse_uds_path_commander_server=False, reuse_uds_path_send_to_connector=False,
                         use_ssl=Connector.USE_SSL, ssl_allow_all=False, use_token=Connector.USE_TOKEN,
-                        server_ca=Connector.SERVER_CA, server_secure_tls=True,
+                        server_ca=Connector.SERVER_CA, server_ca_certs_not_stored=True, server_secure_tls=True,
                         certificates_directory_path=Connector.CONNECTOR_FILES_DIRPATH,
                         tokens_directory_path=Connector.CONNECTOR_FILES_DIRPATH,                        
                         client_name=None, client_bind_ip=None, 

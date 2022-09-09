@@ -27,7 +27,7 @@ copy_extensions = copy          # Required to copy SANs from CSR to cert
 base_dir      = {base_dir}
 certificate   = $base_dir/{ca_pem}   # The CA certificate
 private_key   = $base_dir/{ca_key}    # The CA private key
-new_certs_dir = $base_dir              # Location for new certs after signing
+new_certs_dir = {ca_generated}            # Location for new certs after signing
 database      = $base_dir/index.txt    # Database index file
 serial        = $base_dir/serial.txt   # The current serial number
 
@@ -103,7 +103,8 @@ class SSL_helper:
     CERT_NAME_EXTENSION = "pem"
     KEY_NAME_EXTENSION = "key"
     
-    def __init__(self, logger, is_server, certificates_directory_path=None, max_certs=None, server_ca=False, tool_only=False):
+    def __init__(self, logger, is_server, certificates_directory_path=None, max_certs=None, server_ca=False,
+                 server_ca_certs_not_stored=True, tool_only=False):
         self.logger = logger.getChild('ssl')
         try:
             self.is_server, self.certificates_directory_path, self.server_ca = is_server, certificates_directory_path, server_ca
@@ -128,7 +129,7 @@ class SSL_helper:
             self.SERVER_CA_KEY_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_ca.'+self.KEY_NAME_EXTENSION)
             self.SERVER_CA_CSR_CONF  = os.path.join(self.SERVER_BASE_PATH, 'server_ca_csr_details.conf')
             self.SERVER_CA_CSR_PEM_PATH = os.path.join(self.SERVER_BASE_PATH, 'server-cert/server_ca_csr.'+self.CERT_NAME_EXTENSION)
-
+            self.CA_GENERATED = os.path.join(self.SERVER_CERTS_PATH, 'ca-generated')
             
             #client
             self.CLIENT_BASE_PATH = os.path.join(self.certificates_base_path, 'client')
@@ -169,6 +170,7 @@ class SSL_helper:
                             self.default_client_cert_ids_list.append(serial)
                 self.logger.info(f'Server using default_client_cert_ids_list : {self.default_client_cert_ids_list}')                 
                 self.max_certs = max_certs
+                self.server_ca_certs_not_stored = server_ca_certs_not_stored
 
         except Exception:
             self.logger.exception('init')
@@ -246,13 +248,27 @@ class SSL_helper:
                     self.logger.info('Sign client default certificate CSR')
                     pem_path = f'{self.SERVER_CERTS_PATH}/{source_id}.{self.CERT_NAME_EXTENSION}'    
                     
+                    # Create the index file
+                    index_file_path = os.path.join(self.SERVER_BASE_PATH, 'index.txt')                    
+                    if not os.path.exists(index_file_path):
+                        open(index_file_path, 'w').close()
+
                     create_certificate_cmd = f"openssl ca -rand_serial -batch -policy signing_policy -config {self.SERVER_CA_DETAILS_CONF} "\
                                             f"-extensions signing_req -out {pem_path} -infiles {csr_path}"
                     stdout = subprocess.check_output(create_certificate_cmd, shell=True)       
                     proc, stdout, stderr = await self.run_cmd(create_certificate_cmd)                
                     if proc.returncode != 0:
                         raise Exception('Error while Generating CA signed certificate : '+stderr.decode())
-                    
+                        
+                    if self.server_ca_certs_not_stored:
+                        try:
+                            for cert in os.listdir(self.CA_GENERATED):
+                                path_to_delete = os.path.join(self.CA_GENERATED, cert)
+                                self.logger.info(f'Deleting {path_to_delete}')
+                                os.remove(path_to_delete)
+                        except Exception:
+                            self.logger.exception(f'Deleting {csr_path}')
+                        
                     try:
                         if os.path.exists(csr_path):
                             #deleting client csr
@@ -383,7 +399,7 @@ class SSL_helper:
             self.logger.exception('remove_client_cert_on_server')
             return json.dumps({'status':False, 'msg':str(exc)})
 
-def create_certificates(logger, certificates_directory_path, no_ca=False):
+def create_certificates(logger, certificates_directory_path, no_ca=True):
     '''
     
     1) Create Server certificate
@@ -412,7 +428,8 @@ def create_certificates(logger, certificates_directory_path, no_ca=False):
     logger.info('Certificates will be created under directory : '+certificates_path)
         
     certificates_path_server = os.path.join(certificates_path, 'server')
-    certificates_path_server_client = os.path.join(certificates_path_server, 'client-certs')       
+    certificates_path_server_client = os.path.join(certificates_path_server, 'client-certs')
+    certificates_path_server_client_gen = os.path.join(certificates_path_server_client, 'ca-generated')     
     certificates_path_server_client_sym = os.path.join(certificates_path_server_client, 'symlinks')               
     certificates_path_server_server = os.path.join(certificates_path_server, 'server-cert')                
     certificates_path_client = os.path.join(certificates_path, 'client')        
@@ -437,6 +454,9 @@ def create_certificates(logger, certificates_directory_path, no_ca=False):
         os.makedirs(certificates_path_client_server)          
     if not os.path.exists(certificates_path_client_client):
         os.makedirs(certificates_path_client_client)                   
+    if not no_ca:
+        if not os.path.exists(certificates_path_server_client_gen):
+            os.makedirs(certificates_path_server_client_gen)             
 
     CERT_NAME_EXTENSION = "pem"
     KEY_NAME_EXTENSION = "key"
@@ -491,7 +511,8 @@ C = US
     #        2)generate ca pem and key
         if not os.path.exists(SERVER_CA_DETAILS_CONF):
             with open(SERVER_CA_DETAILS_CONF, 'w') as fd:
-                fd.write(CA_CREATE_CNF.format(base_dir=certificates_path_server_server, ca_pem=SERVER_CA_PEM, ca_key=SERVER_CA_KEY))
+                fd.write(CA_CREATE_CNF.format(base_dir=certificates_path_server_server, ca_generated=certificates_path_server_client_gen,
+                                              ca_pem=SERVER_CA_PEM, ca_key=SERVER_CA_KEY))
               
         cmd = f"openssl req -new -newkey rsa:4096 -sha256 -nodes -x509 -days 3650 -keyout {SERVER_CA_KEY_PATH}" \
               f" -out {SERVER_CA_PEM_PATH} -config {SERVER_CA_DETAILS_CONF} -outform PEM"
@@ -539,11 +560,16 @@ C = US
         stdout = subprocess.check_output(create_csr_cmd, shell=True)              
     
         logger.info('Sign client default certificate CSR')
+
+        # Create the index file
+        index_file_path = os.path.join(certificates_path_server_server, 'index.txt')       
+        if not os.path.exists(index_file_path):
+            open(index_file_path, 'w').close()
                 
         create_certificate_cmd = f"openssl ca -rand_serial -batch -policy signing_policy -config {SERVER_CA_DETAILS_CONF} "\
                                 f"-extensions signing_req -out {client_default_pem} -infiles {SERVER_CA_CSR_PEM_PATH}"
         stdout = subprocess.check_output(create_certificate_cmd, shell=True)              
-           
+        
         shutil.copy(client_default_pem, SERVER_CERTS_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
 
 

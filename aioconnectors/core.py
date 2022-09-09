@@ -22,7 +22,7 @@ class Connector:
     ############################################
     #default values configurable at __init__
     SERVER_ADDR =  ('127.0.0.1',10673)
-    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, True
+    USE_SSL, USE_TOKEN, SSL_ALLOW_ALL, SERVER_CA = True, False, False, False
     CONNECTOR_FILES_DIRPATH = get_tmp_dir()
     DISK_PERSISTENCE_SEND = False    #can be boolean, or list of message types having disk persistence enabled
     #RAM_PERSISTENCE cannot be true in the current implementation, since queue_send[peername] doesn't exist anymore in disconnected mode
@@ -90,7 +90,7 @@ class Connector:
     
     def __init__(self, logger, server_sockaddr=SERVER_ADDR, is_server=True, client_name=None, client_bind_ip=None,
                  use_ssl=USE_SSL, ssl_allow_all=SSL_ALLOW_ALL, use_token=USE_TOKEN, certificates_directory_path=CONNECTOR_FILES_DIRPATH, 
-                 server_ca=SERVER_CA, server_secure_tls=True,
+                 server_ca=SERVER_CA, server_ca_certs_not_stored=True, server_secure_tls=True,
                  tokens_directory_path=CONNECTOR_FILES_DIRPATH, disk_persistence_send=DISK_PERSISTENCE_SEND,
                  disk_persistence_recv=DISK_PERSISTENCE_RECV, max_size_persistence_path=MAX_SIZE_PERSISTENCE_PATH, #use_ack=USE_ACK,
                  send_message_types=None, recv_message_types=None, subscribe_message_types=None,
@@ -143,6 +143,7 @@ class Connector:
             self.is_server = is_server            
             self.use_ssl, self.ssl_allow_all, self.use_token = use_ssl, ssl_allow_all, use_token
             self.server_ca, self.server_secure_tls = server_ca, server_secure_tls
+            self.server_ca_certs_not_stored = server_ca_certs_not_stored
             self.certificates_directory_path = full_path(certificates_directory_path)
             self.tokens_directory_path = full_path(tokens_directory_path)
             if self.tokens_directory_path:
@@ -276,8 +277,9 @@ class Connector:
                     self.connect_timeout = connect_timeout
                 
                 if self.use_ssl:                    
-                    self.ssl_helper = SSL_helper(self.logger, self.is_server, self.certificates_directory_path,
-                                                 self.max_certs, self.server_ca)
+                    self.ssl_helper = SSL_helper(self.logger, self.is_server, certificates_directory_path=self.certificates_directory_path,
+                                                 max_certs=self.max_certs, server_ca=self.server_ca,
+                                                 server_ca_certs_not_stored=self.server_ca_certs_not_stored)
                     self.logger.info(f'Connector will use ssl, with ssl_allow_all : {ssl_allow_all}, and server_ca : {server_ca},'
                                      f' with certificates directory : {self.ssl_helper.certificates_base_path},'
                                      f' and with client_cafile_verify_server : {client_cafile_verify_server}')
