@@ -206,6 +206,10 @@ class SSL_helper:
             if os.path.exists(crt_path):
                 raise Exception(f'A certificate already exists for client {source_id}. '
                                 f'Use delete_client_certificate to delete it')
+
+            if source_id in self.source_id_2_cert['source_id_2_cert']:
+                raise Exception(f'A source_id_2_cert already exists for client {source_id}. '
+                            f'Use delete_client_certificate to delete it')                    
                 
             if hook_allow_certificate_creation:
                 allow_certificate_creation = await hook_allow_certificate_creation(source_id)
