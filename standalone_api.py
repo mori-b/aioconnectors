@@ -104,28 +104,35 @@ class ConnectorAPI:
         self.send_message_lock = asyncio.Lock()
         
         if self.is_server:        
-            self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])            
+            self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
+            self.alnum_source_id_for_uds = self.limit_length_for_uds(self.alnum_source_id)            
             self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, 
-                                                self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))            
+                                                self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id_for_uds))            
             for recv_message_type in self.recv_message_types:
                 self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
-                                self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
+                                self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id_for_uds))
                 if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
                     raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                        f'than {self.MAX_LENGTH_UDS_PATH}')                
         else:
-            self.alnum_source_id = self.alnum_name(self.source_id)                                        
+            self.alnum_source_id = self.alnum_name(self.source_id)
+            self.alnum_source_id_for_uds = self.limit_length_for_uds(self.alnum_source_id)
             self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath, 
-                                                self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))            
+                                                self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id_for_uds))            
             for recv_message_type in self.recv_message_types:
                 self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath, 
-                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id_for_uds))
                 if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
                     raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                        f'than {self.MAX_LENGTH_UDS_PATH}')                
             
     def alnum_name(self, name):
         return ''.join([str(letter) for letter in name if str(letter).isalnum()])
+
+    def limit_length_for_uds(self, name):
+        if len(name) > 32:
+            name = hashlib.md5(name.encode()).hexdigest()
+        return name
             
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,

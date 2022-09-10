@@ -12,6 +12,7 @@ import stat
 from copy import deepcopy
 from time import time
 from base64 import b64encode
+import hashlib
 
 from .connection import FullDuplex, DEBUG_SHOW_DATA, MessageFields, Structures
 from .helpers import full_path, chown_nobody_permissions, iface_to_ip, get_tmp_dir, PYTHON_GREATER_37
@@ -170,6 +171,7 @@ class Connector:
                     self.logger.info('Server allowing only clients with TLS version >= v1.2')    
                 self.logger.info('Server has source id : '+self.source_id)                
                 self.alnum_source_id = '_'.join([self.alnum_name(el) for el in self.source_id.split()])
+                self.alnum_source_id_for_uds = self.limit_length_for_uds(self.alnum_source_id)
                 self.tokens_file_path = os.path.join(self.tokens_directory_path or '', 'server_tokens.json')
                 self.token_server_allow_authorized_non_default_cert = token_server_allow_authorized_non_default_cert
                 
@@ -188,14 +190,14 @@ class Connector:
                 self.send_message_types, self.recv_message_types = send_message_types, recv_message_types
                 
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
-                                                               self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id))
+                                                               self.UDS_PATH_SEND_TO_CONNECTOR_SERVER.format(self.alnum_source_id_for_uds))
                 if len(self.uds_path_send_to_connector) > self.MAX_LENGTH_UDS_PATH:
                     raise Exception(f'{self.uds_path_send_to_connector} is longer than {self.MAX_LENGTH_UDS_PATH}')
                     
                 self.uds_path_receive_from_connector = {}
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
-                        self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id))
+                        self.UDS_PATH_RECEIVE_FROM_CONNECTOR_SERVER.format(recv_message_type, self.alnum_source_id_for_uds))
                     if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
                         raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                            f'than {self.MAX_LENGTH_UDS_PATH}')
@@ -211,8 +213,9 @@ class Connector:
                 if hook_load_token:
                     self.logger.info(f'Connector Client {self.source_id} has a hook_load_token')               
                     
-                self.alnum_source_id = self.alnum_name(self.source_id)    
-                self.tokens_file_path = os.path.join(self.tokens_directory_path or '', self.alnum_source_id)
+                self.alnum_source_id = self.alnum_name(self.source_id)
+                self.alnum_source_id_for_uds = self.limit_length_for_uds(self.alnum_source_id)
+                self.tokens_file_path = os.path.join(self.tokens_directory_path or '', self.alnum_name(self.source_id))
                 self.enable_client_try_reconnect = enable_client_try_reconnect
                 self.proxy = proxy or {}
                 self.inside_end_sockpair = None
@@ -237,21 +240,21 @@ class Connector:
                 self.subscribe_message_types = subscribe_message_types
                 
                 self.uds_path_send_to_connector = os.path.join(self.connector_files_dirpath,
-                                                    self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id))
+                                                    self.UDS_PATH_SEND_TO_CONNECTOR_CLIENT.format(self.alnum_source_id_for_uds))
                 if len(self.uds_path_send_to_connector) > self.MAX_LENGTH_UDS_PATH:
                     raise Exception(f'{self.uds_path_send_to_connector} is longer than {self.MAX_LENGTH_UDS_PATH}')
                 
                 self.uds_path_receive_from_connector = {}           
                 for recv_message_type in self.recv_message_types:
                     self.uds_path_receive_from_connector[recv_message_type] = os.path.join(self.connector_files_dirpath,
-                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id))
+                            self.UDS_PATH_RECEIVE_FROM_CONNECTOR_CLIENT.format(recv_message_type, self.alnum_source_id_for_uds))
                     if len(self.uds_path_receive_from_connector[recv_message_type]) > self.MAX_LENGTH_UDS_PATH:
                         raise Exception(f'{self.uds_path_receive_from_connector[recv_message_type]} is longer '
                                            f'than {self.MAX_LENGTH_UDS_PATH}')
             
             self.commander_server = self.commander_server_task = None
             self.uds_path_commander = os.path.join(self.connector_files_dirpath,
-                                                   self.UDS_PATH_COMMANDER.format(self.alnum_source_id))
+                                                   self.UDS_PATH_COMMANDER.format(self.alnum_source_id_for_uds))
             if len(self.uds_path_commander) > self.MAX_LENGTH_UDS_PATH:
                 raise Exception(f'{self.uds_path_commander} is longer than {self.MAX_LENGTH_UDS_PATH}')
                     
@@ -472,9 +475,14 @@ class Connector:
             if queues_stats_display:
                 self.logger.info('peek_queues : '+json.dumps(queues_stats_display, indent=4, sort_keys=True))
                 
-    def alnum_name(self, name):
-        return ''.join([str(letter) for letter in name if str(letter).isalnum()])
+    def alnum_name(self, name, limit_length=False):
+        res = ''.join([str(letter) for letter in name if str(letter).isalnum()])
+        return res
                 
+    def limit_length_for_uds(self, name):
+        if len(name) > 32:
+            name = hashlib.md5(name.encode()).hexdigest()
+        return name
     
     async def start(self, connector_socket_only=False, alternate_client_cert_toggle_default=False):
         #connector_socket_only is used by client_wait_for_reconnect
