@@ -25,7 +25,6 @@ LOG_FORMAT_SHORT = '%(asctime)s - %(levelname)s - %(message)s'
 LOG_BK_COUNT = 5
 LOG_MAX_SIZE = 67108864 # 2**26 = 64 MB
 
-IPADDR_REGEX = re.compile('inet (?P<ipaddr>[\d\.]+)')
 SOURCE_ID_REGEX = re.compile('^[0-9a-zA-Z-_:]+$')
 SOURCE_ID_DEFAULT_REGEX = re.compile('^default[0-9]*$')
 SOURCE_ID_MAX_LENGTH = 128
@@ -121,7 +120,7 @@ def chown_nobody_permissions(directory_path, logger=None):
 def iface_to_ip(iface, logger=None):
     try:
         ifconfig_output = subprocess.check_output(['ip', 'addr', 'show', iface], encoding='utf8', timeout=5)
-        return IPADDR_REGEX.search(ifconfig_output).group('ipaddr')
+        return re.search(f'inet (?P<ipaddr>[\d\.]+).*{iface}$', ifconfig_output, re.MULTILINE).group('ipaddr')
     except Exception:
         if logger:
             logger.exception('iface_to_ip')
