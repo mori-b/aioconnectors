@@ -406,7 +406,7 @@ In order to have all clients/server connections authenticated and encrypted, you
 And then share the created directories between server and clients as explained in <a href="#enc">1-</a>.  
 You can also use a proxy between your client and server, as explained in <a href="#classes">4-</a>.  
 
--You might prefer to use a publish/subscribe approach (less performant).  
+-You might prefer to use a publish/subscribe approach.  
 This is also supported by configuring a single server as the broker (you just need to set pubsub\_central\_broker=True).  
 The other connectors should be clients. A client can subscribe to specific topics (message\_types) by setting the attribute subscribe\_message\_types in its constructor, or by calling the set\_subscribe\_message\_types command on the fly.  
 
@@ -735,8 +735,8 @@ In such a case, the remote peer has to answer with response\_id equal to the req
 -The **publish\_message** and **publish\_message\_sync** methods are the same as the send_message ones, but used by a client in the publish/subscribe approach.  
 -The **send\_message\_await\_response** method is the same as send_message, but automatically sets await_response to True.  
 -The **send\_message\_sync** method is almost the same as send_message, but called synchronously (not an async coroutine). It can also receive a "loop" as a kwarg. If a loop is running in the background, it schedules and returns a task. Otherwise it returns the peer response if called with await\_response.  
--**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of a few thousands messages per second in the point to point approach (and a few hundreds per second in the slower publish/subscribe approach).  
-Not a benchmark, but some point-to-point trials (VM with 8GB RAM and 4 cores) showed that up until 4000 messages (with data of 100 bytes) per second could be received by a server without delay, and from that point the receive queue started to be non empty. This test gave the same result with 100 clients sending each 40 events per second, and with 1 client sending 4000 events per second.  
+-**wait\_for\_ack** is not recommended for high throughputs, since it slows down dramatically. Basic testing showed a rate of ten messages per second, instead of a few thousands messages per second in the point to point approach.  
+Not a benchmark, but some point-to-point and pubsub trials (VM with 8GB RAM and 4 cores) showed that up until 4000 messages (with data of 100 bytes) per second could be received by a server without delay, and from that point the receive queue started to be non empty. This test gave the same result with 100 clients sending each 40 events per second, and with 1 client sending 4000 events per second.  
 -**with\_file** lets you embed a file, with {'src\_path':'','dst\_type':'', 'dst\_name':'', 'delete':False, 'owner':''}. **src\_path** is the source path of the file to be sent, **dst\_type** is the type of the file, which enables the remote peer to evaluate the destination path thanks to its ConnectorManager attribute "file\_recv\_config" dictionary. **dst\_name** is the name the file will be stored under. **delete** is a boolean telling if to delete the source file after it has been sent. **owner** is the optional user:group of your uploaded file : if used, it overrides the "owner" value optionally set on server side in file\_recv\_config. If an error occurs while opening the file to send, the file will not be sent but with\_file will still be present in transport\_json received by peer, and will contain an additional key **file\_error** telling the error to the peer application.  
 
 
