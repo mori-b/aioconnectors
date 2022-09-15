@@ -33,13 +33,13 @@
 <a name="features"></a>
 ## FEATURES
 
-aioconnectors is an easy to set up message queue that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
+aioconnectors is an easy to set up message queue and broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
 It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss, proxy support.  
 It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
-Based on asyncio, message sending and receiving are asynchronous, either independent or with the option to wait asynchronously for a response.  
+Based on asyncio, message sending and receiving are asynchronous, with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file.  
 An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be translated.
+A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be transpiled.
 
 
 <a name="installation"></a>
@@ -65,25 +65,7 @@ You can run multiple clients, just set a different client\_name for each client.
 
 1.No encryption  
 You can run the following example code directly, the encryption is disabled.  
-In case you want to use this example with encryption, you should read 2. and 3., otherwise you can skip to the code.  
-
-2.Encryption without authentication  
-In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
-A directory containing certificates must be created before running the example, which is done by a single command :
-
-    python3 -m aioconnectors create_certificates [--ca] [--help]
-
-If you run server and client on different machines, this command should be run on both machines.  
---ca is needed for a server having server_ca=true (default) (<a href="#classes">4-</a>).  
-
-3.Encryption with authentication  
-In this example, the kwarg ssl\_allow\_all is enabled (both on server and client), meaning the communication between server and client if encrypted is not authenticated.  
-In case you want to run this example with authentication too, you have 2 options :  
-3.1. Set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
-If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
-In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
-3.2. Set use\_ssl to True, ssl\_allow\_all to True, and use\_token to True, in both server and client ConnectorManager instantiations, to use token authentication.  
-
+In case you want to use this example with encryption, you should read 2. and 3. after the examples.  
 
 ### Server example
 
@@ -350,9 +332,9 @@ Just a client which uses publish\_message instead of send\_message
                                                default_logger_log_level='INFO')
 
     #start receiving messages
-    async def message_received_cb(logger, transport_json , data, binary):
-        print('CLIENT : message received', transport_json , data.decode())
-    loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
+    #async def message_received_cb(logger, transport_json , data, binary):
+    #    print('CLIENT : message received', transport_json , data.decode())
+    #loop.create_task(connector_api.start_waiting_for_messages(message_type='any', message_received_cb=message_received_cb))
 
     #start sending messages
     async def send_messages():
@@ -362,6 +344,7 @@ Just a client which uses publish\_message instead of send\_message
         #           'delete':False, 'owner':'nobody:nogroup'}                  
         while True:
             index += 1
+            print(f'CLIENT : message {index} published')
             #connector_api.publish_message_sync(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='type1')#,        
             await connector_api.publish_message(data={'application message': f'CLIENT MESSAGE {index}'}, message_type='type1')#,
                                                 #with_file=with_file, binary=b'\x01\x02\x03')
@@ -384,14 +367,30 @@ Just a client which uses publish\_message instead of send\_message
     task_stop = loop.create_task(connector_manager.stop_connector(delay=None, hard=False, shutdown=True))
     loop.run_until_complete(task_stop)
 
+2.Encryption without authentication  
+In order to use encryption, you should set use\_ssl to True in both server and client ConnectorManager instantiations.  
+A directory containing certificates must be created before running the example, which is done by a single command :
+
+    python3 -m aioconnectors create_certificates
+
+If you decide to use server_ca=true on your connector server, then you need to add "--ca" (<a href="#classes">4-</a>).  
+If you run server and client on different machines, this command should be run on both machines.  
+
+3.Encryption with authentication  
+In this example, the kwarg ssl\_allow\_all is true (both on server and client), meaning the communication between server and client if encrypted is not authenticated.  
+In case you want to run this example with authentication too, you have 2 options :  
+3.1. Set use\_ssl to True and ssl\_allow\_all to False in both server and client ConnectorManager instantiations.  
+If you run server and client on the same machine, this only requires to run the command "python3 -m aioconnectors create\_certificates" beforehand like in 2.  
+In case the server and client run on different machines, you should run the prerequisite command "python3 -m aioconnectors create_certificates" only once, and copy the generated directory /var/tmp/aioconnectors/certificates/server to your server (preserving symlinks) and /var/tmp/aioconnectors/certificates/client to your client.  
+3.2. Set use\_ssl to True, ssl\_allow\_all to True, and use\_token to True, in both server and client ConnectorManager instantiations, to use token authentication. This also requires to run beforehand "python3 -m aioconnectors create_certificates".  
 
 
 <a name="hld"></a>
 ## HIGH LEVEL DESIGN
 
 The client and server are connected by one single tcp socket.
-When a peer sends a message, it is first sent to a unix socket, then transferred to a different queue for each remote peer. Messages are read from these queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The user can choose to listen on a unix socket to receive messages of a specific type, that are read from the corresponding queue.  
-The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot communicate. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another. Alternatively, the server generates on the fly a new token per client.  
+When a peer sends a message, it is first sent by unix socket to the connector, then transferred to a different queue for each remote peer. Messages are read from these priority queues and sent to the remote peer on the client/server socket. After a message reaches its peer, it is sent to a queue, one queue per message type. The api listens on a unix socket to receive messages of a specific type, that are read from the corresponding queue.  
+The optional encryption uses TLS. The server certificate and the default client certificate are automatically generated and pre-shared, so that a server or client without prior knowledge of these certificates cannot communicate. Then, the server generates on the fly a new certificate per client, so that different clients cannot interfere with one another. Alternatively, the server can generate on the fly a new token per client.  
 
 
 <a name="usecases"></a>
@@ -442,13 +441,13 @@ A directory called "certificates" will be created under your optional\_directory
 Under it, 2 subdirectories will be created : certificates/server and certificates/client.  
 You need to copy certificates/server to your server (preserving symlinks), and certificates/client to your client. That's all you have to do.  
 This is the recommended approach, since it ensures traffic encryption, client and server authentication, and prevents client impersonation.  
-When server\_ca is false on server side (default), the client certificates are checked against the certificates stored on server, otherwise against the server CA.  
-If your server runs with server\_ca true, then you need the --ca argument in create\_certificates, otherwise you don't need it (default).  
 Clients use the default certificate to first connect to server, then an individual certificate is generated by the server for each client. Client automatically uses this individual certificate for further connections. This individual certificate is mapped to the client_name.  
 The first client named client_name reaching the server is granted a certificate for this client_name. Different clients further attempting to use the same client_name will be rejected.  
-When using ssl, the default approach is to have server\_ca false (default), meaning your server will generate and manage self signed client certificates, providing visibility and tools like delete\_client\_certificate to delete client certificates on the fly.  
-Using server\_ca true lets your server become a CA with a self signed CA certificate that will sign your client certificates. The server\_ca true mode comes with server\_ca\_certs\_not\_stored enabled by default, meaning the client certificates are deleted from server side. Not having to store the client certificates on the server might be an advantage but it doesn't enable you to delete them : if you want to be able to delete them in ca mode, then you might just use server\_ca false, or set the server\_ca\_certs\_not\_stored set to false, and delete them yourself since it is not currently supported in ca mode : this implementation would require something like "openssl ca -gencrl -config certificates/server/server\_ca\_details.conf -out revoked.pem", and also "SSLContext.verify\_flags |= ssl.VERIFY\_CRL\_CHECK\_LEAF" before loading the revoked.pem into SSLContext.load\_verify\_locations.  
-The client also checks the server certificate to prevent MITM.  
+When server\_ca is false on server side (default), the client certificates are checked against the certificates pem kept on the server, otherwise against the server CA.  
+When using ssl, the default approach is to have server\_ca false (default), meaning your server will generate and manage self signed client certificates, providing certificates visibility, and tools like delete\_client\_certificate to delete client certificates on the fly.  
+Using server\_ca true lets your server become a CA with a self signed CA certificate that will sign your client certificates. If you choose to run your server with server\_ca true, then you need the --ca argument in create\_certificates, otherwise you don't need it (default).  
+The server\_ca true mode comes with server\_ca\_certs\_not\_stored enabled by default, meaning the client certificates are deleted from server side. Not having to store the client certificates on the server might be an advantage but it doesn't enable you to delete them : if you want to be able to delete them in ca mode, then you might just use server\_ca false. The server\_ca\_certs\_not\_stored option set to false requires to delete the certificates yourself, since it is not currently supported when server_ca is true : this implementation would require something like "openssl ca -gencrl -config certificates/server/server\_ca\_details.conf -out revoked.pem", and also "SSLContext.verify\_flags |= ssl.VERIFY\_CRL\_CHECK\_LEAF" before loading the revoked.pem into SSLContext.load\_verify\_locations.  
+-The client also checks the server certificate to prevent MITM.  
 Instead of using the generated server certificate, you also have the option to use a url for your server and use a CA signed server certificate that the clients will verify. For that you should :  
 -On server side, under "certificates" directory, replace /server/server-cert/server.pem and server.key with your signed certificates. You don't need to do that manually, there is a tool that does it :  
 
@@ -460,19 +459,18 @@ and in case you want to roll back to use the original generated server certifica
     python3 -m aioconnectors replace_server_certificate --revert
     
 -On client side, configure server\_sockaddr with the server hostname instead of IP address, and set client\_cafile\_verify\_server to be the ca cert path (like /etc/ssl/certs/ca-certificates.crt), to enable CA verification of your server certificate.  
-
-You can always delete a client certificate on the server (and also on client) by calling delete\_client\_certificate in
+-You can delete a client certificate on the server (and also on client) by calling delete\_client\_certificate in
 
     python3 -m aioconnectors cli
 
 For this purpose, you can also call programmatically the ConnectorManager.delete_client\_certificate method.  
-You shouldn't need to modify the certificates, however there is a way to tweak the certificates template : run create\_certificates once, then modify certificates/server/csr\_details\_template.conf according to your needs (without setting the Organization field), delete other directories under certificates and run create\_certificates again.  
-On server side, you can store manually additional default certificates with their symlink, under certificates/server/client-certs/symlinks. They must be called defaultN where N is an integer, or be another CA certificate in case server\_ca is true.  
+-You shouldn't need to modify the certificates, however there is a way to tweak the certificates template : run create\_certificates once, then modify certificates/server/csr\_details\_template.conf according to your needs (without setting the Organization field), delete other directories under certificates and run create\_certificates again.  
+-On server side, you can store manually additional default certificates with their symlink, under certificates/server/client-certs/symlinks. They must be called defaultN where N is an integer, or be another CA certificate in case server\_ca is true.  
 -Other options :  
 
-ssl\_allow\_all and use\_token enabled : this is a similar approach but instead of generating a certificate per client, the server generates a token per client. This approach is simpler. Note that you can also delete the token on the fly by calling delete\_client\_token.  
-You can combine ssl\_allow\_all with token\_verify\_peer\_cert and token\_client\_send\_cert (on client) : in order to authenticate the default certificate only. On client side the token\_verify\_peer\_cert can also be the path of ca certificates (like /etc/ssl/certs/ca-certificates.crt) or custom server public certificate.  
-token\_client\_verify\_server\_hostname can be the server hostname that your client authenticates through its certificate.  
+-ssl\_allow\_all and use\_token enabled : this is a similar approach but instead of generating a certificate per client, the server generates a token per client. This approach is simpler. Note that you can also delete the token on the fly by calling delete\_client\_token.  
+You can combine ssl\_allow\_all with token\_verify\_peer\_cert (on client and server) and token\_client\_send\_cert (on client) : in order to authenticate the default certificate only. On client side the token\_verify\_peer\_cert can also be the path of ca certificates (like /etc/ssl/certs/ca-certificates.crt) or custom server public certificate.  
+token\_client\_verify\_server\_hostname can be the server hostname that your client authenticates (through its certificate).  
 
 By setting ssl\_allow\_all on both sever and client, you can use encryption without the hassle of sharing certificates. In such a case you can run independently create_certificates on server and client side, without the need to copy a directory. This disables authentication, so that any client and server can communicate.  
 
@@ -488,13 +486,14 @@ A Manager template json can be obtained by calling :
 
     python3 -m aioconnectors print_config_templates
 
--Then create and start you connector (both server and client)
+-Then create and start you connector (both server and client, each with its own <config_json_path>)
 
     python3 -m aioconnectors create_connector <config_json_path>
 
 If you are testing your connector server and client on the same machine, you can use the configuration generated by print\_config\_templates almost out of the box.  
-The only change you should do is set is\_server to False in the client configuration, and use\_ssl to False in both configurations.  
-If you want to test messages sending/receiving, you should also set a client\_name in the client configuration. Then you can use the other command line testing facilites mentioned in <a href="#testing">8-</a> : on both server and client you can run "python3 -m aioconnectors test\_receive\_messages <config\_json\_path>" and "python3 -m aioconnectors test\_send\_messages <config\_json\_path>".  
+The only change you should do is set is\_server to False in the client configuration, and use\_ssl to False in both configurations (unless you already run "python3 -m aioconnectors create_certificates").  
+If you want to test messages sending/receiving, you should also set a client\_name value in the client configuration.  
+Then you can use the other command line testing facilites mentioned in <a href="#testing">8-</a> : on both server and client you can run "python3 -m aioconnectors test\_receive\_messages <config\_json\_path>" and "python3 -m aioconnectors test\_send\_messages <config\_json\_path>".  
 
 2.2.Programmatically, examples are provided in applications.py and in aioconnectors\_test.py.  
 To create and start a connector :

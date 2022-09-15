@@ -16,14 +16,14 @@ aioconnectors supported commands :
     
     - print_config_templates
     - create_certificates [--ca] [optional dirpath] [--help]
-    - replace_server_certificate new_pem_path [optional dirpath] [--revert] [--help]
+    - create_connector <config file path>    
     - cli (start, stop, restart, show_connected_peers, ignore_peer_traffic, peek_queues, delete_client_certificate, delete_client_token)
-    - create_connector <config file path>
+    - replace_server_certificate new_pem_path [optional dirpath] [--revert] [--help]
+    - ping <config file path>
+    - chat [--target <server_ip>] [--upload <path>] [--help]    
     - test_receive_messages <config file path>
     - test_send_messages <config file path>
     - test_publish_messages <config file path>    
-    - ping <config file path>
-    - chat [--target <server_ip>] [--upload <path>] [--help]
     - --help
     - --version
 '''
@@ -41,7 +41,7 @@ if len(sys.argv) > 1:
                       f'under {aioconnectors.core.Connector.CONNECTOR_FILES_DIRPATH}.\n'
                       'You can specify a target directory as an optional argument.\n'
                       '(Use "create_certificates ." to create your target directory in your current working directory.)\n'
-                      'Use --no-ca to create certificates for a server having server_ca=False')
+                      'Use --ca to create certificates for a server having server_ca=True (default is server_ca=False)')
                 sys.exit(0)
             certificates_directory_path = aioconnectors.helpers.full_path(sys.argv[2])
         else:
