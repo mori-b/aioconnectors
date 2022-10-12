@@ -411,11 +411,22 @@ The other connectors should be clients. A client can subscribe to specific topic
 
 -You might want both sides to be able to initiate a connection, or even to have multiple nodes being able to initiate connections between one another.  
 The following lines describe a possible approach to do that using aioconnectors.  
-Each node should be running an aioconnector server, and be able to also spawn an aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
+Each node should be running an aioconnector server, and be able to also spawn a aioconnector client each time it initiates a connection to a different remote server. A new application layer handling these connectors could be created, and run on each node.  
 Your application might need to know if a peer is already connected before initiating a connection : to do so, you might use the connector_manager.show\_connected\_peers method (explained in <a href="#cli">7-</a>).  
 Your application might need to be able to disconnect a specific client on the server : to do so, you might use the connector\_manager.disconnect\_client method.  
-Your application might need to decide whether to accept a client connection : to do so, you might implement a hook\_server\_auth\_client method or a hook\_allow\_certificate\_creation method and provide it to your ConnectorManager constructor (explained in <a href="#classes">4-</a>). For that purpose you can also use the whitelist and blacklist features.  
 A comfortable approach would be to share the certificates directories created in the first step between all the nodes. All nodes would share the same server certificate, and use the same client default certificate to initiate the connection (before receiving their individual certificate). The only differences between clients configurations would be their client_name, and their remote server (the configurations are explained in <a href="#classes">4-</a>).  
+
+-There are multiple tools to let the server filter clients. Your application might need to decide whether to accept a client connection or not.  
+The following tools filter clients in this order :  
+whitelisted_clients_ip/subnet : in configuration file, or on the fly with add_whitelist_client (it updates the configuration file).  
+hook_whitelist_clients(extra_info, source_id) : code that lets you take a decision after having filtered a non whitelisted client (maybe allow it from now on).  
+blacklisted_clients_ip/subnet: in configuration file or on the fly with add_blacklist_client.  
+whitelisted_clients_id : in configuration file or on the fly with add_whitelist_client (uses regex).  
+hook_whitelist_clients(extra_info, source_id) : same.  
+blacklisted_clients_id : in configuration file or on the fly with add_blacklist_client (uses regex).  
+hook_allow_certificate_creation(source_id) : code that lets you prevent certificate creation based on the source_id.  
+hook_server_auth_client(source_id) : code that gives a last opportunity to filter the source_id.  
+The hooks must be fed to the ConnectorManager constructor (explained in <a href="#classes">4-</a>).  
 
 
 <a name="usage"></a>
@@ -770,8 +781,8 @@ to run several interesting commands like :
 -**delete\_client\_token** enables your server to delete a specific client token. Enables you client to delete its own token and fallback requesting a new token.  
 -**reload\_tokens** reloads tokens after for example modifying them on disk.  
 -**disconnect_client** enables your server to disconnect a specific client.  
--**add\_blacklist_client, remove\_blacklist_client** enables your server to blacklist a client by id, ip, or subnet at runtime. Disconnects the client if blacklisted by id, also deletes its certificate if exists. Kept in the connector config file if exists.  
--**add\_whitelist_client, remove\_whitelist_client** enables your server to whitelist a client (id, ip, or subnet) at runtime. Kept in the connector config file if exists.   
+-**add\_blacklist_client, remove\_blacklist_client** enables your server to blacklist a client by id (regex), ip, or subnet, at runtime. Disconnects the client if blacklisted by id, also deletes its certificate if exists. Kept in the connector config file if exists.  
+-**add\_whitelist_client, remove\_whitelist_client** enables your server to whitelist a client by id (regex), ip, or subnet, at runtime. Kept in the connector config file if exists.   
 -**peek\_queues** to show the internal queues sizes.  
 -**ignore\_peer\_traffic** can be a boolean, or a peer name. When enabled, the connector drops all new messages received from peers, or from the specified peer. It also drops new messages to be sent to all peers, or to the specified peer. This mode can be useful to let the queues evacuate their accumulated messages.  
 -**show\_log\_level** to show the current log level.  
