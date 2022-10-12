@@ -419,13 +419,13 @@ A comfortable approach would be to share the certificates directories created in
 -There are multiple tools to let the server filter clients. Your application might need to decide whether to accept a client connection or not.  
 The following tools filter clients in this order :  
 whitelisted_clients_ip/subnet : in configuration file, or on the fly with add_whitelist_client (it updates the configuration file).  
-hook_whitelist_clients(extra_info, source_id) : code that lets you take a decision after having filtered a non whitelisted client (maybe allow it from now on).  
+hook_whitelist_clients(extra_info, source_id) : coroutine that lets you take a decision after having filtered a non whitelisted client (maybe allow it from now on).  
 blacklisted_clients_ip/subnet: in configuration file or on the fly with add_blacklist_client.  
 whitelisted_clients_id : in configuration file or on the fly with add_whitelist_client (uses regex).  
 hook_whitelist_clients(extra_info, source_id) : same.  
 blacklisted_clients_id : in configuration file or on the fly with add_blacklist_client (uses regex).  
-hook_allow_certificate_creation(source_id) : code that lets you prevent certificate creation based on the source_id.  
-hook_server_auth_client(source_id) : code that gives a last opportunity to filter the source_id.  
+hook_allow_certificate_creation(source_id) : coroutine that lets you prevent certificate creation based on the source_id.  
+hook_server_auth_client(source_id) : coroutine that gives a last opportunity to filter the source_id.  
 The hooks must be fed to the ConnectorManager constructor (explained in <a href="#classes">4-</a>).  
 
 
