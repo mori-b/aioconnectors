@@ -34,7 +34,7 @@
 ## FEATURES
 
 aioconnectors is an easy to set up message queue and broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
-It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss, proxy support.  
+It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss, proxy support, client filtering.  
 It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
 Based on asyncio, message sending and receiving are asynchronous, with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file.  
@@ -459,7 +459,7 @@ When using ssl, the default approach is to have server\_ca false (default), mean
 Using server\_ca true lets your server become a CA with a self signed CA certificate that will sign your client certificates. If you choose to run your server with server\_ca true, then you need the --ca argument in create\_certificates, otherwise you don't need it (default).  
 The server\_ca true mode comes with server\_ca\_certs\_not\_stored enabled by default, meaning the client certificates are deleted from server side. Not having to store the client certificates on the server might be an advantage but it doesn't enable you to delete them : if you want to be able to delete them in ca mode, then you might just use server\_ca false. The server\_ca\_certs\_not\_stored option set to false requires to delete the certificates yourself, since it is not currently supported when server_ca is true : this implementation would require something like "openssl ca -gencrl -config certificates/server/server\_ca\_details.conf -out revoked.pem", and also "SSLContext.verify\_flags |= ssl.VERIFY\_CRL\_CHECK\_LEAF" before loading the revoked.pem into SSLContext.load\_verify\_locations.  
 -The client also checks the server certificate to prevent MITM.  
-Instead of using the generated server certificate, you also have the option to use a url for your server and use a CA signed server certificate that the clients will verify. For that you should :  
+Instead of using the generated server certificate, you also have the option to use a hostname for your server and use a CA signed server certificate that the clients will verify. For that you should :  
 -On server side, under "certificates" directory, replace /server/server-cert/server.pem and server.key with your signed certificates. You don't need to do that manually, there is a tool that does it :  
 
     python3 -m aioconnectors replace_server_certificate <custom_server_pem_file_path> [<optional_directory_path>]
@@ -679,7 +679,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**client\_cafile\_verify\_server** : On client side, if server\_sockaddr is configured with the server hostname, you can set client\_cafile\_verify\_server to be the ca cert path (like /etc/ssl/certs/ca-certificates.crt), to enable CA verification of you server certificate.  
 -**client\_name** is used on client side. It is the name that will be associated with this client on server side. Auto generated if not supplied in ConnectorManager. Mandatory in ConnectorAPI. It should match the regex \^\[0\-9a\-zA\-Z\-\_\:\]\+$  
 -**client_bind_ip** is optional, specifies the interface to bind your client. You can use an interface name or its ip address (string).  
--**connect\_timeout** : On client side, the socket timeout to connect to Tsoc. Default is 10s, you might need to increase it when using a server url in server\_sockaddr, since sometimes name resolution with getaddrinfo is slow.  
+-**connect\_timeout** : On client side, the socket timeout to connect to Tsoc. Default is 10s, you might need to increase it when using a server hostname in server\_sockaddr, since sometimes name resolution with getaddrinfo is slow.  
 -**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /var/tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -**debug_msg_counts** is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if **silent** is disabled.  
 -**default\_logger\_rotate** (boolean) can also be an integer telling the maximum size of the log file in bytes. There are 5 backups configured, compressed with gzip.  
