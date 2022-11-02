@@ -477,8 +477,10 @@ class ConnectorAPI(ConnectorBaseTool):
     '''
     RECEIVE_FROM_ANY_CONNECTOR_OWNER = True
     
-    def __init__(self, *args, receive_from_any_connector_owner = RECEIVE_FROM_ANY_CONNECTOR_OWNER, **kwargs):
+    def __init__(self, *args, receive_from_any_connector_owner = RECEIVE_FROM_ANY_CONNECTOR_OWNER, 
+                 max_size_chunk_upload = Connector.MAX_SIZE_CHUNK_UPLOAD, **kwargs):
         super().__init__(*args, **kwargs)
+        self.max_size_chunk_upload = max_size_chunk_upload
         self.send_message_lock = asyncio.Lock()
         self.receive_from_any_connector_owner = receive_from_any_connector_owner
         
@@ -517,14 +519,14 @@ class ConnectorAPI(ConnectorBaseTool):
             src_path = with_file.get('src_path')
             if src_path and check_chunk_file:
                 file_size = os.path.getsize(src_path)
-                number_of_chunks, last_bytes_size = divmod(file_size, Connector.MAX_SIZE_CHUNK_UPLOAD)
+                number_of_chunks, last_bytes_size = divmod(file_size, self.max_size_chunk_upload)
                 if number_of_chunks:
-                    #divide file in chunks of max size MAX_SIZE_CHUNK_UPLOAD, and send each chunk one after the other                    
+                    #divide file in chunks of max_size_chunk_upload, and send each chunk one after the other                    
                     dst_name = with_file.get('dst_name')
                     chunk_basepath = self.connector_files_dirpath #os.path.dirname(src_path)
                     chunk_basename = f'{dst_name}{Misc.CHUNK_INDICATOR}' #f'{dst_name}__aioconnectors_chunk'
                     try:
-                        override_src_file_sizes = number_of_chunks * [Connector.MAX_SIZE_CHUNK_UPLOAD]
+                        override_src_file_sizes = number_of_chunks * [self.max_size_chunk_upload]
                         if last_bytes_size:
                             override_src_file_sizes += [last_bytes_size]
                         len_override_src_file_sizes = len(override_src_file_sizes)

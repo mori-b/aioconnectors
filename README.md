@@ -34,12 +34,12 @@
 ## FEATURES
 
 aioconnectors is an easy to set up message queue and broker that works on Unix like systems. Requirements are : Python >= 3.6, and openssl installed.  
-It provides transfer of messages and files, optional authentication and encryption, persistence in case of connection loss, proxy support, client filtering.  
+It provides bidirectional transfer of messages and files, optional authentication and encryption, persistence and reconnection in case of connection loss, proxy support, client filtering.  
 It is a point to point broker built on the client/server model, but both peers can push messages. It can also be easily configured as a publish/subscribe broker.  
 Based on asyncio, message sending and receiving are asynchronous, with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file.  
 An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple programmatic Python API is also exposed, with functionalities like starting/stopping a connector, sending a message, or receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be transpiled.
+A simple Python API provides functions like starting/stopping a connector, sending a message, receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be transpiled.
 
 
 <a name="installation"></a>
@@ -578,71 +578,71 @@ The main use case for providing a config\_file\_path while having config\_file\_
 
 Here is an example of config\_file\_path, with ConnectorManager class arguments, used to create a connector
 
-{
-    "alternate_client_default_cert": false,
-    "blacklisted_clients_id": null,
-    "blacklisted_clients_ip": null,
-    "blacklisted_clients_subnet": null,
-    "certificates_directory_path": "/var/tmp/aioconnectors",
-    "client_bind_ip": null,
-    "client_cafile_verify_server": null,
-    "client_name": null,
-    "connect_timeout": 10,
-    "connector_files_dirpath": "/var/tmp/aioconnectors",
-    "debug_msg_counts": true,
-    "default_logger_dirpath": "/var/tmp/aioconnectors",
-    "default_logger_log_level": "INFO",
-    "default_logger_rotate": true,
-    "disk_persistence_recv": false,
-    "disk_persistence_send": false,
-    "enable_client_try_reconnect": true,
-    "everybody_can_send_messages": true,
-    "file_recv_config": {},
-    "ignore_peer_traffic": false,
-    "is_server": true,
-    "keep_alive_period": null,
-    "keep_alive_timeout": 5,
-    "max_certs": 1024,
-    "max_number_of_unanswered_keep_alive": 2,
-    "max_size_file_upload_recv": 8589930194,
-    "max_size_file_upload_send": 8589930194,
-    "max_size_persistence_path": 1073741824,
-    "proxy": {},
-    "pubsub_central_broker": false,
-    "recv_message_types": [
-        "any"
-    ],
-    "reuse_server_sockaddr": false,
-    "reuse_uds_path_commander_server": false,
-    "reuse_uds_path_send_to_connector": false,
-    "send_message_types": [
-        "any"
-    ],
-    "send_message_types_priorities": {},
-    "send_timeout": 50,
-    "server_ca": false,
-    "server_ca_certs_not_stored": true,
-    "server_secure_tls": true,
-    "server_sockaddr": [
-        "127.0.0.1",
-        10673
-    ],
-    "silent": true,
-    "ssl_allow_all": false,
-    "subscribe_message_types": [],
-    "token_client_send_cert": true,
-    "token_client_verify_server_hostname": null,
-    "token_server_allow_authorized_non_default_cert": false,
-    "token_verify_peer_cert": true,
-    "tokens_directory_path": "/var/tmp/aioconnectors",
-    "uds_path_receive_preserve_socket": true,
-    "uds_path_send_preserve_socket": true,
-    "use_ssl": true,
-    "use_token": false,
-    "whitelisted_clients_id": null,
-    "whitelisted_clients_ip": null,
-    "whitelisted_clients_subnet": null
-}
+    {
+        "alternate_client_default_cert": false,
+        "blacklisted_clients_id": null,
+        "blacklisted_clients_ip": null,
+        "blacklisted_clients_subnet": null,
+        "certificates_directory_path": "/var/tmp/aioconnectors",
+        "client_bind_ip": null,
+        "client_cafile_verify_server": null,
+        "client_name": null,
+        "connect_timeout": 10,
+        "connector_files_dirpath": "/var/tmp/aioconnectors",
+        "debug_msg_counts": true,
+        "default_logger_dirpath": "/var/tmp/aioconnectors",
+        "default_logger_log_level": "INFO",
+        "default_logger_rotate": true,
+        "disk_persistence_recv": false,
+        "disk_persistence_send": false,
+        "enable_client_try_reconnect": true,
+        "everybody_can_send_messages": true,
+        "file_recv_config": {},
+        "ignore_peer_traffic": false,
+        "is_server": true,
+        "keep_alive_period": null,
+        "keep_alive_timeout": 5,
+        "max_certs": 1024,
+        "max_number_of_unanswered_keep_alive": 2,
+        "max_size_file_upload_recv": 8589930194,
+        "max_size_file_upload_send": 8589930194,
+        "max_size_persistence_path": 1073741824,
+        "proxy": {},
+        "pubsub_central_broker": false,
+        "recv_message_types": [
+            "any"
+        ],
+        "reuse_server_sockaddr": false,
+        "reuse_uds_path_commander_server": false,
+        "reuse_uds_path_send_to_connector": false,
+        "send_message_types": [
+            "any"
+        ],
+        "send_message_types_priorities": {},
+        "send_timeout": 50,
+        "server_ca": false,
+        "server_ca_certs_not_stored": true,
+        "server_secure_tls": true,
+        "server_sockaddr": [
+            "127.0.0.1",
+            10673
+        ],
+        "silent": true,
+        "ssl_allow_all": false,
+        "subscribe_message_types": [],
+        "token_client_send_cert": true,
+        "token_client_verify_server_hostname": null,
+        "token_server_allow_authorized_non_default_cert": false,
+        "token_verify_peer_cert": true,
+        "tokens_directory_path": "/var/tmp/aioconnectors",
+        "uds_path_receive_preserve_socket": true,
+        "uds_path_send_preserve_socket": true,
+        "use_ssl": true,
+        "use_token": false,
+        "whitelisted_clients_id": null,
+        "whitelisted_clients_ip": null,
+        "whitelisted_clients_subnet": null
+    }
 
 
 Here is an example of config\_file\_path, with ConnectorAPI class arguments, used to send/receive messages.  
@@ -656,6 +656,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
         "default_logger_log_level": "INFO",
         "default_logger_rotate": true,
         "is_server": true,
+        "max_size_chunk_upload": 209715200,
         "pubsub_central_broker": false,
         "receive_from_any_connector_owner": true,
         "recv_message_types": [
@@ -697,6 +698,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**ignore_peer_traffic** to ignore a peer traffic, can be updated on the fly with the api functions ignore\_peer\_traffic\_enable, ignore\_peer\_traffic\_enable\_unique, or ignore\_peer\_traffic\_disable or in the cli.  
 -**is\_server** (boolean) is important to differentiate between server and client  
 -**max\_certs** (integer) limits the maximum number of clients that can connect to a server using client ssl certificates.  
+-**max_size_chunk_upload** (integer) used only by ConnectorAPI to send a file in chunks, default chunk length is 200MB. You can try a max chunk length of up to 1GB in a fast network, and might need to lower it in a slow network.  
 -**max\_size\_file\_upload\_send** and **max\_size\_file\_upload\_recv**: Size limit of the files you send and receive, both on server and on client. Default is 8GB. However best performance is achieved until 1GB. Once you exceed 1GB, the file is divided in 1GB chunks and reassembled after reception, which is time consuming.  
 -**disk\_persistence\_send** : In order to enable persistence between client and server (supported on both client and server sides), use disk\_persistence\_send=True (applies to all message types). disk\_persistence\_send can also be a list of message types for which to apply persistence. There will be 1 persistence file per message type. You can limit the persistence files size with **max\_size\_persistence\_path**.  
 -**pubsub\_central\_broker** : set to True if you need your server to be the broker. Used in the publish/subscribe approach, not necessary in the point to point approach.  

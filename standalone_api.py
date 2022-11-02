@@ -38,7 +38,7 @@ class ConnectorAPI:
     UDS_PATH_SEND_TO_CONNECTOR_CLIENT = 'uds_path_send_to_connector_client_{}'    
     MAX_LENGTH_UDS_PATH = 104
     RECEIVE_FROM_ANY_CONNECTOR_OWNER = True
-    MAX_SIZE_CHUNK_UPLOAD = 1_073_741_824 #1gb
+    MAX_SIZE_CHUNK_UPLOAD = 209_715_200 #200mb #104_857_600 #100mb    
     READ_CHUNK_SIZE = 104_857_600 #100mb
     
     def __init__(self, config_file_path=None, connector_files_dirpath='/var/tmp/aioconnectors', 

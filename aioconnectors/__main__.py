@@ -132,7 +132,8 @@ if len(sys.argv) > 1:
                         uds_path_send_preserve_socket=Connector.UDS_PATH_SEND_PRESERVE_SOCKET,
                         send_message_types=Connector.DEFAULT_MESSAGE_TYPES, 
                         recv_message_types=Connector.DEFAULT_MESSAGE_TYPES,
-                        receive_from_any_connector_owner=True, pubsub_central_broker=False)                 
+                        receive_from_any_connector_owner=True, pubsub_central_broker=False,
+                        max_size_chunk_upload= 209715200)                 
         print('\n- API TEMPLATE, used to send/receive messages')
         print(json.dumps(api_config_template, indent=4, sort_keys=True))
 
