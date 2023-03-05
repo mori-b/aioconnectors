@@ -812,7 +812,7 @@ to run several interesting commands like :
 <a name="chat"></a>
 ### 9.Funny embedded chat
 
-A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux or Mac stations.  
+A simple chat using aioconnectors is embedded. It allows you to exchange messages, files and directories easily between 2 Linux or Mac stations. It can also be configured to execute the commands it receives.  
 It is encrypted, and supports authentication by prompting to accept connections.  
 It is not a multi user chat, but more of a tool to easily transfer stuff between your computers.
 
@@ -829,9 +829,19 @@ You can also upload files during a chat, by typing \"\!upload \<file or dir path
 Files are uploaded to your current working directory. A directory is transferred as a zip file.  
 You can simply unzip a zip file by using \"\!dezip \<file name\>\".  
 
+The cleanest way to exit a chat is by typing \"\!exit\" on both sides.  
+
 -On client side, you can also directly upload a file or directory to the server without opening a chat :
 
      python3 -m aioconnectors chat --target <server_ip> --upload <file or dir path>
+
+-You can configure client or server (not simultaneously) to execute the commands it receives, by using the --exec <shell_path> option :
+    
+    python3 -m aioconnectors chat --exec /bin/sh
+    python3 -m aioconnectors chat --target <server_ip>
+    or
+    python3 -m aioconnectors chat
+    python3 -m aioconnectors chat --target <server_ip>  --exec /bin/sh
 
 -On server side, you can accept client connections without prompting by specifying --accept :
 

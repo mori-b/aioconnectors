@@ -636,6 +636,8 @@ def chat(args, logger=None):
     accept_all_clients = args.accept
     loop = asyncio.get_event_loop()
     cwd = os.getcwd()
+    proc_exec = None
+    transport_json_cb = None
         
     class AuthClient:
         #helper for client authentication on server connector
@@ -649,6 +651,9 @@ def chat(args, logger=None):
             AuthClient.allow = status
             AuthClient.perform_client_authentication = False
             AuthClient.authenticate.set()
+            if args.exec:
+                task_exec = loop.create_task(run_proc_exe(args.exec))
+            
         
         @staticmethod
         async def authenticate_client(client_name):
@@ -725,9 +730,13 @@ def chat(args, logger=None):
     #for example because of already existing socket
     loop.run_until_complete(task_manager)  
     
-    task_recv = task_console = task_send_file = None
+    task_recv = task_console = task_send_file = task_exec = None
+    task_exec_stdout = task_exec_stderr = None
+    
     
     async def message_received_cb(logger, transport_json , data, binary):
+        nonlocal transport_json_cb
+        transport_json_cb = transport_json
         #callback when a message is received from peer
         if transport_json.get('await_response'):
             #this response is necessary in args.upload mode, to know when to exit
@@ -736,9 +745,16 @@ def chat(args, logger=None):
                                                         response_id=transport_json['request_id'],
                                                         destination_id=transport_json['source_id']))
         if data:
-            #display message received from peer
-            print(data.decode())
-            print(custom_prompt,end='', flush=True)                
+            if args.exec:
+                if proc_exec.returncode is not None:
+                    print('Shell has exited')
+                    return
+                proc_exec.stdin.write(data+b'\r\n')
+                await proc_exec.stdin.drain()                                
+            else:            
+                #display message received from peer
+                print(data.decode())
+                print(custom_prompt,end='', flush=True)                
 
     if not args.upload:  
         task_recv = loop.create_task(connector_api.start_waiting_for_messages(message_type='any', 
@@ -860,10 +876,50 @@ def chat(args, logger=None):
             
         with_file={'src_path':upload_path,'dst_type':'any', 'dst_name':os.path.basename(upload_path), 'delete':False}    
         await send_file('', destination_id, with_file, delete_after_upload)
-            
+
+
+    async def stdout_proc_exe():
+        while True:
+            res_stdout = await proc_exec.stdout.read(4096)
+            if not res_stdout:
+                return
+            res_stdout = res_stdout.decode()
+            if transport_json_cb:
+                await connector_api.send_message(data=res_stdout, data_is_json=False, destination_id=transport_json_cb['source_id'], 
+                                                       message_type='any')
+
+    async def stderr_proc_exe():
+        while True:
+            res_stderr = await proc_exec.stderr.read(4096)
+            if not res_stderr:
+                return
+            res_stderr = res_stderr.decode()
+            if 'cannot set terminal process group' in res_stderr:
+                continue
+            if transport_json_cb:
+                await connector_api.send_message(data=res_stderr, data_is_json=False, destination_id=transport_json_cb['source_id'], 
+                                                       message_type='any')
+
+    async def run_proc_exe(shell_path):
+        nonlocal proc_exec, task_exec_stdout, task_exec_stderr
+#        python3 -m aioconnectors chat --bind_server_ip 127.0.0.1  --port 1234
+#        python3 -m aioconnectors chat --target 127.0.0.1 --port 1234 --exec /bin/bash
+        proc_exec = await asyncio.create_subprocess_exec(shell_path, '-i', stdin=asyncio.subprocess.PIPE,
+                                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True)
+        proc_exec.stdin.write(f"{sys.executable} -c 'import pty;pty.spawn(\"{shell_path}\")'\r\n".encode())
+        await proc_exec.stdin.drain()                                
+        
+        task_exec_stdout = loop.create_task(stdout_proc_exe())
+        task_exec_stderr = loop.create_task(stderr_proc_exe())            
+
+        
     if not args.upload:
-        #chat mode, hook stdin
-        task_console = loop.create_task(connect_pipe_to_stdin(loop, connector_manager))
+        if not is_server and args.exec:
+            task_console = loop.create_task(connect_pipe_to_stdin(loop, connector_manager))            
+            task_exec = loop.create_task(run_proc_exe(args.exec))
+        else:
+            #chat mode, hook stdin
+            task_console = loop.create_task(connect_pipe_to_stdin(loop, connector_manager))
     else:
         #upload mode, upload and exit
         task_send_file = loop.create_task(upload_file(args, destination_id))
@@ -881,6 +937,14 @@ def chat(args, logger=None):
     if task_recv:
         connector_api.stop_waiting_for_messages(message_type='any')
         del task_recv
+    if task_exec:
+        del task_exec
+    if task_exec_stdout:
+        del task_exec_stdout
+    if task_exec_stderr:
+        del task_exec_stderr     
+    if proc_exec:
+        del proc_exec
     del task_stop
     del task_manager
     del connector_manager

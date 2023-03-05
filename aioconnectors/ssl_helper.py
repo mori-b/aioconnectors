@@ -505,7 +505,7 @@ C = US
     logger.info('Create Server certificate')
 #        1) Create Server certificate            
     update_conf(CSR_TEMPLATE_CONF, CSR_CONF, {'O':'company'})                        
-    cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {CSR_CONF}'
+    cmd = f'openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {SERVER_KEY_PATH} -out {SERVER_PEM_PATH} -config {CSR_CONF} 2>/dev/null'
     stdout = subprocess.check_output(cmd, shell=True)
     shutil.copy(SERVER_PEM_PATH, CLIENT_SERVER_CRT_PATH)
     #we might want to append to an existing CLIENT_SERVER_CRT_PATH, to support multiple server certificates
@@ -548,7 +548,7 @@ C = US
 
     if no_ca:    
         update_conf(CSR_TEMPLATE_CONF, CSR_CONF, {'O':organization})                    
-        cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {CSR_CONF}"
+        cmd = f"openssl req -new -newkey rsa -nodes -x509 -days 3650 -keyout {client_default_key} -out {client_default_pem} -config {CSR_CONF} 2>/dev/null"
         stdout = subprocess.check_output(cmd, shell=True)        
         shutil.copy(client_default_pem, SERVER_CERTS_PEM_PATH.format(ssl_helper.CLIENT_DEFAULT_CERT_NAME))
     else:        
