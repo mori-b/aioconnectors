@@ -570,7 +570,7 @@ transport\_json will contain a with\_file key if a file has been received, more 
 <a name="classes"></a>
 ### 4.More details about the ConnectorManager and ConnectorAPI arguments.
 
-    logger=None, use_default_logger=True, default_logger_log_level='INFO', default_logger_rotate=True, config_file_path=<path>
+    logger=None, use_default_logger=True, default_logger_log_level='INFO', default_logger_rotate=True, config_file_path=<path>,default_logger_bk_count=5
 
 config\_file\_path can be the path of a json file like the following, or instead you can load its items as kwargs, as shown in the basic example later on and in aioconnectors\_test.py  
 You can use both kwargs and config\_file\_path : if there are shared items, the ones from config_file_path will override the kwargs, unless you specify config\_file\_overrides\_kwargs=False (True by default).  
@@ -590,6 +590,7 @@ Here is an example of config\_file\_path, with ConnectorManager class arguments,
         "connect_timeout": 10,
         "connector_files_dirpath": "/var/tmp/aioconnectors",
         "debug_msg_counts": true,
+        "default_logger_bk_count":5,
         "default_logger_dirpath": "/var/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
         "default_logger_rotate": true,
@@ -652,6 +653,7 @@ These are a subset of ConnectorManager arguments : which means you can use the C
     {
         "client_name": null,
         "connector_files_dirpath": "/var/tmp/aioconnectors",
+        "default_logger_bk_count":5,        
         "default_logger_dirpath": "/var/tmp/aioconnectors",
         "default_logger_log_level": "INFO",
         "default_logger_rotate": true,
@@ -683,7 +685,8 @@ These are a subset of ConnectorManager arguments : which means you can use the C
 -**connect\_timeout** : On client side, the socket timeout to connect to Tsoc. Default is 10s, you might need to increase it when using a server hostname in server\_sockaddr, since sometimes name resolution with getaddrinfo is slow.  
 -**connector\_files\_dirpath** is important, it is the path where all internal files are stored. The default is /var/tmp/aioconnectors. unix sockets files, default log files, and persistent files are stored there.  
 -**debug_msg_counts** is a boolean, enables to display every 2 minutes a count of messages in the log file, and in stdout if **silent** is disabled.  
--**default\_logger\_rotate** (boolean) can also be an integer telling the maximum size of the log file in bytes. There are 5 backups configured, compressed with gzip.  
+-**default\_logger\_rotate** (boolean) can also be an integer telling the maximum size of the log file in bytes.  
+-**default\_logger\_bk\_count**  an integer telling the maximum number of gzip compressed logs kept when log rotate is enabled. Default is 5.  
 -**disk\_persistence\_recv** : In order to enable persistence between the connector and a message listener (supported on both client and server sides), use disk\_persistence\_recv=True (applies to all message types). disk\_persistence\_recv can also be a list of message types for which to apply persistence. There will be 1 persistence file per message type.  
 -**file\_recv\_config** : In order to be able to receive files, you must define the destination path of files according to their associated dst\_type. This is done in file\_recv\_config, as shown in aioconnectors\_test.py. file\_recv\_config = {"target\_directory":"", "owner":"", "override\_existing":False}. **target\_directory** is later formatted using the transport\_json fields : which means you can use a target\_directory value like "/my_destination_files/{message\_type}/{source\_id}". **owner** is optional, it is the owner of the uploaded file. It must be of the form "user:group". **override\_existing** is optional and false by default : when receiving a file with an already existing destination path, it decides whether to override the existing file or not.  
 -**enable\_client\_try\_reconnect** is a boolean set to True by default. If enabled, it lets the client try to reconnect automatically to the server every 5 seconds in case of failure.  

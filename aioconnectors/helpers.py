@@ -17,7 +17,7 @@ if PYTHON_VERSION < (3,6):
 PYTHON_GREATER_37 = (PYTHON_VERSION >= (3,7))
 
 DEFAULT_LOGGER_NAME = 'aioconnector'
-LOGFILE_DEFAULT_PATH = 'aioconnectors.log'
+LOGFILE_DEFAULT_NAME = 'aioconnectors.log'
 LOG_LEVEL = 'INFO'
 LOG_ROTATE = True
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -41,8 +41,8 @@ def get_tmp_dir():
         candidate2 = full_path('aioconnectors_tmp')
         return min(candidate1, candidate2, key=lambda x:len(x))
 
-def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
-               log_format=LOG_FORMAT, level=LOG_LEVEL, rotate=LOG_ROTATE):
+def get_logger(logfile_path=LOGFILE_DEFAULT_NAME, first_run=False, silent=True, logger_name=DEFAULT_LOGGER_NAME, 
+               log_format=LOG_FORMAT, level=LOG_LEVEL, rotate=LOG_ROTATE, bk_count=LOG_BK_COUNT):
     
     def namer(name):
         return name + '.gz'
@@ -69,7 +69,7 @@ def get_logger(logfile_path=LOGFILE_DEFAULT_PATH, first_run=False, silent=True, 
                         rotate = int(rotate)
                     except Exception:
                         rotate = LOG_MAX_SIZE
-                fh = RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=LOG_BK_COUNT)
+                fh = RotatingFileHandler(logfile_path, maxBytes=rotate, backupCount=bk_count)
                 fh.rotator = rotator
                 fh.namer = namer                
                 handlers.append(fh)

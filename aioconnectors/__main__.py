@@ -85,6 +85,7 @@ if len(sys.argv) > 1:
     
         manager_config_template = dict(default_logger_log_level='INFO', default_logger_rotate=True,
                         default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
+                        default_logger_bk_count=aioconnectors.helpers.LOG_BK_COUNT,
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, reuse_server_sockaddr=False,
                         reuse_uds_path_commander_server=False, reuse_uds_path_send_to_connector=False,
@@ -125,7 +126,8 @@ if len(sys.argv) > 1:
         print(json.dumps(file_recv_config, indent=4, sort_keys=True))                
         
         api_config_template = dict(default_logger_log_level='INFO', default_logger_rotate=True,
-                        default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
+                        default_logger_dirpath=Connector.CONNECTOR_FILES_DIRPATH,
+                        default_logger_bk_count=aioconnectors.helpers.LOG_BK_COUNT,
                         connector_files_dirpath=Connector.CONNECTOR_FILES_DIRPATH, 
                         is_server=True, server_sockaddr=Connector.SERVER_ADDR, client_name=None,
                         uds_path_receive_preserve_socket=Connector.UDS_PATH_RECEIVE_PRESERVE_SOCKET, 
