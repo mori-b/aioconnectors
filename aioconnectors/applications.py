@@ -500,6 +500,7 @@ def test_send_messages(config_file_path, logger=None):
         logger = aioconnectors.get_logger(logger_name='test_send_messages', first_run=True)    
     logger.info('Creating connector api with config file '+config_file_path)
     connector_api = aioconnectors.ConnectorAPI(config_file_path=config_file_path)
+    tag = 'tag1'
     destination_id = None
     if connector_api.is_server:
         destination_id = input('\nPlease type the name of your remote client\n')
@@ -512,10 +513,10 @@ def test_send_messages(config_file_path, logger=None):
             index += 1
             for message_type in connector_api.send_message_types:
                 print(f'SENDING MESSAGE to peer {destination_id or connector_api.server_sockaddr} of type '
-                      f'{message_type} and index {index}')
+                      f'{message_type} and index {index} and tag {tag}')
                 response = await connector_api.send_message(data=f'"TEST_MESSAGE {str(index)*5}"', data_is_json=False,
                                                                                   destination_id=destination_id,
-                                                        message_type=message_type, await_response=False, request_id=index)
+                                                        message_type=message_type, await_response=False, request_id=index, tag=tag)
                                                         #response_id=None, binary=b'\x01\x02\x03\x04\x05', with_file=None, wait_for_ack=False)        
             await asyncio.sleep(2)
                     

@@ -28,6 +28,8 @@ LOG_MAX_SIZE = 67108864 # 2**26 = 64 MB
 SOURCE_ID_REGEX = re.compile('^[0-9a-zA-Z-_:]+$')
 SOURCE_ID_DEFAULT_REGEX = re.compile('^default[0-9]*$')
 SOURCE_ID_MAX_LENGTH = 128
+TAG_REGEX = re.compile('^[0-9a-zA-Z-_:]+$')
+TAG_MAX_LENGTH = 128
 
 def full_path(the_path):
     if the_path is not None:
@@ -135,6 +137,12 @@ def validate_source_id(source_id):
         raise Exception(f'Invalid source_id : {source_id} - of length {len(source_id)}')        
     if SOURCE_ID_DEFAULT_REGEX.match(source_id):
         raise Exception(f'Invalid source_id : {source_id} - cannot match {SOURCE_ID_DEFAULT_REGEX.pattern}')
+
+def validate_tag(tag):
+    if not TAG_REGEX.match(tag):
+        raise Exception(f'Invalid tag : {tag} - please use only {TAG_REGEX.pattern}')
+    if len(tag) > TAG_MAX_LENGTH:
+        raise Exception(f'Invalid tag : {tag} - of length {len(tag)}')        
         
 class CustomException(Exception):
     pass

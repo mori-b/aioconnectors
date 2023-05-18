@@ -52,6 +52,7 @@ class MessageFields:
     WAIT_FOR_ACK = 'wait_for_ack'    #boolean
     MESSAGE_TYPE_PUBLISH = 'message_type_publish'
     ERROR = 'error'
+    TAG = 'tag'
     
 class Structures:
     MSG_4_STRUCT = Struct('I')    #4

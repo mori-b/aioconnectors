@@ -1411,7 +1411,7 @@ class Connector:
     #4|2|json|4|data|4|binary
     def pack_message(self, transport_json=None, message_type=None, source_id=None, destination_id=None,
                      request_id=None, response_id=None, binary=None, await_response=False,
-                     with_file=None, data=None, wait_for_ack=False, message_type_publish=None):
+                     with_file=None, data=None, wait_for_ack=False, message_type_publish=None, tag=None):
         if DEBUG_SHOW_DATA:
             self.logger.debug('pack_message with params : '+str(message_type)+', '+str(data)+', '+str(transport_json))
         if transport_json is None:
@@ -1434,6 +1434,8 @@ class Connector:
                 transport_json[MessageFields.WAIT_FOR_ACK] = wait_for_ack
             if message_type_publish:
                 transport_json[MessageFields.MESSAGE_TYPE_PUBLISH] = message_type_publish
+            if tag:
+                transport_json[MessageFields.TAG] = tag
                 
         #pack message
         json_field = json.dumps(transport_json).encode()

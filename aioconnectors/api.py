@@ -5,11 +5,12 @@ from functools import partial
 import uuid
 import ipaddress
 
-from .helpers import get_logger, chown_nobody_permissions, PYTHON_GREATER_37
+from .helpers import get_logger, chown_nobody_permissions, PYTHON_GREATER_37,\
+                                    DEFAULT_LOGGER_NAME, LOGFILE_DEFAULT_NAME, LOG_LEVEL,\
+                                    LOG_ROTATE, LOG_BK_COUNT, validate_tag
 from .core import Connector
 from .connection import Structures, MessageFields, Misc
 
-from .helpers import DEFAULT_LOGGER_NAME, LOGFILE_DEFAULT_NAME, LOG_LEVEL, LOG_ROTATE, LOG_BK_COUNT
 
 class ConnectorManager:
     def __init__(self, config_file_path=None, config_file_overrides_kwargs=True, logger=None, use_default_logger=True, 
@@ -485,16 +486,16 @@ class ConnectorAPI(ConnectorBaseTool):
         
     async def send_message_await_response(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None,
-                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None):
+                           wait_for_ack=False, message_type_publish=None, await_response_timeout=None, tag=None):
         res = await self.send_message(await_response=True, message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, with_file=with_file, 
                                       wait_for_ack=wait_for_ack, message_type_publish=message_type_publish,
-                                      await_response_timeout=await_response_timeout)
+                                      await_response_timeout=await_response_timeout, tag=tag)
         return res
 
     def send_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, tag=None,
                            wait_for_ack=False, message_type_publish=None, await_response_timeout=None, loop=None):
         self.logger.debug(f'send_message_sync of type {message_type}, destination_id {destination_id}, '
                           f'request_id {request_id}, response_id {response_id}')
@@ -503,7 +504,7 @@ class ConnectorAPI(ConnectorBaseTool):
         send_task = self.send_message(message_type=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, await_response=await_response, 
-                                      with_file=with_file, wait_for_ack=wait_for_ack,
+                                      with_file=with_file, wait_for_ack=wait_for_ack, tag=tag,
                                       message_type_publish=message_type_publish, await_response_timeout=await_response_timeout)
         if loop.is_running():
             return loop.create_task(send_task)
@@ -511,7 +512,7 @@ class ConnectorAPI(ConnectorBaseTool):
             return loop.run_until_complete(send_task)
     
     async def send_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None,  tag=None,
                            wait_for_ack=False, message_type_publish=None, await_response_timeout=None, check_chunk_file=True):
 
         if with_file:
@@ -558,7 +559,7 @@ class ConnectorAPI(ConnectorBaseTool):
                         res = await self.send_message(message_type=message_type, destination_id=destination_id,
                                                       request_id=request_id, response_id=response_id,
                                                       data=data, data_is_json=data_is_json, binary=binary,
-                                                      await_response=await_response, with_file=with_file, 
+                                                      await_response=await_response, with_file=with_file, tag=tag,
                                                       wait_for_ack=wait_for_ack, message_type_publish=message_type_publish,
                                                       await_response_timeout=await_response_timeout, check_chunk_file=False)
                         if os.path.exists(chunk_name_path):
@@ -588,9 +589,11 @@ class ConnectorAPI(ConnectorBaseTool):
             self.logger.debug(f'send_message of type {message_type}, destination_id {destination_id}, '
                               f'request_id {request_id}, response_id {response_id}')
                 
+            if tag:
+                validate_tag(tag)
             message_bytes = self.connector.pack_message(data=data, message_type=message_type, source_id=self.source_id,
                                    destination_id=destination_id, request_id=request_id, response_id=response_id, 
-                                   binary=binary, await_response=await_response, with_file=with_file, 
+                                   binary=binary, await_response=await_response, with_file=with_file, tag=tag,
                                    wait_for_ack=wait_for_ack, message_type_publish=message_type_publish)
 
             send_message_lock_internally_acquired = False
@@ -725,19 +728,19 @@ class ConnectorAPI(ConnectorBaseTool):
 
     async def publish_message(self, message_type=None, destination_id=None, request_id=None, response_id=None,
                            data=None, data_is_json=True, binary=None, await_response=False, with_file=None, 
-                           wait_for_ack=False):
+                           wait_for_ack=False, tag=None):
         res = await self.send_message(message_type='_pubsub', message_type_publish=message_type, destination_id=destination_id, 
                                       request_id=request_id, response_id=response_id, data=data, 
                                       data_is_json=data_is_json, binary=binary, await_response=await_response,
-                                      with_file=with_file, wait_for_ack=wait_for_ack)
+                                      with_file=with_file, wait_for_ack=wait_for_ack, tag=tag)
         return res
     
     def publish_message_sync(self, message_type=None, destination_id=None, request_id=None, response_id=None,
-                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False):
+                           data=None, data_is_json=True, binary=None, await_response=False, with_file=None, wait_for_ack=False, tag=None):
         res = self.send_message_sync(message_type='_pubsub', message_type_publish=message_type,
                                      destination_id=destination_id, request_id=request_id, response_id=response_id,
                                      data=data, data_is_json=data_is_json, binary=binary, await_response=await_response,
-                                     with_file=with_file, wait_for_ack=wait_for_ack)
+                                     with_file=with_file, wait_for_ack=wait_for_ack, tag=tag)
         return res
             
     async def recv_message(self, reader, writer):
