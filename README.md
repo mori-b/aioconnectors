@@ -39,8 +39,15 @@ It is a point to point broker built on the client/server model, but both peers c
 Based on asyncio, message sending and receiving are asynchronous, with the option to wait asynchronously for a response.  
 A connector can be configured with a short json file.  
 An embedded command line tool enables to easily run a connector and manage it with shell commands.  
-A simple Python API provides functions like starting/stopping a connector, sending a message, receiving messages, and other management capabilities. To support other languages for the API, the file standalone\_api.py only should be transpiled.
+A simple Python API provides functions like starting/stopping a connector, sending a message, receiving messages, and other management capabilities.  
+To support other languages for the API, the file standalone\_api.py only should be transpiled.  
 
+-  Supports several features : transfer of messages and files, authentication, encryption, persistence, proxy, filtering, point to point, pub/sub. All configurable by simply modifying a configuration file
+- Bidirectional : client and server can push messages and answer to each other (C2)
+- User friendly and intuitive API, with simple Python asynchronous functions to send and receive messages, easy to integrate in an existing asyncio code base
+- Easy installation with pip, zero dependency
+- Embeds a command line interface, which can manage the broker through the command line
+- Embeds a tool for chat, file transfer, and remote execution, over an encrypted channel, easily callable through the command line  
 
 <a name="installation"></a>
 ## INSTALLATION
